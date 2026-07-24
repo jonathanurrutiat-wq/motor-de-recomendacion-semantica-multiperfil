@@ -1,3 +1,71 @@
+import json
+
+import chromadb
+from langchain_core.documents import Document
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+"""Proceso de chunkin del perfil"""
+
+"""Chunkeador de emergencia"""
+
+sub_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=500,
+    chunk_overlap=50,
+    separators=["\n\n", "\n", ". ", " ", ""],
+    length_function = len
+)
+
+
+def construir_chunk(perfiles:dict) -> list[Document]:
+    documentos = []
+    
+    for perfil, categoria in perfiles.items():
+        for tipo_categoria , filtros in categoria.items():
+            
+            for nombre_filtro, datos in filtros.items():
+                partes = [f"Filtro: {nombre_filtro}"]
+                partes.append(f"Descripcion: {datos.get("descripcion_texto", "  ")}")
+                
+                metadata = {
+                    "persona": perfil,
+                    "tipo": tipo_categoria,
+                    "filtro": nombre_filtro,
+                }
+                
+                
+                if tipo_categoria == "restrictivos":
+                    partes.append(f"Nivel : {datos.get("nivel")}")
+                    partes.append(f"Severidad : {datos.get("severidad")}")
+                    
+                    if datos.get("corrupcion_directa"):
+                        partes.append(f"Corrupcion Directa : {datos.get("corrupcion_directa")}")
+                    
+                    if datos.get("excepcion_texto"):
+                         partes.append(f"Excepciones: {datos.get("excepcion_texto")}")
+                         
+                         
+                    metadata["nivel"] = datos.get("nivel")
+                    metadata["severidad"] = datos.get("severidad")
+                    metadata["corrupcion_directa"] = datos.get("corrupcion_directa", [])
+                    metadata["tiene_excepcion"] = bool(datos.get("excepcion_texto"))
+                else:
+                    partes.append(f"Importancia Base  {datos.get("importancia_base")}")
+                    metadata["importancia_base"] = datos.get("importancia_base")
+
+                        
+                
+                texto_chunk = "\n".join(partes)
+                documentos.append(Document(page_content=texto_chunk, metadata=metadata))
+                
+    return documentos;
+            
+            
+        
+    
+
+
+
+
 perfiles = {
     "Ignacio Araya": {
         "restrictivos": {
@@ -110,8 +178,4 @@ perfiles = {
 }
 
 
-
-
-
-
-
+construir_chunk(perfiles)
