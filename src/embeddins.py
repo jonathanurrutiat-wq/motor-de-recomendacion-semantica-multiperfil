@@ -6,7 +6,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 """Proceso de chunkin del perfil"""
 
-"""Chunkeador de emergencia"""
+"""Chunkeador de prueba"""
 
 sub_splitter = RecursiveCharacterTextSplitter(
     chunk_size=500,
