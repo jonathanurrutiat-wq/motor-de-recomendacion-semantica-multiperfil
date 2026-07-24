@@ -7,6 +7,11 @@ Este proyecto consiste en el desarrollo de un sistema híbrido de recomendación
 La arquitectura es genérica: el modelo no está rígidamente programado para un solo usuario, sino que recibe el "Perfil Cinéfilo" como una entrada de datos (input), permitiendo procesar las preferencias de múltiples usuarios (Multiperfil).
 
 
+## **Librerias Utilizadas**
+
+* <code><b><span style="font-size:1.3em;">sentence-transformers</span></b></code>
+
+
 ## **Distribución de directorios**
 <pre><code><i><span style="color: #00fed4ed;">Cómo se organiza el código?</span></i></code></pre>
 
