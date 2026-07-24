@@ -1,7 +1,11 @@
 <h1 align="center">Motor de Recomendación Semántica Multiperfil</h1>
 
+<img src="https://img.shields.io/badge/version-0.0.0.1-blue" alt="version">
+[![Last Commit](https://img.shields.io/github/last-commit/jonathanurrutiat-wq/motor-de-recomendacion-semantica-multiperfil/main-dev)](https://github.com/jonathanurrutiat-wq/motor-de-recomendacion-semantica-multiperfil/tree/main-dev)
+
 ## **Premisa**
 ### "motor-de-recomendacion-semantica-multiperfil"
+
 
 Este proyecto consiste en el desarrollo de un sistema híbrido de recomendación cinematográfica diseñado para superar las limitaciones de los algoritmos de filtrado colaborativo tradicionales. En lugar de basarse en metadatos genéricos o calificaciones numéricas masivas, el sistema evalúa obras cinematográficas analizando semánticamente cientos de reseñas críticas (texto libre) y contrastándolas contra un perfil de usuario dinámico y estructurado en lenguaje natural.
 La arquitectura es genérica: el modelo no está rígidamente programado para un solo usuario, sino que recibe el "Perfil Cinéfilo" como una entrada de datos (input), permitiendo procesar las preferencias de múltiples usuarios (Multiperfil).
@@ -23,8 +27,12 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
     * <code><b><span style="color: #009dff;">main.py</span></b></code>: Archivo principal del programa.
 
+    <small> *Corregir nombre: "embeddings" en plural y **con** 'g', no "embeddins* </small>:
+    * <code><b><span style="color: #009dff;">embeddins.py</span></b></code>: Archivo encargado de las incrustaciones vectoriales.
 
 
 
 ## **Changelog (historial de cambios)**
 <small>*Nota: Este changelog está en orden cronológico inverso.*</small>
+
+### **Versión 0.0.0.1**
