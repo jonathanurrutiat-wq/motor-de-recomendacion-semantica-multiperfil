@@ -1,20 +1,17 @@
-import json
-
 import chromadb
+import numpy as np
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from sentence_transformers import SentenceTransformer
 
-"""Proceso de chunkin del perfil"""
+from config import EMBEDDING_MODEL_NAME
 
-"""Chunkeador de prueba"""
+"""Iniciacion de modelo trasnformador"""
+model = SentenceTransformer(EMBEDDING_MODEL_NAME, device = "cuda")
 
-sub_splitter = RecursiveCharacterTextSplitter(
-    chunk_size=500,
-    chunk_overlap=50,
-    separators=["\n\n", "\n", ". ", " ", ""],
-    length_function = len
-)
 
+
+"""Proceso de chunking del perfil"""
 
 def construir_chunk(perfiles:dict) -> list[Document]:
     documentos = []
@@ -59,9 +56,21 @@ def construir_chunk(perfiles:dict) -> list[Document]:
                 
     return documentos;
             
-            
-        
+"""Construccion de embeddings"""
+
+
+def extraer_textos(documentos: list[Document]) -> list[str]:
     
+    textos = []
+    
+    for documento in documentos:
+        textos.append(documento.page_content)
+    
+    return textos
+
+def crear_embeddings(textos: list[str]) -> np.ndarray:
+    embeddings = model.encode(textos)
+    return embeddings
 
 
 
@@ -178,4 +187,8 @@ perfiles = {
 }
 
 
-construir_chunk(perfiles)
+filtros_chunkeados = construir_chunk(perfiles)
+
+textos_extraidos = extraer_textos(filtros_chunkeados)
+
+embeddings = crear_embeddings(textos_extraidos)

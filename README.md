@@ -15,6 +15,7 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 * <code><b><span style="font-size:1.3em;">langchain</span></b></code>
 * <code><b><span style="font-size:1.3em;">langchain_text_splitters</span></b></code>
 * <code><b><span style="font-size:1.3em;">chromadb</span></b></code> 
+* <code><b><span style="font-size:1.3em;">numpy</span></b></code> 
 
 
 ## **Distribución de directorios**
