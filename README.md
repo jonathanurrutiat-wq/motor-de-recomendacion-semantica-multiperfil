@@ -9,7 +9,11 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
 ## **Librerias Utilizadas**
 
+<small>*Nota: Se recomienda instalar un entorno virtual*</small>
+
 * <code><b><span style="font-size:1.3em;">sentence-transformers</span></b></code>
+* <code><b><span style="font-size:1.3em;">langchain</span></b></code>
+* <code><b><span style="font-size:1.3em;">chromadb</span></b></code>
 
 
 ## **Distribución de directorios**
