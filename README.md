@@ -1,7 +1,7 @@
 <h1 align="center">Motor de Recomendación Semántica Multiperfil</h1>
 
 <img src="https://img.shields.io/badge/version-0.0.0.1-blue" alt="version">
-[![Last Commit](https://img.shields.io/github/last-commit/jonathanurrutiat-wq/motor-de-recomendacion-semantica-multiperfil/main-dev)](https://github.com/jonathanurrutiat-wq/motor-de-recomendacion-semantica-multiperfil/tree/main-dev)
+[https://img.shields.io/github/last-commit/jonathanurrutiat-wq/motor-de-recomendacion-semantica-multiperfil/main-dev](https://img.shields.io/github/last-commit/jonathanurrutiat-wq/motor-de-recomendacion-semantica-multiperfil/main-dev)
 
 ## **Premisa**
 ### "motor-de-recomendacion-semantica-multiperfil"
