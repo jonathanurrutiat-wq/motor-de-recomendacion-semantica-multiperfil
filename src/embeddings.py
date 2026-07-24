@@ -1,7 +1,6 @@
-import chromadb
+
 import numpy as np
 from langchain_core.documents import Document
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 from sentence_transformers import SentenceTransformer
 
 from config import EMBEDDING_MODEL_NAME
@@ -54,7 +53,7 @@ def construir_chunk(perfiles:dict) -> list[Document]:
                 texto_chunk = "\n".join(partes)
                 documentos.append(Document(page_content=texto_chunk, metadata=metadata))
                 
-    return documentos;
+    return documentos
             
 """Construccion de embeddings"""
 

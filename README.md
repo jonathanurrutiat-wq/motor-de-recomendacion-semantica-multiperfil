@@ -17,8 +17,7 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 <small>*Nota: Se recomienda instalar un entorno virtual*</small>
 
 * <code><b><span style="font-size:1.3em;">sentence-transformers</span></b></code>
-* <code><b><span style="font-size:1.3em;">langchain</span></b></code>
-* <code><b><span style="font-size:1.3em;">langchain_text_splitters</span></b></code>
+* <code><b><span style="font-size:1.3em;">langchain_core.documents</span></b></code>
 * <code><b><span style="font-size:1.3em;">chromadb</span></b></code> 
 * <code><b><span style="font-size:1.3em;">numpy</span></b></code> 
 
@@ -30,8 +29,10 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
     * <code><b><span style="color: #009dff;">main.py</span></b></code>: Archivo principal del programa.
 
-    <small> *Corregir nombre: "embeddings" en plural y **con** 'g', no "embeddins* </small>:
-    * <code><b><span style="color: #009dff;">embeddins.py</span></b></code>: Archivo encargado de las incrustaciones vectoriales.
+    
+    * <code><b><span style="color: #009dff;">embeddings.py</span></b></code>: Archivo encargado de las incrustaciones vectoriales.
+
+    * <code><b><span style="color: #009dff;">config.py</span></b></code>: Archivo de configuración centralizada del proyecto, contiene constantes reutilizadas por los distintos módulos.
 
 
 
