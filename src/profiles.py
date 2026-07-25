@@ -19,19 +19,25 @@ def mostrar_menu():
     print("4. Salir")
     print("="*25)
 
-def modificar_perfil(datos, nombre_perfil):
-    nuevo_nombre = input("Ingrese el nuevo nombre del perfil (o presione Enter para mantenerlo): ")
-    if nuevo_nombre and nuevo_nombre != nombre_perfil:
-        datos[nuevo_nombre] = datos.pop(nombre_perfil)
-        print(f"El perfil ha sido renombrado a '{nuevo_nombre}'.")
-        nombre_perfil = nuevo_nombre
+def modificar_perfil(datos):
+    nombre_perfil = input("Ingrese el nombre de perfil (nuevo o existente): ")
+    if nombre_perfil in datos:
+        cambiar = input(f"El perfil '{nombre_perfil}' ya existe. ¿Desea cambiar su nombre? (s/n): ")
+        if cambiar.lower() == "s":
+            nuevo_nombre = input("Ingrese el nuevo nombre del perfil: ")
+            if nuevo_nombre and nuevo_nombre != nombre_perfil:
+                datos[nuevo_nombre] = datos.pop(nombre_perfil)
+                print(f"El perfil ha sido renombrado a '{nuevo_nombre}'.")
+                nombre_perfil = nuevo_nombre
+    else:
+        print(f"Creando un nuevo perfil: '{nombre_perfil}'")
+        datos[nombre_perfil] = {"restrictivos": {}}
     
     if "restrictivos" not in datos[nombre_perfil]:
         datos[nombre_perfil]["restrictivos"] = {}
     
     while (True):
-        print("Ingrese un restrictivo y su modificacion (escriba 'salir' para terminar): ")
-        filtro = input("Ingrese filtro restrictivo: ")
+        filtro = input("Ingrese un restrictivo y su modificacion (escriba 'salir' para terminar): ")
         
         if filtro.lower() == "salir":
             break
@@ -66,21 +72,17 @@ def modificar_perfil(datos, nombre_perfil):
             "excepcion_texto": excepcion
         }
         print("Filtro agregado/modificado exitosamente.")
+    
+    if not datos[nombre_perfil]["restrictivos"]:
+        print(f"El perfil '{nombre_perfil}' no tiene filtros restrictivos. Se eliminará el perfil.")
+        del datos[nombre_perfil]
 
 while True:
     mostrar_menu()
     opcion = input("Seleccione una opción: ")
     
     if opcion == "1":
-        nombre_perfil = input("Ingrese el nombre del nuevo perfil: ")
-        
-        if nombre_perfil in datos:
-            actualizar = input(f"El perfil '{nombre_perfil}' ya existe, ¿Desea actualizarlo? (s/n): ")
-            if actualizar == "s":
-                modificar_perfil(datos, nombre_perfil)
-        else:
-            datos[nombre_perfil] = {"restrictivos": {}}
-            modificar_perfil(datos, nombre_perfil)
+        modificar_perfil(datos)
     
     elif opcion == "2":
         if not datos:
