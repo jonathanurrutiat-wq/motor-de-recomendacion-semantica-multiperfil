@@ -26,7 +26,9 @@ def menu_modificacion_perfil():
     print("1. Modificar nombre de perfil")
     print("2. Agregar/Modificar filtro restrictivo")
     print("3. Eliminar filtro restrictivo")
-    print("4. Volver al menú principal")
+    print("4. Agregar/Modificar afinidad")
+    print("5. Eliminar afinidad")
+    print("6. Volver al menú principal")
     print("="*35)
 
 while True:
@@ -35,6 +37,8 @@ while True:
     
     if opcion == "1":
         nombre_perfil = input("\nIngrese un nombre de perfil: ")
+        nombre_perfil = nombre_perfil.strip()
+        nombre_perfil = nombre_perfil.title() 
         if nombre_perfil in datos:
             eleccion = input(f"El perfil '{nombre_perfil}' ya existe. ¿Desea modificarlo? (s/n): ")
             if eleccion.lower() != "s":
@@ -43,9 +47,12 @@ while True:
         else:
             print(f"Creando un nuevo perfil: '{nombre_perfil}'")
             datos[nombre_perfil] = {"restrictivos": {}}
+            datos[nombre_perfil] = {"afinidad": {}}
         
         if "restrictivos" not in datos[nombre_perfil]:
             datos[nombre_perfil]["restrictivos"] = {}
+        if "afinidad" not in datos[nombre_perfil]:
+            datos[nombre_perfil]["afinidad"] = {}
         
         while(True):
             menu_modificacion_perfil()
@@ -66,27 +73,35 @@ while True:
                     modificar = input(f"El filtro '{filtro}' ya existe. ¿Desea modificarlo? (s/n): ")
                     if modificar.lower() == "s":
                         nuevo_filtro = input("Ingrese el nuevo filtro restrictivo (o deje en blanco si lo quiere mantener): ")
-                        if nuevo_filtro and nuevo_filtro != filtro:
+                        if nuevo_filtro:
                             datos[nombre_perfil]["restrictivos"][nuevo_filtro] = datos[nombre_perfil]["restrictivos"].pop(filtro)
                             filtro = nuevo_filtro
                         else:
                             print("No se realizaron cambios en el filtro.")
                             continue
+                    else:
+                        print("No se realizaron cambios en el filtro.")
+                        continue
                 else:
                     print(f"Agregando un nuevo filtro restrictivo: '{filtro}'")
                     datos[nombre_perfil]["restrictivos"][filtro] = {}
                 
                 desc_texto = input("Ingrese la descripción del filtro: ")
-                severidad = input("Ingrese la severidad del filtro (veto absoluto/intermedio/moderada): ")
-                if severidad.lower() == "veto absoluto":
-                    nivel = "3"
-                elif severidad.lower() == "intermedio":
-                    nivel = "2.5"
-                elif severidad.lower() == "moderada":
-                    nivel = "2"
-                else:
-                    print("Severidad no reconocida, se asignará 'moderada' por defecto.")
-                    nivel = "2"
+                severidad = None
+                while (severidad not in ["veto absoluto", "grave", "moderada a grave", "moderada", "leve"]):
+                    severidad = input("Ingrese la severidad del filtro (veto absoluto/grave/moderada a grave/moderada/leve): ")
+                    if severidad.lower() == "veto absoluto":
+                        nivel = "3"
+                    elif severidad.lower() == "grave":
+                        nivel = "2.5"
+                    elif severidad.lower() == "moderada a grave":
+                        nivel = "2"
+                    elif severidad.lower() == "moderada":
+                        nivel = "1.5"
+                    elif severidad.lower() == "leve":
+                        nivel = "1"
+                    else:
+                        print("Severidad no válida. Por favor, ingrese una de las opciones válidas.")
                 
                 excepcion = input("Ingrese la excepcion del filtro (si no hay, deje en blanco): ") or None
                 datos[nombre_perfil]["restrictivos"][filtro] = {
@@ -110,6 +125,48 @@ while True:
                     print(f"No se encontró el filtro '{filtro_eliminar}'.")
             
             elif opcion_modificacion == "4":
+                afinidad = input("Ingrese la afinidad a agregar/modificar: ")
+                if afinidad in datos[nombre_perfil]["afinidad"]:
+                    modificar = input(f"La afinidad '{afinidad}' ya existe. ¿Desea modificarla? (s/n): ")
+                    if modificar.lower() == "s":
+                        nueva_afinidad = input("Ingrese la nueva afinidad (o deje en blanco si la quiere mantener): ")
+                        if nueva_afinidad:
+                            datos[nombre_perfil]["afinidad"][nueva_afinidad] = datos[nombre_perfil]["afinidad"].pop(afinidad)
+                            afinidad = nueva_afinidad
+                        else:
+                            print("No se realizaron cambios en la afinidad.")
+                            continue
+                    else:
+                        print("No se realizaron cambios en la afinidad.")
+                        continue
+                else:
+                    print(f"Agregando un nuevo filtro restrictivo: '{afinidad}'")
+                    datos[nombre_perfil]["afinidad"][afinidad] = {}
+                
+                descripcion_afinidad = input("Ingrese la descripción de la afinidad: ")
+                
+                importancia_base = float(input("Ingrese la importancia base de la afinidad (1-10): "))
+                while not (1 <= importancia_base <= 10):
+                    importancia_base = float(input("Por favor, ingrese un número válido entre 1 y 10 para la importancia base: "))
+                
+                datos[nombre_perfil]["afinidad"][afinidad] = {
+                    "descripcion": descripcion_afinidad,
+                    "importancia_base": float(importancia_base)
+                }
+            
+            elif opcion_modificacion == "5":
+                afinidad_eliminar = input("Ingrese la afinidad a eliminar: ")
+                if afinidad_eliminar in datos[nombre_perfil]["afinidad"]:
+                    confirmar = input(f"¿Está seguro de que desea eliminar la afinidad '{afinidad_eliminar}'? (s/n): ")
+                    if confirmar.lower() == "s":
+                        del datos[nombre_perfil]["afinidad"][afinidad_eliminar]
+                        print(f"Afinidad '{afinidad_eliminar}' eliminada exitosamente.")
+                    else:
+                        print("Eliminación cancelada.")
+                else:
+                    print(f"No se encontró la afinidad '{afinidad_eliminar}'.")
+
+            elif opcion_modificacion == "6":
                 print("Volviendo al menú principal.")
                 break
 
@@ -127,9 +184,15 @@ while True:
                     print(f"    Nivel: {detalles['nivel']}")
                     excepcion = detalles.get('excepcion_texto', 'Ninguna')
                     print(f"    Excepción: {excepcion}")
-    
+                for afinidad, detalles in contenido["afinidad"].items():
+                    print(f"  Afinidad: {afinidad}")
+                    print(f"    Descripción: {detalles['descripcion']}")
+                    print(f"    Importancia Base: {detalles['importancia_base']}")
+
     elif opcion == "3":
         nombre_perfil = input("Ingrese el nombre del perfil a eliminar: ")
+        nombre_perfil = nombre_perfil.strip()
+        nombre_perfil = nombre_perfil.title() 
         if nombre_perfil in datos:
             confirmar = input(f"¿Está seguro de que desea eliminar el perfil '{nombre_perfil}'? (s/n): ")
             if confirmar.lower() == "s":
@@ -148,4 +211,3 @@ while True:
     
     else:
         print("Opción no válida. Por favor, seleccione una opción del 1 al 4.")
-            

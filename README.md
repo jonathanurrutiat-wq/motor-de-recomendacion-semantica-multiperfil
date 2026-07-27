@@ -44,3 +44,5 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
 * Parche 0.0.2
   + Implementacion de sistema de embeddings para los perfiles de usuario
+* Parche 0.0.3
+  + Creación y finalización de entorno de creación de perfiles cinéfilos de usuarios (nombre perfil, filtros, afinidades)
