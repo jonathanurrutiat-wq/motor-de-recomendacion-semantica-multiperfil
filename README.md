@@ -1,6 +1,6 @@
 <h1 align="center">Motor de Recomendación Semántica Multiperfil</h1>
 
-<img src="https://img.shields.io/badge/version-0.0.0.1-blue" alt="version">
+<img src="https://img.shields.io/badge/version-0.0.1.1-blue" alt="version">
 
 [![Last Commit](https://img.shields.io/github/last-commit/jonathanurrutiat-wq/motor-de-recomendacion-semantica-multiperfil/main-dev?style=flat-square&logo=github&color=blue&cache_bust=1)](https://github.com/jonathanurrutiat-wq/motor-de-recomendacion-semantica-multiperfil/tree/main-dev)
 
@@ -36,4 +36,10 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 ## **Changelog (historial de cambios)**
 <small>*Nota: Este changelog está en orden cronológico inverso.*</small>
 
+### **Versión 0.0.1.1**
+* Implementado filtrado de base de datos con archivo *"filter.py"*
+
+* Agregado nuevo directorio *"db"* donde reside la totalidad de los archivos .csv crudos (*"raw"*) extraídos junto a su código, la carpeta *"filtered"* con *"filter.py"* y el directorio final de salida *"result"* donde se encuentran los archivos ya limpiados y listos para trabajar.
+
 ### **Versión 0.0.0.1**
+* Versión inicial del programa: Initial commits y organización básica
