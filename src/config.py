@@ -1,0 +1,1 @@
+EMBEDDING_MODEL_NAME = "paraphrase-multilingual-MiniLM-L12-v2"
