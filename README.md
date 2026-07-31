@@ -1,6 +1,6 @@
 <h1 align="center">Motor de Recomendación Semántica Multiperfil</h1>
 
-<img src="https://img.shields.io/badge/version-0.0.4-blue" alt="version">
+<img src="https://img.shields.io/badge/version-0.0.5-blue" alt="version">
 
 [![Last Commit](https://img.shields.io/github/last-commit/jonathanurrutiat-wq/motor-de-recomendacion-semantica-multiperfil/main-dev?style=flat-square&logo=github&color=blue&cache_bust=1)](https://github.com/jonathanurrutiat-wq/motor-de-recomendacion-semantica-multiperfil/tree/main-dev)
 
@@ -27,7 +27,7 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
 * <code><b><span style="color: #23c523d4;">src/</span></b></code>: Directorio principal del código fuente. Contiene las funcionalidades clave del programa y la lógica central del mismo.
 
-    * <code><b><span style="color: #23c523d4;">db/</span></b></code>: Carpeta destinada al manejo de la base de datos del sistema.
+    * <code><b><span style="color: #23c523d4;">db/</span></b></code>: Módulo destinado al manejo de la base de datos del sistema.
         
         * <code><b><span style="color: #23c523d4;">filtered/</span></b></code>:
             
@@ -38,6 +38,12 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
         * <code><b><span style="color: #23c523d4;">raw/</span></b></code>: Carpeta donde se almacenan los archivos .csv crudos extraídos desde letterboxd.
 
         * <code><b><span style="color: #009dff;">extract.ipynb</span></b></code>: Archivo encargado de extraer reseñas de letterboxd y serializarlas.
+
+    * <code><b><span style="color: #23c523d4;">loss/</span></b></code>: Módulo dedicado a construir y supervisar el entrenamiento del modelo matemático.
+        
+        * <code><b><span style="color: #009dff;">gt_matrix_pipeline.py</span></b></code>: Despachador de datos que administra la ingesta de archivos procesados y utiliza álgebra de conjuntos para garantizar evaluaciones únicas.
+
+        * <code><b><span style="color: #009dff;">matrix.py</span></b></code>: Motor generador de la matriz de Verdad base, extrae la topología de los perfiles de usuario para crear el tensor objetivo ($Y$) contra el cual el Perceptrón Multicapa validará sus predicciones.
         
 
     * <code><b><span style="color: #009dff;">main.py</span></b></code>: Archivo principal del programa.
@@ -54,6 +60,15 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
 ### **Versión 0.0.1** (14-07-2026)
 > Implementacion temprana de chunking para los perfiles de usuario.
+
+* Parche 0.0.5 (31-07-2026)
+    > Creado módulo `loss/` e implementadas funcionalidades principales de Ground truth:
+    
+    * Creación dinámica de la matriz de Verdad Base mediante `matrix.py`.
+
+    * Script despachador `gt_matrix_pipeline` para controlar el flujo de la base de datos.
+
+    * Utilizada álgebra de conjuntos en el *pipeline* para rastrear películas pendientes y obviar aquellas ya evaluadas.
 
 * Parche 0.0.4 (31-07-2026)
 
