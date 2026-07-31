@@ -46,6 +46,13 @@ def filtrar_data(df):
   if 'review_text' in df.columns:
     df['review_text'] = parse_review(df['review_text'])
 
+    # Nuevo: filtro semántico (v0.0.1.2)
+
+    # Eliminar reseñas completamente vacías
+    df = df[df['review_text'].str.strip() != ""]
+    # Eliminar reseñas que son única y exclusivamente números (no aportan contexto significativo)
+    df = df[~df['review_text'].str.match(r'^\s*\d+\s*$', na=False)]
+
   return df
 
 def main():
