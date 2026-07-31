@@ -1,6 +1,6 @@
 <h1 align="center">Motor de Recomendación Semántica Multiperfil</h1>
 
-<img src="https://img.shields.io/badge/version-0.0.1.4-blue" alt="version">
+<img src="https://img.shields.io/badge/version-0.0.4-blue" alt="version">
 
 [![Last Commit](https://img.shields.io/github/last-commit/jonathanurrutiat-wq/motor-de-recomendacion-semantica-multiperfil/main-dev?style=flat-square&logo=github&color=blue&cache_bust=1)](https://github.com/jonathanurrutiat-wq/motor-de-recomendacion-semantica-multiperfil/tree/main-dev)
 
@@ -49,17 +49,17 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 ## **Changelog (historial de cambios)**
 <small>*Nota: Este changelog está en orden cronológico inverso.*</small>
 
-### **Versión 0.0.1.0** (14-07-2026)
-> Implementación de base de datos: extracción y filtrado.
-> Versiones iniciales de chunking para los perfiles de usuario y sistema de embeddings para los mismos.
+### **Versión 0.0.1** (14-07-2026)
+> Implementacion temprana de chunking para los perfiles de usuario.
 
-* Parche 0.0.1.4
+* Parche 0.0.4 (31-07-2026)
 
     * Añadido nuevo filtro para el procesado de la base de datos: ahora se eliminan reseñas con textos tanto completamente vacíos como con números (*presuntamente*) fuera de contexto, es decir, sin ningún tipo de texto además de los propios números.
 
     * Actualizada serialización de archivos extraídos desde (`extract.ipynb`) de tal forma que los archivos csv resultantes sean guardados correctamente dentro de la carpeta (`raw`) y siguiendo la convención: **prefijo**_YY-MM-DD_HH-MM-SS.
 
-* Parche 0.0.1.3
+* Parche 0.0.3 (30-07-2026)
+    > Implementación de base de datos: extracción y filtrado.
 
     * Estructuración inicial del módulo de base de datos (`db/`) para aislar la lógica de ingesta de la lógica de procesamiento.
 
@@ -67,13 +67,6 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
     * Desarrollado motor de sanitización y normalización (`filter.py`) para depurar los datos extraídos, prepararlos para su vectorización y almacenarlos dentro de la carpeta de archivos procesados (`result`).
 
-* Parche 0.0.1.2
+* Parche 0.0.2
 
-    * Implementacion de sistema de embeddings para los perfiles de usuario
-
-* Parche 0.0.1.1
-
-    * Implementacion temprana de chunking para los perfiles de usuario
-
-### **Versión 0.0.0.1**
-* Versión inicial del programa: Initial commits y organización básica
+    * Implementacion de sistema de embeddings para los perfiles de usuario.
