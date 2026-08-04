@@ -36,6 +36,9 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
 
 
+## **Aclaraciones**
+    > El modelo usado para crear los embedings no genera problemas si se usan reseñas en ingles/español
+
 ## **Changelog (historial de cambios)**
 <small>*Nota: Este changelog está en orden cronológico inverso.*</small>
 
