@@ -5,11 +5,6 @@ from sentence_transformers import SentenceTransformer
 
 from config import EMBEDDING_MODEL_NAME
 
-"""Iniciacion de modelo trasnformador"""
-model = SentenceTransformer(EMBEDDING_MODEL_NAME, device = "cuda")
-
-
-
 """Proceso de chunking del perfil"""
 
 def construir_chunk(perfiles:dict) -> list[Document]:
@@ -67,127 +62,132 @@ def extraer_textos(documentos: list[Document]) -> list[str]:
     
     return textos
 
-def crear_embeddings(textos: list[str]) -> np.ndarray:
+def crear_embeddings(textos: list[str], model: SentenceTransformer) -> np.ndarray:
     embeddings = model.encode(textos)
     return embeddings
 
+def main():
+  print("Cargando nuevo modelo neuronal en memoria CUDA. Por favor espere...")
+  model = SentenceTransformer(EMBEDDING_MODEL_NAME, device = "cuda")
+  perfiles = {
+      "Ignacio Araya": {
+          "restrictivos": {
+              "Camaradería Masculina Rancia": {
+                  "descripcion_texto": "Dinámicas que validan el sexismo desde el cinismo o la burla, donde la mujer es un trofeo o un chiste. Nota: No penaliza la 'protección masculina' o la nostalgia si la mirada de la película hacia el personaje femenino está construida desde la reverencia, el amor o la inocencia.",
+                  "descripcion_fragmentos": [
+                      "Dinámicas que validan el sexismo desde el cinismo o la burla, donde la mujer es un trofeo o un chiste.",
+                      "Nota: No penaliza la 'protección masculina' o la nostalgia si la mirada de la película hacia el personaje femenino está construida desde la reverencia, el amor o la inocencia.",
+                  ],
+                  "nivel": 3.0,
+                  "severidad": "Veto Absoluto",
+                  "corrupcion_directa": ["Resistencia Femenina"],
+                  "excepcion_texto": None,
+                  "excepcion_fragmentos": [],
+              },
+              "Insoportabilidad Prolongada": {
+                  "descripcion_texto": "Obligar al espectador a convivir excesivamente con personajes arrogantes, crueles o de una superioridad moral sofocante.",
+                  "descripcion_fragmentos": [
+                      "Obligar al espectador a convivir excesivamente con personajes arrogantes, crueles o de una superioridad moral sofocante.",
+                  ],
+                  "nivel": 3.0,
+                  "severidad": "Veto Absoluto",
+                  "corrupcion_directa": ["Ternura y Empatía Radical", "Humanismo Social"],
+                  "excepcion_texto": "El personaje sufre un desarme temprano y su ego es bajado a tierra rápidamente. La película combina alta contemplación inmersiva y empatía radical para hacernos entender que la toxicidad nace de un trauma o abuso sistémico.",
+                  "excepcion_fragmentos": [
+                      "El personaje sufre un desarme temprano y su ego es bajado a tierra rápidamente.",
+                      "La película combina alta contemplación inmersiva y empatía radical para hacernos entender que la toxicidad nace de un trauma o abuso sistémico.",
+                  ],
+              },
+              "Control Emocional Artificial": {
+                  "descripcion_texto": "Perfección técnica fría, música manipuladora y montaje que clausura el temblor humano para dictar exactamente qué debes sentir.",
+                  "descripcion_fragmentos": [
+                      "Perfección técnica fría, música manipuladora y montaje que clausura el temblor humano para dictar exactamente qué debes sentir.",
+                  ],
+                  "nivel": 2.5,
+                  "severidad": "Intermedio",
+                  "corrupcion_directa": ["Humanismo Social", "Contemplación Inmersiva"],
+                  "excepcion_texto": None,
+                  "excepcion_fragmentos": [],
+              },
+              "Personajes Diorama": {
+                  "descripcion_texto": "Estética de vitrina. Cuadros visualmente hermosos y simétricos, pero absolutamente vacíos de sangre y conexión humana real.",
+                  "descripcion_fragmentos": [
+                      "Estética de vitrina.",
+                      "Cuadros visualmente hermosos y simétricos, pero absolutamente vacíos de sangre y conexión humana real.",
+                  ],
+                  "nivel": 2.5,
+                  "severidad": "Intermedio",
+                  "corrupcion_directa": ["Ternura y Empatía Radical"],
+                  "excepcion_texto": None,
+                  "excepcion_fragmentos": [],
+              },
+              "Caos Asfixiante": {
+                  "descripcion_texto": "Caos hiperactivo, montaje frenético, dar las respuestas servidas sin dejar respirar a la narrativa.",
+                  "descripcion_fragmentos": [
+                      "Caos hiperactivo, montaje frenético, dar las respuestas servidas sin dejar respirar a la narrativa.",
+                  ],
+                  "nivel": 2.0,
+                  "severidad": "Moderada",
+                  "corrupcion_directa": ["Contemplación Inmersiva"],
+                  "excepcion_texto": None,
+                  "excepcion_fragmentos": [],
+              },
+          },
+          "afinidad": {
+              "Resistencia Femenina": {
+                  "descripcion_texto": "Agencia y dignidad en la adversidad. Mujeres complejas, redes de apoyo, respuesta activa frente a injusticias, o la valentía de elegir el amor, la vulnerabilidad y el cuidado dentro de entornos hostiles o trágicos.",
+                  "descripcion_fragmentos": [
+                      "Agencia y dignidad en la adversidad.",
+                      "Mujeres complejas, redes de apoyo, respuesta activa frente a injusticias, o la valentía de elegir el amor, la vulnerabilidad y el cuidado dentro de entornos hostiles o trágicos.",
+                  ],
+                  "importancia_base": 10.0,
+              },
+              "Contemplación Inmersiva": {
+                  "descripcion_texto": "La 'calma aterradora'. Ritmo paciente que da oxígeno para procesar conflictos y tragedias. El tiempo y el espacio narrativo respiran.",
+                  "descripcion_fragmentos": [
+                      "La 'calma aterradora'.",
+                      "Ritmo paciente que da oxígeno para procesar conflictos y tragedias.",
+                      "El tiempo y el espacio narrativo respiran.",
+                  ],
+                  "importancia_base": 9.0,
+              },
+              "Ternura y Empatía Radical": {
+                  "descripcion_texto": "La ética del cuidado. Empatía radical hacia lo roto, gestos mínimos, compasión genuina por las fallas humanas. Mirada libre de cinismo.",
+                  "descripcion_fragmentos": [
+                      "La ética del cuidado.",
+                      "Empatía radical hacia lo roto, gestos mínimos, compasión genuina por las fallas humanas.",
+                      "Mirada libre de cinismo.",
+                  ],
+                  "importancia_base": 10.0,
+              },
+              "Humanismo Social": {
+                  "descripcion_texto": "Retrato crudo de la realidad. Naturalismo ético, comprensión del origen de la marginalidad, el trauma o la clase, observando sin superioridad moral ni juzgar a los afectados.",
+                  "descripcion_fragmentos": [
+                      "Retrato crudo de la realidad.",
+                      "Naturalismo ético, comprensión del origen de la marginalidad, el trauma o la clase, observando sin superioridad moral ni juzgar a los afectados.",
+                  ],
+                  "importancia_base": 8.0,
+              },
+              "Vanguardia y Simbolismo": {
+                  "descripcion_texto": "Riesgo y forma cinematográfica. Narrativas abiertas, pensamiento visual, significado que nace del desvío, la contradicción y el rechazo a fórmulas empaquetadas.",
+                  "descripcion_fragmentos": [
+                      "Riesgo y forma cinematográfica.",
+                      "Narrativas abiertas, pensamiento visual, significado que nace del desvío, la contradicción y el rechazo a fórmulas empaquetadas.",
+                  ],
+                  "importancia_base": 7.0,
+              },
+          },
+      }
+  }
 
+  print("Construyendo chunks...")
+  filtros_chunkeados = construir_chunk(perfiles)
+  textos_extraidos = extraer_textos(filtros_chunkeados)
 
+  print("Generando embeddings...")
 
-perfiles = {
-    "Ignacio Araya": {
-        "restrictivos": {
-            "Camaradería Masculina Rancia": {
-                "descripcion_texto": "Dinámicas que validan el sexismo desde el cinismo o la burla, donde la mujer es un trofeo o un chiste. Nota: No penaliza la 'protección masculina' o la nostalgia si la mirada de la película hacia el personaje femenino está construida desde la reverencia, el amor o la inocencia.",
-                "descripcion_fragmentos": [
-                    "Dinámicas que validan el sexismo desde el cinismo o la burla, donde la mujer es un trofeo o un chiste.",
-                    "Nota: No penaliza la 'protección masculina' o la nostalgia si la mirada de la película hacia el personaje femenino está construida desde la reverencia, el amor o la inocencia.",
-                ],
-                "nivel": 3.0,
-                "severidad": "Veto Absoluto",
-                "corrupcion_directa": ["Resistencia Femenina"],
-                "excepcion_texto": None,
-                "excepcion_fragmentos": [],
-            },
-            "Insoportabilidad Prolongada": {
-                "descripcion_texto": "Obligar al espectador a convivir excesivamente con personajes arrogantes, crueles o de una superioridad moral sofocante.",
-                "descripcion_fragmentos": [
-                    "Obligar al espectador a convivir excesivamente con personajes arrogantes, crueles o de una superioridad moral sofocante.",
-                ],
-                "nivel": 3.0,
-                "severidad": "Veto Absoluto",
-                "corrupcion_directa": ["Ternura y Empatía Radical", "Humanismo Social"],
-                "excepcion_texto": "El personaje sufre un desarme temprano y su ego es bajado a tierra rápidamente. La película combina alta contemplación inmersiva y empatía radical para hacernos entender que la toxicidad nace de un trauma o abuso sistémico.",
-                "excepcion_fragmentos": [
-                    "El personaje sufre un desarme temprano y su ego es bajado a tierra rápidamente.",
-                    "La película combina alta contemplación inmersiva y empatía radical para hacernos entender que la toxicidad nace de un trauma o abuso sistémico.",
-                ],
-            },
-            "Control Emocional Artificial": {
-                "descripcion_texto": "Perfección técnica fría, música manipuladora y montaje que clausura el temblor humano para dictar exactamente qué debes sentir.",
-                "descripcion_fragmentos": [
-                    "Perfección técnica fría, música manipuladora y montaje que clausura el temblor humano para dictar exactamente qué debes sentir.",
-                ],
-                "nivel": 2.5,
-                "severidad": "Intermedio",
-                "corrupcion_directa": ["Humanismo Social", "Contemplación Inmersiva"],
-                "excepcion_texto": None,
-                "excepcion_fragmentos": [],
-            },
-            "Personajes Diorama": {
-                "descripcion_texto": "Estética de vitrina. Cuadros visualmente hermosos y simétricos, pero absolutamente vacíos de sangre y conexión humana real.",
-                "descripcion_fragmentos": [
-                    "Estética de vitrina.",
-                    "Cuadros visualmente hermosos y simétricos, pero absolutamente vacíos de sangre y conexión humana real.",
-                ],
-                "nivel": 2.5,
-                "severidad": "Intermedio",
-                "corrupcion_directa": ["Ternura y Empatía Radical"],
-                "excepcion_texto": None,
-                "excepcion_fragmentos": [],
-            },
-            "Caos Asfixiante": {
-                "descripcion_texto": "Caos hiperactivo, montaje frenético, dar las respuestas servidas sin dejar respirar a la narrativa.",
-                "descripcion_fragmentos": [
-                    "Caos hiperactivo, montaje frenético, dar las respuestas servidas sin dejar respirar a la narrativa.",
-                ],
-                "nivel": 2.0,
-                "severidad": "Moderada",
-                "corrupcion_directa": ["Contemplación Inmersiva"],
-                "excepcion_texto": None,
-                "excepcion_fragmentos": [],
-            },
-        },
-        "afinidad": {
-            "Resistencia Femenina": {
-                "descripcion_texto": "Agencia y dignidad en la adversidad. Mujeres complejas, redes de apoyo, respuesta activa frente a injusticias, o la valentía de elegir el amor, la vulnerabilidad y el cuidado dentro de entornos hostiles o trágicos.",
-                "descripcion_fragmentos": [
-                    "Agencia y dignidad en la adversidad.",
-                    "Mujeres complejas, redes de apoyo, respuesta activa frente a injusticias, o la valentía de elegir el amor, la vulnerabilidad y el cuidado dentro de entornos hostiles o trágicos.",
-                ],
-                "importancia_base": 10.0,
-            },
-            "Contemplación Inmersiva": {
-                "descripcion_texto": "La 'calma aterradora'. Ritmo paciente que da oxígeno para procesar conflictos y tragedias. El tiempo y el espacio narrativo respiran.",
-                "descripcion_fragmentos": [
-                    "La 'calma aterradora'.",
-                    "Ritmo paciente que da oxígeno para procesar conflictos y tragedias.",
-                    "El tiempo y el espacio narrativo respiran.",
-                ],
-                "importancia_base": 9.0,
-            },
-            "Ternura y Empatía Radical": {
-                "descripcion_texto": "La ética del cuidado. Empatía radical hacia lo roto, gestos mínimos, compasión genuina por las fallas humanas. Mirada libre de cinismo.",
-                "descripcion_fragmentos": [
-                    "La ética del cuidado.",
-                    "Empatía radical hacia lo roto, gestos mínimos, compasión genuina por las fallas humanas.",
-                    "Mirada libre de cinismo.",
-                ],
-                "importancia_base": 10.0,
-            },
-            "Humanismo Social": {
-                "descripcion_texto": "Retrato crudo de la realidad. Naturalismo ético, comprensión del origen de la marginalidad, el trauma o la clase, observando sin superioridad moral ni juzgar a los afectados.",
-                "descripcion_fragmentos": [
-                    "Retrato crudo de la realidad.",
-                    "Naturalismo ético, comprensión del origen de la marginalidad, el trauma o la clase, observando sin superioridad moral ni juzgar a los afectados.",
-                ],
-                "importancia_base": 8.0,
-            },
-            "Vanguardia y Simbolismo": {
-                "descripcion_texto": "Riesgo y forma cinematográfica. Narrativas abiertas, pensamiento visual, significado que nace del desvío, la contradicción y el rechazo a fórmulas empaquetadas.",
-                "descripcion_fragmentos": [
-                    "Riesgo y forma cinematográfica.",
-                    "Narrativas abiertas, pensamiento visual, significado que nace del desvío, la contradicción y el rechazo a fórmulas empaquetadas.",
-                ],
-                "importancia_base": 7.0,
-            },
-        },
-    }
-}
+  embeddings = crear_embeddings(textos_extraidos, model)
+  print(f"Embeddings generados con éxito. Forma del tensor: {embeddings.shape}")
 
-
-filtros_chunkeados = construir_chunk(perfiles)
-
-textos_extraidos = extraer_textos(filtros_chunkeados)
-
-embeddings = crear_embeddings(textos_extraidos)
+if __name__ == '__main__':
+  main()

@@ -1,6 +1,6 @@
 <h1 align="center">Motor de Recomendación Semántica Multiperfil</h1>
 
-<img src="https://img.shields.io/badge/version-0.0.5-blue" alt="version">
+<img src="https://img.shields.io/badge/version-0.1.0-blue" alt="version">
 
 [![Last Commit](https://img.shields.io/github/last-commit/jonathanurrutiat-wq/motor-de-recomendacion-semantica-multiperfil/main-dev?style=flat-square&logo=github&color=blue&cache_bust=1)](https://github.com/jonathanurrutiat-wq/motor-de-recomendacion-semantica-multiperfil/tree/main-dev)
 
@@ -11,6 +11,10 @@
 Este proyecto consiste en el desarrollo de un sistema híbrido de recomendación cinematográfica diseñado para superar las limitaciones de los algoritmos de filtrado colaborativo tradicionales. En lugar de basarse en metadatos genéricos o calificaciones numéricas masivas, el sistema evalúa obras cinematográficas analizando semánticamente cientos de reseñas críticas (texto libre) y contrastándolas contra un perfil de usuario dinámico y estructurado en lenguaje natural.
 La arquitectura es genérica: el modelo no está rígidamente programado para un solo usuario, sino que recibe el "Perfil Cinéfilo" como una entrada de datos (input), permitiendo procesar las preferencias de múltiples usuarios (Multiperfil).
 
+## **Cómmo ejecutar el programa?**
+
+* Abrir el terminal CMD o Powershell y utilizar el siguiente comando:
+    `python motor_recomendacion_semantica/src/main.py`
 
 ## **Librerias Utilizadas**
 
@@ -57,6 +61,21 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
 ## **Changelog (historial de cambios)**
 <small>*Nota: Este changelog está en orden cronológico inverso.*</small>
+
+### **Versión 0.1.0** (03-08-2026)
+> Conseguida versión funcional del programa con todas las funcionalidades principales.
+
+* Cambios
+    
+    * Añadido mecanismo básico de ingesta para el oráculo con `ingest_oraculo.py`.
+
+    * Concretada estructura base de la función `main.py` para acceder a las funcionalidades del programa.
+
+    * Implementada base de datos final utilizando sqlite3 para guardar las calificaciones (manuales) finales de las películas en `ground_truth.db`.
+
+    * Refactorizados archivos `embeddings.py` y `profiles.py` para definir una función maestra local (main) y así poder importar la misma a través del archivo principal del programa, `main.py`.
+
+    * Cambios generales para permitir sincronización y estabilidad con Google Colab: Adaptar localización de rutas con Path.cwd, acceder a sub-directorios de forma más explícita, etc.
 
 ### **Versión 0.0.1** (14-07-2026)
 > Implementacion temprana de chunking para los perfiles de usuario.

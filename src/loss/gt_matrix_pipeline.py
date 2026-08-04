@@ -1,6 +1,7 @@
 import pandas as pd
+import os
 from pathlib import Path
-from matrix import generar_matriz_vacia
+from src.loss.matrix import generar_matriz_vacia
 
 def parse_filtered(db_folder):
     if not db_folder.exists():
@@ -19,9 +20,11 @@ def parse_filtered(db_folder):
         yield file
 
 def main():
-    curr_dir = Path(__file__).resolve().parent
-    db_dir = curr_dir.parent / "db" / "filtered" / "result"
-    matriz_csv_path = curr_dir / "matriz_perdida.csv"
+    root_dir = Path.cwd()
+    db_dir = root_dir / "src" / "db" / "filtered" / "result"
+    
+    loss_dir = root_dir / "src" / "loss"
+    matriz_csv_path = loss_dir / "matriz_perdida.csv"
 
     if matriz_csv_path.exists():
         matriz_perdida = pd.read_csv(matriz_csv_path)
@@ -49,7 +52,26 @@ def main():
             print("Lote completamente evaluado. Pasando al siguiente...")
             continue
         
-        # ... Código del oráculo para evaluar pendientes...
+        print(f"Generando plantilla CSV para {len(pendientes)} películas pendientes...")
+        # Filtramos el lote para quedarnos solo con las películas pendientes
+        df_pendientes = df_lote[df_lote['film_id'].isin(pendientes)].copy()
+
+        # Nos quedamos solo con las columnas de contexto para que el usuario sepa qué evalúa
+        columnas_contexto = ['film_id', 'film_title', 'director']
+        df_plantilla = df_pendientes[columnas_contexto].drop_duplicates()
+
+        # Añadimos las columnas matemáticas vacías desde la matriz de pérdida generada
+        columnas_gt = [col for col in matriz_perdida.columns if col.startswith('gt_')]
+        for col in columnas_gt:
+            df_plantilla[col] = pd.NA # Dejamos la celda como nula / vacía
+
+        nombre_plantilla = f"por_evaluar_{file_path.name}.csv"
+        ruta_plantilla = loss_dir / nombre_plantilla
+
+        df_plantilla.to_csv(ruta_plantilla, index=False, encoding='utf-8')
+        print(f"Plantilla creada exitósamente en: {ruta_plantilla.name}")
+        print("-> Ábrela en Excel/Sheets, rellena las columnas 'gt_' y guárdala con el prefijo 'evaluado_'.")
+
 
 if __name__ == '__main__':
     main()
