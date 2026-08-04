@@ -54,6 +54,9 @@ def construir_chunk(perfiles:dict) -> list[Document]:
                 documentos.append(Document(page_content=texto_chunk, metadata=metadata))
                 
     return documentos
+
+
+#esto retorna una lista de documentos por pelicula chunkeados
             
 """Construccion de embeddings"""
 
