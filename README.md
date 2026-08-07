@@ -56,6 +56,10 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 ### **Versión 0.0.1** (14-07-2026)
 > Implementacion temprana de chunking para los perfiles de usuario.
 
+
+* Parche 0.0.5 (07-08-2026)
+    > Implementación de sistema generador de chunks y embedings para las reseñas
+
 * Parche 0.0.4 (31-07-2026)
 
     * Añadido nuevo filtro para el procesado de la base de datos: ahora se eliminan reseñas con textos tanto completamente vacíos como con números (*presuntamente*) fuera de contexto, es decir, sin ningún tipo de texto además de los propios números.
@@ -73,4 +77,4 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
 * Parche 0.0.2
 
-    * Implementacion de sistema de embeddings para los perfiles de usuario.
+    > Implementacion de sistema de embeddings para los perfiles de usuario.
