@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 import semchunk
 from sentence_transformers import SentenceTransformer
-from sklearn.metrics.pairwise import cosine_similarity  # Distnacia espacial coseno
 
 from config import EMBEDDING_MODEL_NAME
 
@@ -23,17 +22,16 @@ def chunking_resenias(resenias:pd.DataFrame) -> list[dict]:
     
     return resenias_chunkeadas
 
-def emdeings_resenias(resenias:list) -> list[dict]:
+def emdeings_resenias(resenias: list) -> list[dict]:
     embedings_resenias = []
-    model = SentenceTransformer(EMBEDDING_MODEL_NAME, device = "cuda")
-    temporal = []
-    for i in range(len(resenias)):    
-        for j, k in resenias[i].items(): # j es la clave, k es el valor
-            ...
-            
-       
-    return embedings_resenias
+    model = SentenceTransformer(EMBEDDING_MODEL_NAME, device="cuda")
 
+    for i in range(len(resenias)):
+        for j, k in resenias[i].items():  # j = film_id, k = lista de chunks
+            vectores = model.encode(k)     # encodea todos los chunks de una
+            embedings_resenias.append({j: vectores})
+
+    return embedings_resenias
 
 resenias = pd.read_csv(r"src\db\filtered\result\filtrado_2026-07-30_14-22-16.csv")
 
