@@ -89,16 +89,16 @@ while True:
                 desc_texto = input("Ingrese la descripción del filtro: ")
                 severidad = None
                 while (severidad not in ["veto absoluto", "grave", "moderada a grave", "moderada", "leve"]):
-                    severidad = input("Ingrese la severidad del filtro (veto absoluto/grave/moderada a grave/moderada/leve): ")
-                    if severidad.lower() == "veto absoluto":
+                    severidad = input("Ingrese la severidad del filtro (veto absoluto/grave/moderada a grave/moderada/leve): ").lower()
+                    if severidad == "veto absoluto":
                         nivel = "3"
-                    elif severidad.lower() == "grave":
+                    elif severidad == "grave":
                         nivel = "2.5"
-                    elif severidad.lower() == "moderada a grave":
+                    elif severidad == "moderada a grave":
                         nivel = "2"
-                    elif severidad.lower() == "moderada":
+                    elif severidad == "moderada":
                         nivel = "1.5"
-                    elif severidad.lower() == "leve":
+                    elif severidad == "leve":
                         nivel = "1"
                     else:
                         print("Severidad no válida. Por favor, ingrese una de las opciones válidas.")
