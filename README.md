@@ -76,5 +76,6 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
     * Desarrollado motor de sanitización y normalización (`filter.py`) para depurar los datos extraídos, prepararlos para su vectorización y almacenarlos dentro de la carpeta de archivos procesados (`result`).
 
 * Parche 0.0.2
-
-    > Implementacion de sistema de embeddings para los perfiles de usuario.
+  + Implementacion de sistema de embeddings para los perfiles de usuario
+* Parche 0.0.3
+  + Creación y finalización de entorno de creación de perfiles cinéfilos de usuarios (nombre perfil, filtros, afinidades)
