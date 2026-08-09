@@ -59,6 +59,7 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
 * Parche 0.0.5 (07-08-2026)
     > Implementación de sistema generador de chunks y embedings para las reseñas
+    * Correcion al sistema de generacion de usuarios
 
 * Parche 0.0.4 (31-07-2026)
 
@@ -74,8 +75,6 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
     * Implementación del archivo de extracción (`extract.ipynb`) para la captura y guardado automatizado dentro de la carpeta de archivos crudos (`raw`).
 
     * Desarrollado motor de sanitización y normalización (`filter.py`) para depurar los datos extraídos, prepararlos para su vectorización y almacenarlos dentro de la carpeta de archivos procesados (`result`).
-
-    
 
 * Parche 0.0.2
     > Implementacion de sistema de embeddings para los perfiles de usuario.
