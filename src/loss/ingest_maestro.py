@@ -15,7 +15,6 @@ def parse_film_id(raw_title):
     # Pasar a minúsculas
     text = text.lower().strip()
     
-    # CORRECCIÓN: Usar re.sub en lugar de text.sub
     text = re.sub(r'[^\w\s-]', '', text)
     text = re.sub(r'\s+', '-', text)
 
@@ -29,7 +28,7 @@ def main():
     ds_master = loss_dir / "dataset_maestro.csv"
     if not ds_master.exists():
         print(f"[!] Error: No se encontró el dataset en {ds_master}")
-        print("Por favor, renombra el CSV del profesor a 'dataset_maestro.csv' y colócalo en src/loss/")
+        print("Por favor, renombra el CSV de ground-truth a 'dataset_maestro.csv' y colócalo en src/loss/")
         return
         
     print("Leyendo el dataset maestro...")

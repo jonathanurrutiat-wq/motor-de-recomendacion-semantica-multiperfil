@@ -47,6 +47,8 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
         
         * <code><b><span style="color: #009dff;">gt_matrix_pipeline.py</span></b></code>: Despachador de datos que administra la ingesta de archivos procesados y utiliza álgebra de conjuntos para garantizar evaluaciones únicas.
 
+        * <code><b><span style="color: #009dff;">ingest_maestro.py</span></b></code>: Encargado de preparar el archivo maestro de ground-truth para el sistema de recomendación. Lee el dataset, normaliza los títulos de las películas para crear identificadores más adecuados y convierte las métricas de evaluación a valores numéricos.
+        
         * <code><b><span style="color: #009dff;">matrix.py</span></b></code>: Motor generador de la matriz de Verdad base, extrae la topología de los perfiles de usuario para crear el tensor objetivo ($Y$) contra el cual el Perceptrón Multicapa validará sus predicciones.
         
 
