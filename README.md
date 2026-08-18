@@ -1,6 +1,6 @@
 <h1 align="center">Motor de Recomendación Semántica Multiperfil</h1>
 
-<img src="https://img.shields.io/badge/version-0.1.0-blue" alt="version">
+<img src="https://img.shields.io/badge/version-0.1.1-blue" alt="version">
 
 [![Last Commit](https://img.shields.io/github/last-commit/jonathanurrutiat-wq/motor-de-recomendacion-semantica-multiperfil/main-dev?style=flat-square&logo=github&color=blue&cache_bust=1)](https://github.com/jonathanurrutiat-wq/motor-de-recomendacion-semantica-multiperfil/tree/main-dev)
 
@@ -62,7 +62,19 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 ## **Changelog (historial de cambios)**
 <small>*Nota: Este changelog está en orden cronológico inverso.*</small>
 
-### **Versión 0.1.0** (03-08-2026)
+### [0.1.1] - 18-08-2026
+
+* Cambios
+    
+    * Reajustada selección de `.csv` utilizado como ground-truth.
+
+    * Archivo `main.py` refactorizado para acomodar las modificaciones realizadas.
+
+* Añadido
+    
+    * Archivo `ingest_maestro.py` para procesar el archivo de ground-truth `dataset_maestro.csv`
+
+### [0.1.0] - 03-08-2026
 > Conseguida versión funcional del programa con todas las funcionalidades principales.
 
 * Cambios

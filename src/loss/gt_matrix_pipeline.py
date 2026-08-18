@@ -51,26 +51,9 @@ def main():
         if not pendientes:
             print("Lote completamente evaluado. Pasando al siguiente...")
             continue
-        
-        print(f"Generando plantilla CSV para {len(pendientes)} películas pendientes...")
-        # Filtramos el lote para quedarnos solo con las películas pendientes
-        df_pendientes = df_lote[df_lote['film_id'].isin(pendientes)].copy()
 
-        # Nos quedamos solo con las columnas de contexto para que el usuario sepa qué evalúa
-        columnas_contexto = ['film_id', 'film_title', 'director']
-        df_plantilla = df_pendientes[columnas_contexto].drop_duplicates()
-
-        # Añadimos las columnas matemáticas vacías desde la matriz de pérdida generada
-        columnas_gt = [col for col in matriz_perdida.columns if col.startswith('gt_')]
-        for col in columnas_gt:
-            df_plantilla[col] = pd.NA # Dejamos la celda como nula / vacía
-
-        nombre_plantilla = f"por_evaluar_{file_path.name}.csv"
-        ruta_plantilla = loss_dir / nombre_plantilla
-
-        df_plantilla.to_csv(ruta_plantilla, index=False, encoding='utf-8')
-        print(f"Plantilla creada exitósamente en: {ruta_plantilla.name}")
-        print("-> Ábrela en Excel/Sheets, rellena las columnas 'gt_' y guárdala con el prefijo 'evaluado_'.")
+        print(f"[{len(pendientes)} películas carecen de Verdad base.]")
+        print("Esperando ingesta de valores objetivo desde el dataframe maestro de 100 Películas..")
 
 
 if __name__ == '__main__':

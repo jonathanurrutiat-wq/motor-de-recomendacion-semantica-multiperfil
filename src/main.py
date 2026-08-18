@@ -9,7 +9,7 @@ sys.path.append(str(curr_dir.parent))
 # ============ Importaciones proyectadas ============
 from src.db.filtered.filter import main as run_filter
 from src.loss.gt_matrix_pipeline import main as run_pipeline
-from src.loss.ingest_oraculo import main as run_ingestor
+from src.loss.ingest_maestro import main as run_maestro
 import src.embeddings as emb
 import profiles as prfs
 
@@ -27,10 +27,9 @@ def mostrar_menu_principal():
     print("1) Gestionar perfiles cinéfilos (Front-end).")
     print("2) Ejecutar pipeline ETL (Filtrar CSVs crudos).")
     print("3) Generar embeddings del perfil activo.")
-    print("4) Evaluar películas pendientes (Ground-truth).")
-    print("5) Ingestar evaluaciones en base de datos SQL.")
-    print("6) Entrenar red neuronal (Próximamente...)")
-    print("7) Salir.")
+    print("4) Cargar Ground-truth (CSV_100_peliculas)")
+    print("5) Entrenar red neuronal (Próximamente...)")
+    print("6) Salir.")
 
     imprimir_separador2()
 
@@ -42,22 +41,16 @@ def main():
         match opcion:
             case "1":
                 prfs.main()
-                print("Test")
             case "2":
                 run_filter()
-                print("Test")
             case "3":
                 emb.main()
-                print("Test")
             case "4":
-                run_pipeline()
-                print("Test")
+                run_maestro()
+                print("Test módulo 4 finalizado.")
             case "5":
-                run_ingestor()
-                print("Test")
-            case "6":
                 print("🧘paciencia...")
-            case "7":
+            case "6":
                 sys.exit(0)
 
 if __name__ == '__main__':
