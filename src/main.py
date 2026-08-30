@@ -10,6 +10,7 @@ sys.path.append(str(curr_dir.parent))
 from src.db.filtered.filter import main as run_filter
 from src.loss.gt_matrix_pipeline import main as run_pipeline
 from src.loss.ingest_maestro import main as run_maestro
+from src.loss.regression_model import main as run_regression # <-- importación más reciente
 import src.embeddings as emb
 import profiles as prfs
 
@@ -28,7 +29,7 @@ def mostrar_menu_principal():
     print("2) Ejecutar pipeline ETL (Filtrar CSVs crudos).")
     print("3) Generar embeddings del perfil activo.")
     print("4) Cargar Ground-truth (CSV_100_peliculas)")
-    print("5) Entrenar red neuronal (Próximamente...)")
+    print("5) Entrenar modelo predictivo (Regresión lineal)")
     print("6) Salir.")
 
     imprimir_separador2()
@@ -49,12 +50,10 @@ def main():
                 run_maestro()
                 print("Test módulo 4 finalizado.")
             case "5":
-                print("🧘paciencia...")
+                run_regression()
+                print("Entrenamiento finalizado.")
             case "6":
                 sys.exit(0)
 
 if __name__ == '__main__':
     main()
-
-
-
