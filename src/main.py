@@ -13,7 +13,29 @@ import visuals as vis
 from src.db.filtered.filter import main as run_filter
 from src.loss.gt_matrix_pipeline import main as run_pipeline
 from src.loss.ingest_maestro import main as run_maestro
+from src.loss.regression_model import main as run_regression # <-- importación más reciente
+import src.embeddings as emb
+import profiles as prfs
 
+def imprimir_separador1():
+    print("\n" + "="*40)
+
+def imprimir_separador2():
+    print("\n" + "-"*40)
+
+def mostrar_menu_principal():
+    imprimir_separador1()
+    print("MOTOR NEURO-SIMBÓLICO | PANEL CENTRAL")
+    imprimir_separador2()
+
+    print("1) Gestionar perfiles cinéfilos (Front-end).")
+    print("2) Ejecutar pipeline ETL (Filtrar CSVs crudos).")
+    print("3) Generar embeddings del perfil activo.")
+    print("4) Cargar Ground-truth (CSV_100_peliculas)")
+    print("5) Entrenar modelo predictivo (Regresión lineal)")
+    print("6) Salir.")
+
+    imprimir_separador2()
 
 def main():
     while True:
@@ -39,9 +61,8 @@ def main():
                 emb_resenias.main()
 
             case "5":
-                print("\n[5] Cargando Ground-truth (dataset_maestro.csv)...")
-                run_maestro()
-
+                run_regression()
+                print("Entrenamiento finalizado.")
             case "6":
                 print("\n[6] Revisando películas pendientes de evaluar...")
                 run_pipeline()
