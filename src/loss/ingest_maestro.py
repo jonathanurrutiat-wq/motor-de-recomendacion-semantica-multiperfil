@@ -1,24 +1,8 @@
-import pandas as pd
-import re
 from pathlib import Path
 
-def parse_film_id(raw_title):
-    # Normalizamos "1. In the Mood for Love" y similares a "in-the-mood-for-love"
+import pandas as pd
 
-    # Eliminar números y puntos iniciales
-    text = re.sub(r'^\d+\.\s*', '', str(raw_title))
-    # Eliminar el año entre paréntesis al final
-    text = re.sub(r'\s*\(\d{4}\)', '', text)
-    # Eliminar comillas u otros caracteres extraños
-    text = text.replace('"', '').replace("'", "")
-
-    # Pasar a minúsculas
-    text = text.lower().strip()
-    
-    text = re.sub(r'[^\w\s-]', '', text)
-    text = re.sub(r'\s+', '-', text)
-
-    return text
+from src.normalizacion import parse_film_id
 
 
 def main():
@@ -30,7 +14,7 @@ def main():
         print(f"[!] Error: No se encontró el dataset en {ds_master}")
         print("Por favor, renombra el CSV de ground-truth a 'dataset_maestro.csv' y colócalo en src/loss/")
         return
-        
+
     print("Leyendo el dataset maestro...")
     df = pd.read_csv(ds_master)
 
@@ -39,7 +23,7 @@ def main():
         df = df.rename(columns={"Película": "Pelicula"})
 
     df['film_id'] = df['Pelicula'].apply(parse_film_id)
-    df['film_title'] = df['Pelicula'] # Conservamos el original por si acaso
+    df['film_title'] = df['Pelicula']  # Conservamos el original por si acaso
 
     mapeo_columnas = {
         "Rancia": "gt_cols_camaradería_masculina_rancia",
@@ -54,7 +38,7 @@ def main():
         "Vanguardia": "gt_afinidad_vanguardia_y_simbolismo",
         "Global": "gt_nota_global"
     }
-    
+
     # Limpieza de Asteriscos y conversión a numérico
     for col_original, col_nueva in mapeo_columnas.items():
         if col_original in df.columns:
@@ -68,7 +52,7 @@ def main():
 
     csv_path = loss_dir / "matriz_perdida.csv"
     print(f"Guardando Verdad Base en formato ligero: {csv_path.name}...")
-    
+
     # guardar el DataFrame sobrescribiendo cualquier versión anterior
     df_final.to_csv(csv_path, index=False, encoding='utf-8')
 
@@ -78,6 +62,7 @@ def main():
     columnas_verificacion = ['film_id', 'gt_cols_insoportabilidad_prolongada', 'gt_nota_global']
     print("\n| -- Verificación de integridad matemática -- |")
     print(df_final[columnas_verificacion].head())
+
 
 if __name__ == '__main__':
     main()

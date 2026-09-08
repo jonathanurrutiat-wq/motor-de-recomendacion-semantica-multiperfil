@@ -1,59 +1,57 @@
-import pandas as pd
-import os
+import sys
 from pathlib import Path
-from src.loss.matrix import generar_matriz_vacia
 
-def parse_filtered(db_folder):
-    if not db_folder.exists():
-        print(f"Error. No se encontró la ruta {db_folder}.")
-        return
-    
-    csv_files = list(db_folder.glob("*.csv"))
-    if not csv_files:
-        print("No hay archivos filtrados pendientes en el directorio.")
-        return
-    
-    for file in csv_files:
-        # Utilizamos yield para pausar el script con cada archivo entregado
-        # a matrix.py y así tanto no desperdiciar memoria como también para
-        # mantener la pipeline limpia y protegida en caso de cualquier eventualidad.
-        yield file
+curr_dir = Path(__file__).resolve().parent
+sys.path.append(str(curr_dir))
+sys.path.append(str(curr_dir.parent))
+
+# ============ Importaciones ============
+import profiles as prfs
+import src.procesing_profiles as emb_perfiles
+import src.procesing_reviews as emb_resenias
+import visuals as vis
+from src.db.filtered.filter import main as run_filter
+from src.loss.gt_matrix_pipeline import main as run_pipeline
+from src.loss.ingest_maestro import main as run_maestro
+
 
 def main():
-    root_dir = Path.cwd()
-    db_dir = root_dir / "src" / "db" / "filtered" / "result"
-    
-    loss_dir = root_dir / "src" / "loss"
-    matriz_csv_path = loss_dir / "matriz_perdida.csv"
+    while True:
+        vis.mostrar_menu_principal()
+        opcion = input("Seleccione su módulo a ejecutar\n< ")
 
-    if matriz_csv_path.exists():
-        matriz_perdida = pd.read_csv(matriz_csv_path)
-    else:
-        matriz_perdida = generar_matriz_vacia()
+        match opcion:
+            case "1":
+                print("\n[1] Gestionando perfiles cinéfilos...")
+                prfs.main()
 
-    file_generator = parse_filtered(db_dir)
+            case "2":
+                print("\n[2] Ejecutando pipeline ETL (filtrando CSVs crudos)...")
+                run_filter()
 
-    for file_path in file_generator:
-        print(f"\nProcesando lote: {file_path.name}")
+            case "3":
+                nombre_perfil = input("Ingrese el nombre del perfil a embeddear: ").strip().title()
+                print(f"\n[3] Generando embeddings para el perfil '{nombre_perfil}'...")
+                emb_perfiles.main(nombre_perfil)
 
-        df_lote = pd.read_csv(file_path)
+            case "4":
+                print("\n[4] Generando embeddings del lote de reseñas más reciente...")
+                emb_resenias.main()
 
-        # Aquí se extraen los valores de 'film_id' únicos e ignorando nulos.
+            case "5":
+                print("\n[5] Cargando Ground-truth (dataset_maestro.csv)...")
+                run_maestro()
 
-        set_lote = set(df_lote['film_id'].unique())
-        set_matriz = set(matriz_perdida['film_id'].dropna().unique())
+            case "6":
+                print("\n[6] Revisando películas pendientes de evaluar...")
+                run_pipeline()
 
-        pendientes = set_lote - set_matriz
+            case "7":
+                print("Saliendo del panel central.")
+                sys.exit(0)
 
-        print(f"Encontradas {len(set_lote)} películas en el lote.")
-        print(f"Películas nuevas a evaluar (ignorando ya evaluadas): {len(pendientes)}.")
-
-        if not pendientes:
-            print("Lote completamente evaluado. Pasando al siguiente...")
-            continue
-
-        print(f"[{len(pendientes)} películas carecen de Verdad base.]")
-        print("Esperando ingesta de valores objetivo desde el dataframe maestro de 100 Películas..")
+            case _:
+                print("Opción no válida. Por favor, seleccione una opción del 1 al 7.")
 
 
 if __name__ == '__main__':
