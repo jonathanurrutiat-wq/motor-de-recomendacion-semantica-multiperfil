@@ -22,15 +22,20 @@ def mostrar_menu_principal():
 
 # ============ Menús de profiles.py ============
 
-def mostrar_menu_perfiles():
-    print("\n" + "="*35)
-    print("Menú de creación y visualización de perfiles")
-    print("="*35)
-    print("1. Crear/actualizar perfil")
-    print("2. Mostrar perfiles existentes")
-    print("3. Eliminar un perfil")
-    print("4. Salir")
-    print("="*35)
+def mostrar_menu_principal():
+    imprimir_separador1()
+    print("MOTOR NEURO-SIMBÓLICO | PANEL CENTRAL")
+    imprimir_separador2()
+
+    print("1) Gestionar perfiles cinéfilos.")
+    print("2) Ejecutar pipeline ETL (filtrar CSVs crudos).")
+    print("3) Generar embeddings de un perfil.")
+    print("4) Generar embeddings del lote de reseñas más reciente.")
+    print("5) Cargar Ground-truth (dataset_maestro.csv).")
+    print("6) Entrenar modelo predictivo (Regresión Lineal).")
+    print("7) Salir.")
+
+    imprimir_separador2()
 
 def menu_perfil_existente():
     print("\n" + "="*35)
