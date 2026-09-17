@@ -4,6 +4,7 @@ import chromadb
 import numpy as np
 import pandas as pd
 import semchunk
+import torch
 from sentence_transformers import SentenceTransformer
 
 from config import EMBEDDING_MODEL_NAME
@@ -129,8 +130,9 @@ def guardar_coleccion(resenias_embebidas: list[dict]) -> chromadb.api.models.Col
 
 
 def main():
-    print("Cargando nuevo modelo neuronal en memoria CUDA. Por favor espere...")
-    model = SentenceTransformer(EMBEDDING_MODEL_NAME, device="cuda")
+    dispositivo = "cuda" if torch.cuda.is_available() else "cpu"
+    print(f"Cargando nuevo modelo neuronal en memoria ({dispositivo.upper()}). Por favor espere...")
+    model = SentenceTransformer(EMBEDDING_MODEL_NAME, device=dispositivo)
 
     csv_path = obtener_csv_mas_reciente(DIR_FILTRADOS)
     print(f"Leyendo lote más reciente: {csv_path.name}")

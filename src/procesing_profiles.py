@@ -3,6 +3,7 @@ from pathlib import Path
 
 import chromadb
 import numpy as np
+import torch
 from langchain_core.documents import Document
 from sentence_transformers import SentenceTransformer
 
@@ -137,8 +138,9 @@ def guardar_coleccion(documentos: list[Document], embeddings: np.ndarray) -> chr
 
 
 def main(nombre_perfil: str):
-    print("Cargando nuevo modelo neuronal en memoria CUDA. Por favor espere...")
-    model = SentenceTransformer(EMBEDDING_MODEL_NAME, device="cuda")
+    dispositivo = "cuda" if torch.cuda.is_available() else "cpu"
+    print(f"Cargando nuevo modelo neuronal en memoria ({dispositivo.upper()}). Por favor espere...")
+    model = SentenceTransformer(EMBEDDING_MODEL_NAME, device=dispositivo)
 
     perfiles = cargar_perfil(nombre_perfil)
 

@@ -1,6 +1,6 @@
 <h1 align="center">Motor de Recomendación Semántica Multiperfil</h1>
 
-<img src="https://img.shields.io/badge/version-0.2.0-blue" alt="version">
+<img src="https://img.shields.io/badge/version-1.0.0-blue" alt="version">
 
 [![Last Commit](https://img.shields.io/github/last-commit/jonathanurrutiat-wq/motor-de-recomendacion-semantica-multiperfil/main-dev?style=flat-square&logo=github&color=blue&cache_bust=1)](https://github.com/jonathanurrutiat-wq/motor-de-recomendacion-semantica-multiperfil/tree/main-dev)
 
@@ -16,6 +16,37 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 * Abrir el terminal CMD o Powershell y utilizar el siguiente comando:
     `python motor_recomendacion_semantica/src/main.py`
 
+## **Guía del menú principal**
+
+<small>*Nota: cada opción depende de que las anteriores ya se hayan corrido al menos una vez (ej. no se puede entrenar el modelo sin haber generado los embeddings y el Ground-truth antes).*</small>
+
+* **1) Gestionar perfiles cinéfilos.**
+    Abre el menú de `profiles.py` para crear un perfil nuevo, o editar/eliminar uno existente (filtros restrictivos y afinidades). Se guarda en `perfiles.json`.
+
+* **2) Ejecutar pipeline ETL (filtrar CSVs crudos).**
+    Corre `filter.py` sobre los `.csv` crudos de `db/raw/` (extraídos desde Letterboxd): limpia texto, descarta reseñas vacías o sin contenido real, y convierte la calificación en estrellas a un número. Guarda el resultado en `db/filtered/result/`.
+
+* **3) Generar embeddings de un perfil.**
+    Pide el nombre de un perfil ya creado y genera los vectores semánticos de sus filtros y afinidades (`procesing_profiles.py`), persistiéndolos en la colección `perfiles` de ChromaDB.
+
+* **4) Generar embeddings del lote de reseñas más reciente.**
+    Toma el `.csv` filtrado más reciente de `db/filtered/result/`, chunkea el texto de cada reseña y genera sus embeddings (`procesing_reviews.py`), guardándolos en la colección `resenias` de ChromaDB.
+
+* **5) Cargar Ground-truth (dataset_maestro.csv).**
+    Lee `dataset_maestro.csv` (las notas que evaluó Gemini para un grupo de películas según el perfil), lo limpia y normaliza, y genera `matriz_perdida.csv`: el archivo liviano que usan las opciones 6, 7 y 8.
+
+* **6) Revisar películas pendientes de evaluar.**
+    Compara las películas que ya tienen reseña procesada contra las que ya están en `matriz_perdida.csv`, y muestra cuáles todavía no tienen nota de Gemini. Genera `pendientes_evaluar.csv` con la estructura lista para completar esas evaluaciones.
+
+* **7) Entrenar modelo predictivo (Regresión Lineal).**
+    Entrena una regresión lineal que aprende a aproximar la nota de Gemini a partir de la similitud de coseno entre los embeddings de las reseñas y los del perfil. Informa el error del modelo (MSE), la varianza explicada (R²) y el peso aprendido para cada filtro/afinidad.
+
+* **8) Recomendar películas según el perfil.**
+    Usa el modelo ya entrenado para estimar una nota a todas las películas con reseña procesada (tanto a las que ya evaluó Gemini, para comparar, como a las nuevas que todavía no tienen nota). Muestra todo en un único ranking ordenado de mayor a menor nota estimada.
+
+* **9) Salir.**
+    Cierra el programa.
+
 ## **Librerias Utilizadas**
 
 <small>*Nota: Se recomienda instalar un entorno virtual*</small>
@@ -25,6 +56,9 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 * <code><b><span style="font-size:1.3em;">chromadb</span></b></code> 
 * <code><b><span style="font-size:1.3em;">numpy</span></b></code> 
 * <code><b><span style="font-size:1.3em;">Semchunk</span></b></code> 
+* <code><b><span style="font-size:1.3em;">pandas</span></b></code> 
+* <code><b><span style="font-size:1.3em;">scikit-learn</span></b></code> 
+* <code><b><span style="font-size:1.3em;">torch</span></b></code> 
 
 
 ## **Distribución de directorios**
@@ -82,6 +116,37 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
 ## **Changelog (historial de cambios)**
 <small>*Nota: Este changelog está en orden cronológico inverso.*</small>
+
+### [1.0.0] - 17-09-2026
+> Corrección de bugs críticos de rutas y del pipeline de ground-truth, reorganización del menú principal, nuevo módulo de recomendaciones, y desacople del perfil activo en vez de mapeos fijos por código.
+
+* Arreglado
+
+    * `perfiles.json` apuntaba a la raíz del proyecto en `profiles.py`, `procesing_profiles.py` y `matrix.py`, pero el archivo real vive en `src/db/profiles/perfiles.json`. Corregidas las tres rutas.
+
+    * `src/loss/gt_matrix_pipeline.py` no tenía su lógica real: por error contenía una copia del menú de `main.py`, con un import que se importaba a sí mismo. Reescrito para cruzar (álgebra de conjuntos, con `film_id` canonicalizado) las películas con reseña procesada contra la Verdad Base, reportar los nombres de las pendientes y generar `pendientes_evaluar.csv`.
+
+    * `visuals.py` tenía `mostrar_menu_principal()` definida dos veces (código muerto); eliminada la duplicada.
+
+    * `procesing_profiles.py` y `procesing_reviews.py` forzaban `device="cuda"` sin verificar disponibilidad; ahora detectan automáticamente con `torch.cuda.is_available()` y usan CPU si no hay GPU.
+
+* Añadido
+
+    * `src/recommend.py`: nuevo módulo que aplica el modelo ya entrenado (regresión lineal) sobre las películas con reseña procesada que todavía no tienen nota de Gemini, y muestra un único ranking (evaluadas + candidatas) con columnas Película / Nota Modelo / Nota de Gemini (`NaN` cuando no hay nota de Gemini todavía).
+
+    * `src/normalizacion.py`: `cargar_perfil_actual()`, `obtener_filtros_del_perfil()` y `nombre_columna_gt()`, para armar dinámicamente el orden y los nombres de columna de los filtros/afinidades del perfil activo.
+
+    * Opción 8 del menú ("Recomendar películas según el perfil").
+
+    * Sección "Guía del menú principal" en este README, con la descripción de cada opción.
+
+* Cambios
+
+    * `main.py` y `visuals.py`: menú reorganizado — opción 6 ahora ejecuta el pipeline de pendientes, opción 7 el entrenamiento (regresión lineal), opción 8 las recomendaciones, y opción 9 pasó a ser "Salir".
+
+    * `scoring.py` y `recommend.py`: el diccionario fijo de filtros (`filterMapping`) fue reemplazado por las funciones dinámicas de `normalizacion.py`, para que agregar un perfil nuevo o cambiarle los filtros a uno existente no requiera editar código.
+
+    * Librerías utilizadas actualizadas: agregadas `pandas`, `scikit-learn` y `torch`, que ya se usaban en el código pero no estaban documentadas.
 
 ### [0.2.0] - 20-08-2026
 > Sincronización completa de todos los módulos a través de `main.py`, con persistencia real de embeddings y corrección de bugs de integración entre archivos.

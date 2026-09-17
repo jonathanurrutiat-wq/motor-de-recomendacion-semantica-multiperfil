@@ -19,8 +19,8 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics.pairwise import cosine_similarity
 
 from src.normalizacion import (
-    cargar_perfil_actual,
     canonicalizar_film_id,
+    cargar_perfil_actual,
     obtener_filtros_del_perfil,
 )
 
@@ -111,37 +111,43 @@ def main():
     modelo = LinearRegression()
     modelo.fit(matriz_x_entrenamiento, y_entrenamiento)
 
-    # Comparación sobre las películas que ya tienen nota de Gemini: te
-    # sirve para ver, película por película, qué tan cerca estuvo el
-    # modelo de acertarle a la nota real.
+    # Predicción del modelo también sobre las que ya tienen nota de Gemini,
+    # para poder comparar ambas notas en la misma lista.
     predicciones_entrenamiento = modelo.predict(matriz_x_entrenamiento)
 
-    print(f"\n| -- Comparación en películas ya evaluadas ({len(film_ids_entrenamiento)}) -- |")
-    print(f"{'Película':<30}{'Nota Gemini':>14}{'Nota Modelo':>14}")
-    for film_id, nota_gemini, nota_modelo in zip(film_ids_entrenamiento, y_entrenamiento, predicciones_entrenamiento):
-        print(f"{film_id:<30}{nota_gemini:>14.2f}{nota_modelo:>14.2f}")
-
-    print("Buscando películas candidatas (con reseña, sin nota de Gemini todavía)...")
     peliculas_candidatas = {
         film_id: vector
         for film_id, vector in embeddings_por_pelicula.items()
         if film_id not in peliculas_evaluadas
     }
 
-    if not peliculas_candidatas:
-        print("No hay películas nuevas para recomendar: todas las que tienen reseña ya están evaluadas.")
-        return
-
     film_ids_candidatos = list(peliculas_candidatas.keys())
-    matriz_x_candidatos = cosine_similarity(np.array(list(peliculas_candidatas.values())), embeddings_filtros)
+    if film_ids_candidatos:
+        matriz_x_candidatos = cosine_similarity(np.array(list(peliculas_candidatas.values())), embeddings_filtros)
+        predicciones_candidatos = modelo.predict(matriz_x_candidatos)
+    else:
+        predicciones_candidatos = []
 
-    predicciones = modelo.predict(matriz_x_candidatos)
-    ranking = sorted(zip(film_ids_candidatos, predicciones), key=lambda par: par[1], reverse=True)
+    # Una sola lista con todas las películas (evaluadas + candidatas),
+    # ordenada por la nota que le dio el modelo. Para las candidatas no
+    # hay nota de Gemini, así que se muestra como NaN.
+    resultados = list(zip(film_ids_entrenamiento, predicciones_entrenamiento, y_entrenamiento))
+    resultados += [
+        (film_id, nota_modelo, float('nan'))
+        for film_id, nota_modelo in zip(film_ids_candidatos, predicciones_candidatos)
+    ]
+    resultados.sort(key=lambda fila: fila[1], reverse=True)
 
-    print(f"\n| -- Ranking de recomendaciones, sin nota de Gemini todavía ({len(ranking)} películas) -- |")
-    print(f"{'Película':<30}{'Nota Modelo':>14}")
-    for film_id, nota_estimada in ranking:
-        print(f"{film_id:<30}{nota_estimada:>14.2f}")
+    print(f"\n| -- Ranking de recomendaciones ({len(resultados)} películas) -- |")
+    print(f"{'Película':<30}{'Nota Modelo':>14}{'Nota de Gemini':>16}")
+    for film_id, nota_modelo, nota_gemini in resultados:
+        nota_gemini_str = "NaN" if np.isnan(nota_gemini) else f"{nota_gemini:.2f}"
+        print(f"{film_id:<30}{nota_modelo:>14.2f}{nota_gemini_str:>16}")
+
+    print(
+        "\n* 'NaN' en 'Nota de Gemini' significa que esa película todavía no "
+        "tiene una nota cargada por Gemini (no hay Verdad Base para ella)."
+    )
 
 
 if __name__ == '__main__':

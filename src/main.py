@@ -11,10 +11,11 @@ import src.procesing_profiles as embPerfiles
 import src.procesing_reviews as embResenias
 import visuals as vis
 from src.db.filtered.filter import main as runFilter
-from src.loss.ingest_maestro import main as runMaestro
 from src.loss.gt_matrix_pipeline import main as runPipeline
-from src.scoring import main as runScoring
+from src.loss.ingest_maestro import main as runMaestro
 from src.recommend import main as runRecommend
+from src.scoring import main as runScoring
+
 
 def main():
     while True:
