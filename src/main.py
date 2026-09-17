@@ -32,9 +32,8 @@ def main():
                 runFilter()
 
             case "3":
-                nombrePerfil = input("Ingrese el nombre del perfil a embeddear: ").strip().title()
-                print(f"\n[3] Generando embeddings para el perfil '{nombrePerfil}'...")
-                embPerfiles.main(nombrePerfil)
+                print(f"\n[3] Generando embeddings para el perfil...")
+                embPerfiles.main()
 
             case "4":
                 print("\n[4] Generando embeddings del lote de reseñas más reciente...")

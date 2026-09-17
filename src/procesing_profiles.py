@@ -16,14 +16,29 @@ NOMBRE_COLECCION = "perfiles"
 
 """Carga del perfil desde perfiles.json"""
 
+def obtener_todos_los_perfiles() -> dict:
+    if not ARCHIVO_PERFILES.exists():
+        raise FileNotFoundError(
+            f"No se encontró {ARCHIVO_PERFILES}. Crea uno primero desde la opción 1 del menú principal."
+        )
+    try:
+        with open(ARCHIVO_PERFILES, "r", encoding="utf-8") as archivo:
+            todos_los_perfiles = json.load(archivo)
+            return todos_los_perfiles if todos_los_perfiles else {}
+    except json.JSONDecodeError:
+        return {}
+
 def cargar_perfil(nombre_perfil: str) -> dict:
     if not ARCHIVO_PERFILES.exists():
         raise FileNotFoundError(
-            f"No se encontró {ARCHIVO_PERFILES}. Crea el perfil primero desde profiles.py."
+            f"No se encontró {ARCHIVO_PERFILES}. Crea uno primero desde la opción 1 del menú principal."
         )
 
     with open(ARCHIVO_PERFILES, "r", encoding="utf-8") as archivo:
         todos_los_perfiles = json.load(archivo)
+    
+    if not todos_los_perfiles:
+        raise ValueError(f"No hay perfiles disponibles en {ARCHIVO_PERFILES}. Crea uno primero desde la opción 1 del menú principal.")
 
     if nombre_perfil not in todos_los_perfiles:
         disponibles = ", ".join(todos_los_perfiles.keys()) or "ninguno"
@@ -137,15 +152,31 @@ def guardar_coleccion(documentos: list[Document], embeddings: np.ndarray) -> chr
     return coleccion
 
 
-def main(nombre_perfil: str):
+def main():
+    perfiles = obtener_todos_los_perfiles()
+    
+    if not perfiles:
+        print("No hay perfiles disponibles para generar embeddings. Crea uno primero desde la opción 1 del menú principal.")
+        return
+
+    print("\nPerfiles disponibles:")
+    for perfil in perfiles.keys():
+        print(f"- {perfil}")
+    
+    nombre_perfil = input("Ingrese el nombre del perfil a embeddear: ").strip().title()
+    
+    if nombre_perfil not in perfiles:
+        print(f"El perfil '{nombre_perfil}' no existe.")
+        return
+    
+    perfil_a_procesar = {nombre_perfil: perfiles[nombre_perfil]}
+    
     dispositivo = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Cargando nuevo modelo neuronal en memoria ({dispositivo.upper()}). Por favor espere...")
     model = SentenceTransformer(EMBEDDING_MODEL_NAME, device=dispositivo)
 
-    perfiles = cargar_perfil(nombre_perfil)
-
     print("Construyendo chunks...")
-    documentos = construir_chunk(perfiles)
+    documentos = construir_chunk(perfil_a_procesar)
     textos_extraidos = extraer_textos(documentos)
 
     print("Generando embeddings...")
