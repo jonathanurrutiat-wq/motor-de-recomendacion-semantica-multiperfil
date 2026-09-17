@@ -117,6 +117,19 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 ## **Changelog (historial de cambios)**
 <small>*Nota: Este changelog está en orden cronológico inverso.*</small>
 
+### [1.0.1] - 17-09-2026
+>Arreglos menores sobre verificación de datos por medio de los inputs para mantener el flujo de datos correcto y sin guardados fantasmas.
+
+* Arreglado
+
+    * Se agregaron verificaciones a las variables para los nombre en `procesing_profiles.py` para evitar cargar el modelo si no se introduce un nombre válido.
+
+    * En la gestión de perfiles de `profiles` se agregó verificaciones para que no se introduzcan valores nulos en afinidad y restriccion, además de que el guardado de datos se va a realizar una vez que pase todo el ingreso de datos sin problemas.
+
+* Cambios
+
+    * Se hicieron pequeños cambios de interfaces para que sea un poco más precisa la información que se muestra en pantalla por medio de la consola.
+
 ### [1.0.0] - 17-09-2026
 > Corrección de bugs críticos de rutas y del pipeline de ground-truth, reorganización del menú principal, nuevo módulo de recomendaciones, y desacople del perfil activo en vez de mapeos fijos por código.
 

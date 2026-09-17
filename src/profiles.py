@@ -26,13 +26,19 @@ def gestionar_afinidades(datos, nombre_perfil, es_nuevo):
         opcion_afinidad = input("Seleccione una opción: ")
 
         if opcion_afinidad == "1":
-            afinidad = input("Ingrese la afinidad a agregar/modificar: ")
+            afinidad = input("Ingrese la afinidad a agregar/modificar: ").strip()
+            if not afinidad:
+                print("Afinidad no válida. Por favor, intente nuevamente.")
+                continue
+            
+            afinidad_antigua = None
+            
             if afinidad in datos[nombre_perfil]["afinidad"]:
                 modificar = input(f"La afinidad '{afinidad}' ya existe. ¿Desea modificarla? (s/n): ")
                 if modificar.lower() == "s":
                     nueva_afinidad = input("Ingrese la nueva afinidad (o deje en blanco si la quiere mantener): ")
-                    if nueva_afinidad:
-                        datos[nombre_perfil]["afinidad"][nueva_afinidad] = datos[nombre_perfil]["afinidad"].pop(afinidad)
+                    if nueva_afinidad and nueva_afinidad != afinidad:
+                        afinidad_antigua = afinidad
                         afinidad = nueva_afinidad
                     else:
                         print("No se realizaron cambios en la afinidad.")
@@ -42,13 +48,26 @@ def gestionar_afinidades(datos, nombre_perfil, es_nuevo):
                     continue
             else:
                 print(f"Agregando una nueva afinidad: '{afinidad}'")
-                datos[nombre_perfil]["afinidad"][afinidad] = {}
 
-            descripcion_afinidad = input("Ingrese la descripción de la afinidad: ")
+            descripcion_afinidad = input("Ingrese la descripción de la afinidad: ").strip()
+            if not descripcion_afinidad:
+                print("Descripción no válida. Por favor, intente nuevamente.")
+                continue
 
-            importancia_base = float(input("Ingrese la importancia base de la afinidad (1-10): "))
-            while not (1 <= importancia_base <= 10):
-                importancia_base = float(input("Por favor, ingrese un número válido entre 1 y 10 para la importancia base: "))
+            while True:
+                importancia_base = input("Ingrese la importancia base de la afinidad (1-10): ").strip()
+
+                try: 
+                    importancia_base = float(importancia_base)
+                    if 1 <= importancia_base <= 10:
+                        break
+                    else:
+                        print("Por favor, ingrese un número válido entre 1 y 10.")
+                except ValueError:
+                    print("Por favor, ingrese un número válido entre 1 y 10.")
+            
+            if afinidad_antigua:
+                del datos[nombre_perfil]["afinidad"][afinidad_antigua]
 
             datos[nombre_perfil]["afinidad"][afinidad] = {
                 "descripcion": descripcion_afinidad,
@@ -78,20 +97,25 @@ def gestionar_afinidades(datos, nombre_perfil, es_nuevo):
         else:
             print("Opción no válida.")
 
-
 def gestionar_restrictivos(datos, nombre_perfil):
     while True:
         vis.menu_restrictivos()
         opcion_restrictivo = input("Seleccione una opción: ")
 
         if opcion_restrictivo == "1":
-            filtro = input("Ingrese el filtro restrictivo a agregar/modificar: ")
+            filtro = input("Ingrese el filtro restrictivo a agregar/modificar: ").strip()
+            if not filtro:
+                print("Filtro no válido. Por favor, intente nuevamente.")
+                continue
+            
+            filtro_antiguo = None
+            
             if filtro in datos[nombre_perfil]["restrictivos"]:
                 modificar = input(f"El filtro '{filtro}' ya existe. ¿Desea modificarlo? (s/n): ")
                 if modificar.lower() == "s":
                     nuevo_filtro = input("Ingrese el nuevo filtro restrictivo (o deje en blanco si lo quiere mantener): ")
-                    if nuevo_filtro:
-                        datos[nombre_perfil]["restrictivos"][nuevo_filtro] = datos[nombre_perfil]["restrictivos"].pop(filtro)
+                    if nuevo_filtro and nuevo_filtro != filtro:
+                        filtro_antiguo = filtro
                         filtro = nuevo_filtro
                     else:
                         print("No se realizaron cambios en el filtro.")
@@ -101,9 +125,12 @@ def gestionar_restrictivos(datos, nombre_perfil):
                     continue
             else:
                 print(f"Agregando un nuevo filtro restrictivo: '{filtro}'")
-                datos[nombre_perfil]["restrictivos"][filtro] = {}
 
-            desc_texto = input("Ingrese la descripción del filtro: ")
+            desc_texto = input("Ingrese la descripción del filtro: ").strip()
+            if not desc_texto:
+                print("Descripción no válida. Por favor, intente nuevamente.")
+                continue
+            
             severidad = None
             while (severidad not in ["veto absoluto", "grave", "moderada a grave", "moderada", "leve"]):
                 severidad = input("Ingrese la severidad del filtro (veto absoluto/grave/moderada a grave/moderada/leve): ").lower()
@@ -128,8 +155,8 @@ def gestionar_restrictivos(datos, nombre_perfil):
 
             corrupcion_directa = []
             while True:
-                corrupcion_input = input("Ingrese las afinidades que corrompe este filtro, separadas por coma (si no hay, deje en blanco): ")
-                if not corrupcion_input.strip():
+                corrupcion_input = input("Ingrese las afinidades que corrompe este filtro, separadas por coma (si no hay, deje en blanco): ").strip()
+                if not corrupcion_input:
                     corrupcion_directa = []
                     break
 
@@ -138,7 +165,7 @@ def gestionar_restrictivos(datos, nombre_perfil):
 
                 if no_encontrados:
                     print(f"Aviso: las siguientes afinidades no existen en este perfil: {', '.join(no_encontrados)}")
-                    decision = input("¿Desea (g)uardarlas igual, (c)orregir, o (v)aciar la lista? (g/c/v): ").lower()
+                    decision = input("¿Desea (g)uardarlas igual, (c)orregir, o (v)aciar la lista? (g/c/v): ").strip().lower()
                     if decision == "g":
                         corrupcion_directa = nombres_ingresados
                         break
@@ -151,7 +178,11 @@ def gestionar_restrictivos(datos, nombre_perfil):
                     corrupcion_directa = nombres_ingresados
                     break
 
-            excepcion = input("Ingrese la excepcion del filtro (si no hay, deje en blanco): ") or None
+            excepcion = input("Ingrese la excepcion del filtro (si no hay, deje en blanco): ").strip() or None
+            
+            if filtro_antiguo:
+                del datos[nombre_perfil]["restrictivos"][filtro_antiguo]
+            
             datos[nombre_perfil]["restrictivos"][filtro] = {
                 "descripcion": desc_texto,
                 "nivel": nivel,
@@ -179,7 +210,6 @@ def gestionar_restrictivos(datos, nombre_perfil):
         else:
             print("Opción no válida.")
 
-
 def main():
     datos = cargar_datos()
 
@@ -191,6 +221,10 @@ def main():
             nombre_perfil = input("\nIngrese un nombre de perfil: ")
             nombre_perfil = nombre_perfil.strip().title()
 
+            if not nombre_perfil:
+                print("Nombre de perfil no válido. Por favor, intente nuevamente.")
+                continue
+            
             es_nuevo = nombre_perfil not in datos
 
             if not es_nuevo:
@@ -214,11 +248,11 @@ def main():
             else:
                 # Perfil existente: acceso libre a cualquier sección
                 while True:
-                    vis.menu_perfil_existente()
+                    vis.menu_perfil_existente(nombre_perfil)
                     opcion_edicion = input("Seleccione una opción: ")
 
                     if opcion_edicion == "1":
-                        nuevo_nombre = input("Ingrese el nuevo nombre del perfil: ")
+                        nuevo_nombre = input("Ingrese el nuevo nombre del perfil: ").strip()
                         if nuevo_nombre and nuevo_nombre != nombre_perfil:
                             datos[nuevo_nombre] = datos.pop(nombre_perfil)
                             print(f"El perfil ha sido renombrado a '{nuevo_nombre}'.")
@@ -261,6 +295,9 @@ def main():
                         print(f"    Importancia Base: {detalles['importancia_base']}")
 
         elif opcion == "3":
+            if not datos:
+                print("No hay perfiles existentes para eliminar.")
+                continue
             nombre_perfil = input("Ingrese el nombre del perfil a eliminar: ")
             nombre_perfil = nombre_perfil.strip().title()
             if nombre_perfil in datos:

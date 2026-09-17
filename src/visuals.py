@@ -24,9 +24,19 @@ def mostrar_menu_principal():
 
 # ============ Menús de profiles.py ============
 
-def menu_perfil_existente():
+def mostrar_menu_perfiles():
     print("\n" + "="*35)
-    print("Menú de edición de perfil")
+    print("Menú de gestión de perfiles cinéfilos")
+    print("="*35)
+    print("1. Crear/modificar un perfil")
+    print("2. Mostrar perfiles existentes")
+    print("3. Eliminar perfil existente")
+    print("4. Volver al menú principal")
+    print("="*35)
+
+def menu_perfil_existente(nombre_perfil):
+    print("\n" + "="*35)
+    print(f"Menú de edición de perfil: {nombre_perfil}")
     print("="*35)
     print("1. Modificar nombre de perfil")
     print("2. Gestionar afinidades")
