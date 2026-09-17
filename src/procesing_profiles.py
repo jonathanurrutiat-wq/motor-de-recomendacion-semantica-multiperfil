@@ -8,7 +8,7 @@ from sentence_transformers import SentenceTransformer
 
 from config import EMBEDDING_MODEL_NAME
 
-ARCHIVO_PERFILES = Path.cwd() / "perfiles.json"
+ARCHIVO_PERFILES = Path.cwd() / "src" / "db" / "profiles" / "perfiles.json"
 DIR_CHROMA = Path.cwd() / "src" / "db" / "embeddings" / "chroma"
 NOMBRE_COLECCION = "perfiles"
 

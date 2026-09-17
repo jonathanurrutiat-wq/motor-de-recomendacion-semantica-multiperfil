@@ -1,9 +1,10 @@
 import json
 import os
+from pathlib import Path
 
 import visuals as vis
 
-archivo_perfiles = "perfiles.json"
+archivo_perfiles = Path.cwd() / "src" / "db" / "profiles" / "perfiles.json"
 
 
 def cargar_datos():
@@ -14,6 +15,7 @@ def cargar_datos():
 
 
 def guardar_datos(datos):
+    archivo_perfiles.parent.mkdir(parents=True, exist_ok=True)
     with open(archivo_perfiles, "w", encoding="utf-8") as archivo:
         json.dump(datos, archivo, indent=4, ensure_ascii=False)
 

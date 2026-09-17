@@ -1,57 +1,86 @@
-import sys
 from pathlib import Path
 
-curr_dir = Path(__file__).resolve().parent
-sys.path.append(str(curr_dir))
-sys.path.append(str(curr_dir.parent))
+import pandas as pd
 
-# ============ Importaciones ============
-import profiles as prfs
-import src.procesing_profiles as emb_perfiles
-import src.procesing_reviews as emb_resenias
-import visuals as vis
-from src.db.filtered.filter import main as run_filter
-from src.loss.gt_matrix_pipeline import main as run_pipeline
-from src.loss.ingest_maestro import main as run_maestro
+from src.loss.matrix import generar_matriz_vacia
+from src.normalizacion import canonicalizar_film_id
+
+
+def obtener_peliculas_con_resenias(directorio_filtrados: Path) -> set:
+    # Recorre todos los csv filtrados (todos los lotes, no solo el último)
+    # y arma el set de películas que ya tienen reseñas procesadas.
+    archivos = list(directorio_filtrados.glob("filtrado_*.csv"))
+    if not archivos:
+        return set()
+
+    peliculas = set()
+    for archivo in archivos:
+        df = pd.read_csv(archivo)
+        if "film_id" not in df.columns:
+            continue
+        peliculas.update(canonicalizar_film_id(fid) for fid in df["film_id"].dropna())
+
+    return peliculas
+
+
+def obtener_peliculas_evaluadas(gt_path: Path) -> set:
+    # Lee la Verdad Base ya procesada (si existe) y arma el set de
+    # películas que ya fueron evaluadas a mano.
+    if not gt_path.exists():
+        return set()
+
+    df_gt = pd.read_csv(gt_path)
+    if "film_id" not in df_gt.columns:
+        return set()
+
+    return {canonicalizar_film_id(fid) for fid in df_gt["film_id"].dropna()}
 
 
 def main():
-    while True:
-        vis.mostrar_menu_principal()
-        opcion = input("Seleccione su módulo a ejecutar\n< ")
+    root_dir = Path.cwd()
+    dir_filtrados = root_dir / "src" / "db" / "filtered" / "result"
+    gt_path = root_dir / "src" / "loss" / "matriz_perdida.csv"
 
-        match opcion:
-            case "1":
-                print("\n[1] Gestionando perfiles cinéfilos...")
-                prfs.main()
+    print("Recolectando películas con reseñas procesadas...")
+    peliculas_con_resenias = obtener_peliculas_con_resenias(dir_filtrados)
 
-            case "2":
-                print("\n[2] Ejecutando pipeline ETL (filtrando CSVs crudos)...")
-                run_filter()
+    if not peliculas_con_resenias:
+        print(f"[!] No se encontraron csv 'filtrado_*.csv' en {dir_filtrados}")
+        print("Ejecuta primero el pipeline ETL (opción 2) y genera reseñas filtradas.")
+        return
 
-            case "3":
-                nombre_perfil = input("Ingrese el nombre del perfil a embeddear: ").strip().title()
-                print(f"\n[3] Generando embeddings para el perfil '{nombre_perfil}'...")
-                emb_perfiles.main(nombre_perfil)
+    print("Cruzando contra la Verdad Base actual...")
+    peliculas_evaluadas = obtener_peliculas_evaluadas(gt_path)
 
-            case "4":
-                print("\n[4] Generando embeddings del lote de reseñas más reciente...")
-                emb_resenias.main()
+    # Álgebra de conjuntos: reseñas procesadas menos las ya evaluadas = pendientes.
+    # canonicalizar_film_id() ya se aplicó a ambos lados, así que una misma
+    # película nunca queda contada dos veces por culpa del sufijo de año.
+    peliculas_pendientes = peliculas_con_resenias - peliculas_evaluadas
 
-            case "5":
-                print("\n[5] Cargando Ground-truth (dataset_maestro.csv)...")
-                run_maestro()
+    print("\n| -- Estado de evaluación -- |")
+    print(f"Películas con reseñas procesadas: {len(peliculas_con_resenias)}")
+    print(f"Películas ya evaluadas (Verdad Base): {len(peliculas_evaluadas)}")
+    print(f"Películas pendientes de evaluar: {len(peliculas_pendientes)}")
 
-            case "6":
-                print("\n[6] Revisando películas pendientes de evaluar...")
-                run_pipeline()
+    if not peliculas_pendientes:
+        print("\nNo hay películas pendientes. La Verdad Base está al día.")
+        return
 
-            case "7":
-                print("Saliendo del panel central.")
-                sys.exit(0)
+    print("\nPelículas pendientes:")
+    for film_id in sorted(peliculas_pendientes):
+        print(f"  - {film_id}")
 
-            case _:
-                print("Opción no válida. Por favor, seleccione una opción del 1 al 7.")
+    # Plantilla con las columnas correctas (según los filtros/afinidades
+    # del perfil actual) para facilitar la evaluación manual de lo pendiente.
+    plantilla = generar_matriz_vacia()
+    plantilla_pendientes = pd.DataFrame({"film_id": sorted(peliculas_pendientes)})
+    for columna in plantilla.columns:
+        if columna != "film_id":
+            plantilla_pendientes[columna] = pd.NA
+
+    salida_path = root_dir / "src" / "loss" / "pendientes_evaluar.csv"
+    plantilla_pendientes.to_csv(salida_path, index=False, encoding="utf-8")
+    print(f"\nPlantilla para evaluación manual guardada en: {salida_path}")
 
 
 if __name__ == '__main__':

@@ -12,7 +12,7 @@ import src.procesing_reviews as embResenias
 import visuals as vis
 from src.db.filtered.filter import main as runFilter
 from src.loss.ingest_maestro import main as runMaestro
-from src.scoring import main as runScoring
+from src.loss.gt_matrix_pipeline import main as runPipeline
 
 def main():
     while True:
@@ -42,8 +42,8 @@ def main():
                 runMaestro()
 
             case "6":
-                print("\n[6] Entrenando modelo predictivo (Regresión lineal)...")
-                runScoring()
+                print("\n[6] Revisando películas pendientes de evaluar...")
+                runPipeline()
 
             case "7":
                 print("Saliendo del panel central.")
