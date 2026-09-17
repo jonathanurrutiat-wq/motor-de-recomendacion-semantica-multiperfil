@@ -2,8 +2,10 @@ import pandas as pd
 from pathlib import Path
 import json
 
+from src.normalizacion import nombre_columna_gt, obtener_filtros_del_perfil
+
 def generar_matriz_vacia():
-    prfs_file = Path.cwd() / "perfiles.json"
+    prfs_file = Path.cwd() / "src" / "db" / "profiles" / "perfiles.json"
 
     # Guarda de seguridad por si el JSON aún no ha sido creado
     if not prfs_file.exists():
@@ -19,15 +21,8 @@ def generar_matriz_vacia():
     prf_name = next(iter(prfs_data))
     prf_curr = prfs_data[prf_name]
 
-    if "restrictivos" in prf_curr:
-        for nombre_filtro in prf_curr["restrictivos"].keys():
-            col_name = f"gt_cols_{nombre_filtro.lower().replace(' ', '_')}"
-            get_cols.append(col_name)
-
-    if "afinidad" in prf_curr:
-        for nombre_afinidad in prf_curr["afinidad"].keys():
-            col_name = f"gt_afinidad_{nombre_afinidad.lower().replace(' ', '_')}"
-            get_cols.append(col_name)
+    for tipo_categoria, nombre_filtro in obtener_filtros_del_perfil(prf_curr):
+        get_cols.append(nombre_columna_gt(tipo_categoria, nombre_filtro))
 
     get_cols.append("gt_nota_global")
     return pd.DataFrame(columns=get_cols)

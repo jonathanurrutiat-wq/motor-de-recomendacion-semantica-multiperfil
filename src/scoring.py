@@ -5,7 +5,12 @@ import chromadb
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.metrics.pairwise import cosine_similarity
-from src.normalizacion import canonicalizar_film_id
+from src.normalizacion import (
+    cargar_perfil_actual,
+    canonicalizar_film_id,
+    nombre_columna_gt,
+    obtener_filtros_del_perfil,
+)
 
 def main():
     rootDirectory = Path.cwd()
@@ -26,21 +31,14 @@ def main():
     # extracción de tensores
     profileData = collectionProfiles.get(include=['embeddings', 'metadatas'])
     
-    filterMapping = {
-        "Camaradería Masculina Rancia": "gt_cols_camaradería_masculina_rancia",
-        "Insoportabilidad Prolongada": "gt_cols_insoportabilidad_prolongada",
-        "Control Emocional Artificial": "gt_cols_control_emocional_artificial",
-        "Personajes Diorama": "gt_cols_personajes_diorama",
-        "Caos Asfixiante": "gt_cols_caos_asfixiante",
-        "Resistencia Femenina": "gt_afinidad_resistencia_femenina",
-        "Contemplación Inmersiva": "gt_afinidad_contemplación_inmersiva",
-        "Ternura y Empatía Radical": "gt_afinidad_ternura_y_empatía_radical",
-        "Humanismo Social": "gt_afinidad_humanismo_social",
-        "Vanguardia y Simbolismo": "gt_afinidad_vanguardia_y_simbolismo"
-    }
-    
-    orderedFilterNames = list(filterMapping.keys())
-    orderedColumns = list(filterMapping.values())
+    # Se arma dinámicamente a partir del perfil activo en perfiles.json:
+    # si se agrega un perfil nuevo o se le cambian los filtros a uno
+    # existente, esto se actualiza solo (ver src/normalizacion.py).
+    perfilActual = cargar_perfil_actual()
+    filtrosPerfil = obtener_filtros_del_perfil(perfilActual)
+
+    orderedFilterNames = [nombre for _, nombre in filtrosPerfil]
+    orderedColumns = [nombre_columna_gt(tipo, nombre) for tipo, nombre in filtrosPerfil]
     
     embFiltersList = []
     for filterName in orderedFilterNames:

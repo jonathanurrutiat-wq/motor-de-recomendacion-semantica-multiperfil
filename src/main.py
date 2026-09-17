@@ -13,6 +13,8 @@ import visuals as vis
 from src.db.filtered.filter import main as runFilter
 from src.loss.ingest_maestro import main as runMaestro
 from src.loss.gt_matrix_pipeline import main as runPipeline
+from src.scoring import main as runScoring
+from src.recommend import main as runRecommend
 
 def main():
     while True:
@@ -46,11 +48,19 @@ def main():
                 runPipeline()
 
             case "7":
+                print("\n[7] Entrenando modelo predictivo (Regresión lineal)...")
+                runScoring()
+
+            case "8":
+                print("\n[8] Generando ranking de recomendaciones...")
+                runRecommend()
+
+            case "9":
                 print("Saliendo del panel central.")
                 sys.exit(0)
 
             case _:
-                print("Opción no válida. Por favor, seleccione una opción del 1 al 7.")
+                print("Opción no válida. Por favor, seleccione una opción del 1 al 9.")
 
 if __name__ == '__main__':
     main()

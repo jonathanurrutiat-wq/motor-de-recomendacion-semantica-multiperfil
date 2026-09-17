@@ -15,7 +15,9 @@ def mostrar_menu_principal():
     print("4) Generar embeddings del lote de reseñas más reciente.")
     print("5) Cargar Ground-truth (dataset_maestro.csv).")
     print("6) Revisar películas pendientes de evaluar.")
-    print("7) Salir.")
+    print("7) Entrenar modelo predictivo (Regresión Lineal).")
+    print("8) Recomendar películas según el perfil.")
+    print("9) Salir.")
 
     imprimir_separador2()
 
