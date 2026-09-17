@@ -1,101 +1,101 @@
 import pandas as pd
-# import os
+import json
+import re
 from pathlib import Path
 from datetime import datetime
 
-DEFAULT_VALUE = float(0.0)
+def parse_rating(ratingStr):
+    if not isinstance(ratingStr, str):
+        if pd.isnull(ratingStr):
+            return 0.0
+        return ratingStr
+    
+    score = float(ratingStr.count("★"))
+    if "½" in ratingStr:
+        score += 0.5
 
-def mostrar_data(df, mensaje=""):
-  print(f"| ---------------- {mensaje} ---------------- |")
-  df.info()
-  print("\n|" + "="*56 + "|\n\n")
+    return score
 
-def parse_rating(rating_str):
-  # Verificar integridad del token
-  if not isinstance(rating_str, str):
-    # Si es un valor nulo, asignar por defecto un decimal 0.0
-    if pd.isnull(rating_str):
-      return DEFAULT_VALUE
-    # Caso excepcional de seguridad
-    return rating_str
+def parse_review(serieReview):
+    serieLimpia = serieReview.fillna("").astype(str).str.replace(
+        r"[^\w\s.,!?¿¡()\-áéíóúÁÉÍÓÚñÑüÜ]", "", regex=True
+    )
+    return serieLimpia
 
-  score = float(rating_str.count("★"))
+def procesar_csv(csvFile, target_dir):
+    df = pd.read_csv(csvFile)
+    if 'user_name' in df.columns:
+        df = df.drop('user_name', axis=1)
 
-  if "½" in rating_str:
-    score+=0.5
+    if 'rating' in df.columns:
+        df['rating'] = df['rating'].apply(parse_rating)
 
-  return score
+    if 'review_text' in df.columns:
+        df['review_text'] = parse_review(df['review_text'])
+        df = df[df['review_text'].str.strip() != ""]
+        df = df[~df['review_text'].str.match(r'^\s*\d+\s*$', na=False)]
 
-import re
-
-def parse_review(serie_review):
-  serie_limpia = serie_review.fillna("").astype(str).str.replace(
-      r"[^\w\s.,!?¿¡()\-áéíóúÁÉÍÓÚñÑüÜ]", "", regex=True
-  )
-  return serie_limpia
-
-def filtrar_data(df):
-  # Pasos a seguir:
-  # 1. Eliminar columna de usernames -> no es necesaria.
-  # 2. Transformar calificaciones de estrellas a flotantes.
-  # 3. Filtrar los emojis y todos los carácteres especiales en las reviews.
-
-  df = df.drop('user_name', axis=1)
-
-  df['rating'] = df['rating'].apply(parse_rating)
-
-  if 'review_text' in df.columns:
-    df['review_text'] = parse_review(df['review_text'])
-
-    # Nuevo: filtro semántico (v0.0.1.2)
-
-    # Eliminar reseñas completamente vacías
-    df = df[df['review_text'].str.strip() != ""]
-    # Eliminar reseñas que son única y exclusivamente números (no aportan contexto significativo)
-    df = df[~df['review_text'].str.match(r'^\s*\d+\s*$', na=False)]
-
-  return df
-
-def main():
-
-  curr_dir = Path(__file__).resolve().parent
-  raw_dir = curr_dir.parent / "raw"
-  target_dir = curr_dir / "result"
-
-  if not raw_dir.exists():
-    print(f"Error: la carpeta {raw_dir} no existe.")
-    return
-
-  csv_files = list(raw_dir.glob("*.csv"))
-  if not csv_files:
-    print(f"No se encontraron archivos .csv en la carpeta {raw_dir}.")
-    return
-  # Crear carpeta result puesto que no existe -> no hay archivos filtrados
-  target_dir.mkdir(parents=True, exist_ok=True)
-
-  for csv_file in csv_files:
-    print(f"Procesando archivo: {csv_file.name}\n")
-
-    df = pd.read_csv(csv_file)
-    mostrar_data(df, f"Inspección inicial: {csv_file.name}")
-
-    df = filtrar_data(df)
-
-    # ==== Crear nuevo nombre para archivo filtrado resultante ====
-
-    # Extraer hora actual
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-
-    # Crear nuevo nombre
     new_filename = f"filtrado_{timestamp}.csv"
     output_path = target_dir / new_filename
 
-    # Mostrar data del dataframe final
-    mostrar_data(df, f"Datos limpios: {new_filename}")
-
-    # Serializar a archivo .csv
     df.to_csv(output_path, index=False, encoding='utf-8')
-    print(f"Archivo {new_filename} guardado exitosamente en:\n{output_path}.\n")
+
+def procesar_json(jsonFile, target_dir):
+    with open(jsonFile, 'r', encoding='utf-8') as file:
+        data = json.load(file)
+    filas = []
+    for slug, info in data.items():
+        textos = []
+        if "overview" in info and info["overview"]:
+            textos.append(info["overview"])
+
+        if "genres" in info and isinstance(info["genres"], list):
+            textos.append(" ".join(info["genres"]))
+
+        if "keywords" in info and isinstance(info["keywords"], list):
+            textos.append(" ".join(info["keywords"]))
+
+        reviewText = " ".join(textos)
+        filas.append({
+            'film_id': slug,
+            'film_title': info.get('title', ''),
+            'rating': info.get('tmdb_rating', 0.0),
+            'review_text': reviewText
+        })
+
+    df = pd.DataFrame(filas)
+    df['review_text'] = parse_review(df['review_text'])
+    df = df[df['review_text'].str.strip() != ""]
+
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    new_filename = f"filtrado_json_{timestamp}.csv"
+    output_path = target_dir / new_filename
+
+    df.to_csv(output_path, index=False, encoding='utf-8')
+
+def main():
+    curr_dir = Path(__file__).resolve().parent
+    raw_dir = curr_dir.parent / "raw"
+    target_dir = curr_dir / "result"
+    target_dir.mkdir(parents=True, exist_ok=True)
+
+    print("\n========================================")
+    print("1) Filtrar CSVs crudos")
+    print("2) Filtrar JSON crudo")
+
+    opcion = input("< ")
+    match opcion:
+        case "1":
+            csv_files = list(raw_dir.glob("*.csv"))
+            for f in csv_files:
+                procesar_csv(f, target_dir)
+        case "2":
+            json_files = list(raw_dir.glob("*.json"))
+            for f in json_files:
+                procesar_json(f, target_dir)
+        case _:
+            pass
 
 if __name__ == '__main__':
-  main()
+    main()

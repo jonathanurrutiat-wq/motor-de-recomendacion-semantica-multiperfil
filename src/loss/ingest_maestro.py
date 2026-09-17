@@ -1,29 +1,30 @@
+import pandas as pd
+import json
+import re
 from pathlib import Path
 
-import pandas as pd
+def parse_film_id(rawTitle):
 
-from src.normalizacion import parse_film_id
+    text = re.sub(r'^\d+\.\s*', '', str(rawTitle))
+    text = re.sub(r'\s*\(\d{4}\)', '', text)
+    text = text.replace('"', '').replace("'", "")
+    text = text.lower().strip()
+    text = re.sub(r'[^\w\s-]', '', text)
+    text = re.sub(r'\s+', '-', text)
 
+    return text
 
-def main():
-    root_dir = Path.cwd()
-    loss_dir = root_dir / "src" / "loss"
-
+def procesar_csv(loss_dir):
     ds_master = loss_dir / "dataset_maestro.csv"
     if not ds_master.exists():
-        print(f"[!] Error: No se encontró el dataset en {ds_master}")
-        print("Por favor, renombra el CSV de ground-truth a 'dataset_maestro.csv' y colócalo en src/loss/")
         return
-
-    print("Leyendo el dataset maestro...")
+    
     df = pd.read_csv(ds_master)
-
-    # Quitar tilde en la palabra Pelicula para hacer más cómodo de trabajar en el futuro
     if "Película" in df.columns:
         df = df.rename(columns={"Película": "Pelicula"})
 
     df['film_id'] = df['Pelicula'].apply(parse_film_id)
-    df['film_title'] = df['Pelicula']  # Conservamos el original por si acaso
+    df['film_title'] = df['Pelicula']
 
     mapeo_columnas = {
         "Rancia": "gt_cols_camaradería_masculina_rancia",
@@ -39,30 +40,68 @@ def main():
         "Global": "gt_nota_global"
     }
 
-    # Limpieza de Asteriscos y conversión a numérico
     for col_original, col_nueva in mapeo_columnas.items():
         if col_original in df.columns:
-            # Reemplazamos el asterisco por nada y forzamos a float
             df[col_nueva] = df[col_original].astype(str).str.replace(r'\*', '', regex=True)
             df[col_nueva] = pd.to_numeric(df[col_nueva], errors='coerce')
 
-    # Seleccionar las columnas finales
-    columnas_finales = ['film_id', 'film_title'] + list(mapeo_columnas.values())
-    df_final = df[columnas_finales]
-
+    columnasFinales = ['film_id', 'film_title'] + list(mapeo_columnas.values())
+    df_final = df[columnasFinales]
     csv_path = loss_dir / "matriz_perdida.csv"
-    print(f"Guardando Verdad Base en formato ligero: {csv_path.name}...")
-
-    # guardar el DataFrame sobrescribiendo cualquier versión anterior
     df_final.to_csv(csv_path, index=False, encoding='utf-8')
 
-    print(f"Éxito. {len(df_final)} películas ingestadas y normalizadas.")
+def procesar_json(loss_dir):
+    # definir el único ground-truth apuntando directamente a raw en módulo db
+    root_dir = Path.cwd()
+    json_master = root_dir / "src" / "db" / "raw" / "movies_slug_clean.json"
+    
+    if not json_master.exists():
+        print(f"[!] Error: No se encontró el archivo en {json_master}")
+        return
+        
+    with open(json_master, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+        
+    filas = []
+    for slug, info in data.items():
+        filas.append({
+            'film_id': slug,
+            'film_title': info.get('title', ''),
+            # relleno para compatibilidad con la regresión lineal
+            'gt_cols_camaradería_masculina_rancia': pd.NA,
+            'gt_cols_insoportabilidad_prolongada': pd.NA,
+            'gt_cols_control_emocional_artificial': pd.NA,
+            'gt_cols_personajes_diorama': pd.NA,
+            'gt_cols_caos_asfixiante': pd.NA,
+            'gt_afinidad_resistencia_femenina': pd.NA,
+            'gt_afinidad_contemplación_inmersiva': pd.NA,
+            'gt_afinidad_ternura_y_empatía_radical': pd.NA,
+            'gt_afinidad_humanismo_social': pd.NA,
+            'gt_afinidad_vanguardia_y_simbolismo': pd.NA,
+            'gt_nota_global': info.get('tmdb_rating', 0.0)
+        })
+        
+    df_final = pd.DataFrame(filas)
+    csv_path = loss_dir / "matriz_perdida.csv"
+    df_final.to_csv(csv_path, index=False, encoding='utf-8')
+    print(f"Éxito. {len(df_final)} películas procesadas desde JSON y guardadas en {csv_path.name}.")
 
-    # verificación directa desde Pandas
-    columnas_verificacion = ['film_id', 'gt_cols_insoportabilidad_prolongada', 'gt_nota_global']
-    print("\n| -- Verificación de integridad matemática -- |")
-    print(df_final[columnas_verificacion].head())
+def main():
+    root_dir = Path.cwd()
+    loss_dir = root_dir / "src" / "loss"
 
+    print("\n========================================")
+    print("1) Cargar CSV (dataset_maestro.csv)")
+    print("2) Cargar JSON (movies_slug_clean.json)")
+
+    opcion = input("< ")
+    match opcion:
+        case "1":
+            procesar_csv(loss_dir)
+        case "2":
+            procesar_json(loss_dir)
+        case _:
+            pass
 
 if __name__ == '__main__':
     main()
