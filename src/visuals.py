@@ -12,7 +12,7 @@ def mostrar_menu_principal():
     print("1) Gestionar perfiles cinéfilos.")
     print("2) Ejecutar pipeline ETL (filtrar CSVs crudos).")
     print("3) Generar embeddings de un perfil.")
-    print("4) Generar embeddings del lote de reseñas más reciente.")
+    print("4) Generar embeddings de los lotes de reseñas pendientes.")
     print("5) Cargar Ground-truth (dataset_maestro.csv).")
     print("6) Revisar películas pendientes de evaluar.")
     print("7) Entrenar modelo predictivo (Regresión Lineal).")

@@ -32,16 +32,16 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
     Corre `filter.py` sobre los `.csv` crudos de `db/raw/` (extraídos desde Letterboxd): limpia texto, descarta reseñas vacías o sin contenido real, y convierte la calificación en estrellas a un número. Guarda el resultado en `db/filtered/result/`.
 
 * **3) Generar embeddings de un perfil.**
-    Pide el nombre de un perfil ya creado y genera los vectores semánticos de sus filtros y afinidades (`procesing_profiles.py`), persistiéndolos en la colección `perfiles` de ChromaDB.
+    Pide el nombre de un perfil ya creado y genera los vectores semánticos de sus filtros y afinidades (`procesing_profiles.py`), persistiéndolos en la colección `perfiles` de ChromaDB. Reemplaza por completo los embeddings anteriores de ese perfil y ofrece eliminar los de perfiles que ya no existen.
 
-* **4) Generar embeddings del lote de reseñas más reciente.**
-    Toma el `.csv` filtrado más reciente de `db/filtered/result/`, chunkea el texto de cada reseña y genera sus embeddings (`procesing_reviews.py`), guardándolos en la colección `resenias` de ChromaDB.
+* **4) Generar embeddings de los lotes de reseñas pendientes.**
+    Toma todos los `.csv` filtrados de `db/filtered/result/` que todavía no están en ChromaDB, chunkea el texto de cada reseña y genera sus embeddings (`procesing_reviews.py`), guardándolos en la colección `resenias`. Cada chunk se identifica como `pelicula::lote::review_N::chunk_M`, así que reseñas de lotes distintos no se pisan.
 
 * **5) Cargar Ground-truth (dataset_maestro.csv).**
-    Lee `dataset_maestro.csv` (las notas que evaluó Gemini para un grupo de películas según el perfil), lo limpia y normaliza, y genera `matriz_perdida.csv`: el archivo liviano que usan las opciones 6, 7 y 8.
+    Lee `dataset_maestro.csv` (las notas que evaluó Gemini para un grupo de películas según el perfil), lo limpia y normaliza, y genera `matriz_perdida.csv`: el archivo liviano que usan las opciones 6, 7 y 8. Además importa las películas ya evaluadas en `pendientes_evaluar.csv` (las que tienen `gt_nota_global`): las mueve a `evaluaciones_adicionales.csv`, que se suma a la Verdad Base en cada ejecución.
 
 * **6) Revisar películas pendientes de evaluar.**
-    Compara las películas que ya tienen reseña procesada contra las que ya están en `matriz_perdida.csv`, y muestra cuáles todavía no tienen nota de Gemini. Genera `pendientes_evaluar.csv` con la estructura lista para completar esas evaluaciones.
+    Compara las películas que ya tienen reseña procesada contra las que ya están en `matriz_perdida.csv`, y muestra cuáles todavía no tienen nota de Gemini. Genera `pendientes_evaluar.csv` con la estructura lista para completar esas evaluaciones (se puede editar en Excel; se aceptan `;` como separador y coma decimal). Si la plantilla tiene evaluaciones aún sin importar, no la sobrescribe.
 
 * **7) Entrenar modelo predictivo (Regresión Lineal).**
     Entrena una regresión lineal que aprende a aproximar la nota de Gemini a partir de la similitud de coseno entre los embeddings de las reseñas (promediados por película) y los del perfil. Informa el error del modelo (MSE), la varianza explicada (R²) y el peso aprendido para cada filtro/afinidad, y guarda el modelo en `src/loss/modelo_regresion.joblib`.
@@ -107,7 +107,7 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
     * <code><b><span style="color: #009dff;">procesing_profiles.py</span></b></code>: Genera los chunks y embeddings de un perfil cinéfilo puntual (recibido por nombre) y los persiste en ChromaDB.
 
-    * <code><b><span style="color: #009dff;">procesing_reviews.py</span></b></code>: Genera los chunks y embeddings del lote de reseñas filtradas más reciente y los persiste en ChromaDB.
+    * <code><b><span style="color: #009dff;">procesing_reviews.py</span></b></code>: Genera los chunks y embeddings de los lotes de reseñas filtradas que aún no están vectorizados y los persiste en ChromaDB.
 
     * <code><b><span style="color: #009dff;">normalizacion.py</span></b></code>: Funciones compartidas para normalizar y comparar el `film_id` entre las distintas fuentes de datos del proyecto (reseñas vs. ground-truth).
 
@@ -123,6 +123,25 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
 ## **Changelog (historial de cambios)**
 <small>*Nota: Este changelog está en orden cronológico inverso.*</small>
+
+### [1.0.3] - 23-09-2026
+> Integridad de los embeddings en ChromaDB y cierre del ciclo de evaluación de películas pendientes.
+
+* Arreglado
+
+    * `procesing_reviews.py`: el id de cada chunk no incluía el lote, así que reseñas de lotes distintos en la misma fila se sobrescribían. Ahora el id incluye el lote, y se ofrece eliminar los chunks con el formato antiguo.
+
+    * La opción 4 solo vectorizaba el `.csv` filtrado más reciente; ahora procesa todos los lotes que aún no están en ChromaDB.
+
+    * `profiles.py`: al renombrar un perfil no se aplicaba `.title()`, y un perfil renombrado ya no se podía vectorizar ni eliminar. Los nombres se buscan ahora sin distinguir mayúsculas, y ya no se puede renombrar un perfil con el nombre de otro existente (antes lo sobrescribía).
+
+    * `procesing_profiles.py`: los embeddings de filtros eliminados y de perfiles borrados o renombrados quedaban en ChromaDB. Ahora cada perfil se reemplaza completo al vectorizarlo, y se ofrece limpiar los perfiles huérfanos.
+
+* Añadido
+
+    * `ingest_maestro.py` importa las evaluaciones completadas en `pendientes_evaluar.csv` hacia `evaluaciones_adicionales.csv`, que se une a la Verdad Base.
+
+    * `gt_matrix_pipeline.py` no sobrescribe `pendientes_evaluar.csv` si tiene evaluaciones sin importar.
 
 ### [1.0.2] - 23-09-2026
 > Corrección del entrenamiento del modelo, soporte real para elegir perfil y rutas independientes del directorio de ejecución.

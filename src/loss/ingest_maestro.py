@@ -1,7 +1,7 @@
 import pandas as pd
 
-from src.config import RUTA_DATASET_MAESTRO, RUTA_GT
-from src.normalizacion import parse_film_id
+from src.config import RUTA_ADICIONALES, RUTA_DATASET_MAESTRO, RUTA_GT, RUTA_PENDIENTES
+from src.normalizacion import canonicalizar_film_id, parse_film_id
 
 # Traducción de los encabezados abreviados de la planilla evaluada por Gemini
 # a los nombres de columna de la Verdad Base. Si la planilla cambia de
@@ -19,6 +19,61 @@ MAPEO_ENCABEZADOS = {
     "Vanguardia": "gt_afinidad_vanguardia_y_simbolismo",
     "Global": "gt_nota_global",
 }
+
+
+def a_numerico(serie: pd.Series) -> pd.Series:
+    # Acepta asteriscos y coma decimal ("8,5").
+    texto = serie.astype(str).str.strip().str.replace('*', '', regex=False).str.replace(',', '.', regex=False)
+    return pd.to_numeric(texto, errors='coerce')
+
+
+def leer_csv_editado(ruta) -> pd.DataFrame:
+    # La plantilla se completa a mano (a veces en Excel): se toleran ';' como
+    # separador y archivos guardados en latin-1.
+    for encoding in ("utf-8-sig", "latin-1"):
+        try:
+            return pd.read_csv(ruta, sep=None, engine="python", encoding=encoding, dtype=str)
+        except UnicodeDecodeError:
+            continue
+    raise ValueError(f"No se pudo leer {ruta}: codificación no reconocida.")
+
+
+def filas_evaluadas(df: pd.DataFrame) -> pd.Series:
+    if "gt_nota_global" not in df.columns:
+        return pd.Series(False, index=df.index)
+    return a_numerico(df["gt_nota_global"]).notna()
+
+
+def importar_pendientes_evaluadas():
+    # Mueve las filas ya evaluadas de pendientes_evaluar.csv a
+    # evaluaciones_adicionales.csv, que persiste entre ejecuciones.
+    if not RUTA_PENDIENTES.exists():
+        return
+
+    df = leer_csv_editado(RUTA_PENDIENTES)
+    if "film_id" not in df.columns:
+        print(f"[!] Aviso: {RUTA_PENDIENTES.name} no tiene la columna 'film_id', se omite.")
+        return
+
+    evaluadas = filas_evaluadas(df)
+    if not evaluadas.any():
+        return
+
+    nuevas = df[evaluadas].copy()
+    for columna in nuevas.columns:
+        if columna.startswith("gt_"):
+            nuevas[columna] = a_numerico(nuevas[columna])
+
+    if RUTA_ADICIONALES.exists():
+        nuevas = pd.concat([pd.read_csv(RUTA_ADICIONALES), nuevas], ignore_index=True)
+    nuevas = nuevas.drop_duplicates(subset="film_id", keep="last")
+
+    # Primero se guardan las evaluaciones y recién después se quitan de la plantilla.
+    nuevas.to_csv(RUTA_ADICIONALES, index=False, encoding="utf-8")
+    df[~evaluadas].to_csv(RUTA_PENDIENTES, index=False, encoding="utf-8")
+
+    print(f"Importadas {int(evaluadas.sum())} evaluaciones desde {RUTA_PENDIENTES.name} "
+          f"a {RUTA_ADICIONALES.name}.")
 
 
 def main():
@@ -50,9 +105,7 @@ def main():
         if col_original not in df.columns:
             print(f"[!] Aviso: falta la columna '{col_original}' en el dataset maestro, se omite.")
             continue
-        # Reemplazamos el asterisco por nada y forzamos a float
-        df[col_nueva] = df[col_original].astype(str).str.replace(r'\*', '', regex=True)
-        df[col_nueva] = pd.to_numeric(df[col_nueva], errors='coerce')
+        df[col_nueva] = a_numerico(df[col_original])
         columnas_gt.append(col_nueva)
 
     no_mapeadas = set(df.columns) - set(MAPEO_ENCABEZADOS) - set(columnas_gt) - {"Pelicula", "film_id", "film_title"}
@@ -60,6 +113,21 @@ def main():
         print(f"[!] Aviso: columnas sin mapeo en MAPEO_ENCABEZADOS, se ignoran: {', '.join(sorted(no_mapeadas))}")
 
     df_final = df[['film_id', 'film_title'] + columnas_gt]
+
+    importar_pendientes_evaluadas()
+
+    if RUTA_ADICIONALES.exists():
+        adicionales = pd.read_csv(RUTA_ADICIONALES)
+        adicionales['film_title'] = adicionales['film_id']
+
+        en_maestro = set(df_final['film_id'].apply(canonicalizar_film_id))
+        repetidas = adicionales['film_id'].apply(canonicalizar_film_id).isin(en_maestro)
+        if repetidas.any():
+            print(f"[!] Aviso: se ignoran evaluaciones adicionales ya presentes en el dataset maestro: "
+                  f"{', '.join(adicionales.loc[repetidas, 'film_id'])}")
+
+        df_final = pd.concat([df_final, adicionales[~repetidas]], ignore_index=True)
+        print(f"Sumadas {int((~repetidas).sum())} evaluaciones adicionales desde {RUTA_ADICIONALES.name}.")
 
     print(f"Guardando Verdad Base en formato ligero: {RUTA_GT.name}...")
 

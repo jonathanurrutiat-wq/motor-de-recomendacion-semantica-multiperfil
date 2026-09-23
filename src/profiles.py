@@ -12,6 +12,12 @@ def cargar_datos():
     return {}
 
 
+def buscar_perfil(datos, nombre):
+    # Devuelve el nombre tal como está guardado, sin distinguir mayúsculas.
+    por_nombre = {clave.lower(): clave for clave in datos}
+    return por_nombre.get(nombre.strip().lower())
+
+
 def guardar_datos(datos):
     archivo_perfiles.parent.mkdir(parents=True, exist_ok=True)
     with open(archivo_perfiles, "w", encoding="utf-8") as archivo:
@@ -222,7 +228,8 @@ def main():
             if not nombre_perfil:
                 print("Nombre de perfil no válido. Por favor, intente nuevamente.")
                 continue
-            
+
+            nombre_perfil = buscar_perfil(datos, nombre_perfil) or nombre_perfil
             es_nuevo = nombre_perfil not in datos
 
             if not es_nuevo:
@@ -250,8 +257,11 @@ def main():
                     opcion_edicion = input("Seleccione una opción: ")
 
                     if opcion_edicion == "1":
-                        nuevo_nombre = input("Ingrese el nuevo nombre del perfil: ").strip()
-                        if nuevo_nombre and nuevo_nombre != nombre_perfil:
+                        nuevo_nombre = input("Ingrese el nuevo nombre del perfil: ").strip().title()
+                        existente = buscar_perfil(datos, nuevo_nombre)
+                        if existente and existente != nombre_perfil:
+                            print(f"Ya existe un perfil llamado '{existente}'. No se realizaron cambios.")
+                        elif nuevo_nombre and nuevo_nombre != nombre_perfil:
                             datos[nuevo_nombre] = datos.pop(nombre_perfil)
                             print(f"El perfil ha sido renombrado a '{nuevo_nombre}'.")
                             nombre_perfil = nuevo_nombre
@@ -296,17 +306,17 @@ def main():
             if not datos:
                 print("No hay perfiles existentes para eliminar.")
                 continue
-            nombre_perfil = input("Ingrese el nombre del perfil a eliminar: ")
-            nombre_perfil = nombre_perfil.strip().title()
-            if nombre_perfil in datos:
+            nombre_perfil = buscar_perfil(datos, input("Ingrese el nombre del perfil a eliminar: "))
+            if nombre_perfil:
                 confirmar = input(f"¿Está seguro de que desea eliminar el perfil '{nombre_perfil}'? (s/n): ")
                 if confirmar.lower() == "s":
                     del datos[nombre_perfil]
                     print(f"Perfil '{nombre_perfil}' eliminado exitosamente.")
+                    print("Sus embeddings se pueden limpiar desde la opción 3 del menú principal.")
                 else:
                     print("Eliminación cancelada.")
             else:
-                print(f"No se encontró el perfil '{nombre_perfil}'.")
+                print("No se encontró ese perfil.")
 
         elif opcion == "4":
             guardar_datos(datos)

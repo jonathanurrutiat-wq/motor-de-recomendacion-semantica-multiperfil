@@ -8,6 +8,7 @@ from sentence_transformers import SentenceTransformer
 
 from config import DIR_CHROMA, EMBEDDING_MODEL_NAME
 from config import RUTA_PERFILES as ARCHIVO_PERFILES
+from profiles import buscar_perfil
 
 NOMBRE_COLECCION = "perfiles"
 
@@ -124,19 +125,33 @@ def construir_id(documento: Document) -> str:
     return f"{meta['persona']}::{meta['tipo']}::{meta['filtro']}"
 
 
-def guardar_coleccion(documentos: list[Document], embeddings: np.ndarray) -> chromadb.api.models.Collection.Collection:
+def obtener_coleccion():
     DIR_CHROMA.mkdir(parents=True, exist_ok=True)
-
     cliente = chromadb.PersistentClient(path=str(DIR_CHROMA))
-    coleccion = cliente.get_or_create_collection(name=NOMBRE_COLECCION)
+    return cliente.get_or_create_collection(name=NOMBRE_COLECCION)
 
+
+def limpiar_perfiles_huerfanos(coleccion, perfiles: dict):
+    # Embeddings de perfiles que ya no existen en perfiles.json (eliminados o renombrados).
+    metadatas = coleccion.get(include=['metadatas'])['metadatas']
+    huerfanos = sorted({meta['persona'] for meta in metadatas} - set(perfiles))
+    if not huerfanos:
+        return
+
+    print(f"\n[!] Hay embeddings de perfiles que ya no existen: {', '.join(huerfanos)}")
+    if input("¿Eliminarlos de ChromaDB? (s/n): ").strip().lower() == "s":
+        for persona in huerfanos:
+            coleccion.delete(where={"persona": persona})
+        print("Embeddings huérfanos eliminados.")
+
+
+def guardar_coleccion(coleccion, nombre_perfil: str, documentos: list[Document], embeddings: np.ndarray):
     ids = [construir_id(doc) for doc in documentos]
     textos = extraer_textos(documentos)
     metadatas = [sanitizar_metadata(doc.metadata) for doc in documentos]
 
-    # upsert en vez de add: si vuelves a generar embeddings para el mismo
-    # perfil (porque lo editaste), esto actualiza los documentos existentes
-    # en vez de duplicarlos o fallar por ids repetidos.
+    # Se reemplaza todo el perfil: así no quedan embeddings de filtros que se eliminaron.
+    coleccion.delete(where={"persona": nombre_perfil})
     coleccion.upsert(
         ids=ids,
         embeddings=embeddings.tolist(),
@@ -146,8 +161,6 @@ def guardar_coleccion(documentos: list[Document], embeddings: np.ndarray) -> chr
 
     print(f"Colección '{NOMBRE_COLECCION}' actualizada en: {DIR_CHROMA}")
     print(f"Documentos guardados/actualizados: {len(ids)}")
-
-    return coleccion
 
 
 def main():
@@ -161,12 +174,16 @@ def main():
     for perfil in perfiles.keys():
         print(f"- {perfil}")
     
-    nombre_perfil = input("Ingrese el nombre del perfil a embeddear: ").strip().title()
-    
-    if nombre_perfil not in perfiles:
-        print(f"El perfil '{nombre_perfil}' no existe.")
+    entrada = input("Ingrese el nombre del perfil a embeddear: ")
+    nombre_perfil = buscar_perfil(perfiles, entrada)
+
+    if not nombre_perfil:
+        print(f"El perfil '{entrada.strip()}' no existe.")
         return
-    
+
+    coleccion = obtener_coleccion()
+    limpiar_perfiles_huerfanos(coleccion, perfiles)
+
     perfil_a_procesar = {nombre_perfil: perfiles[nombre_perfil]}
     
     dispositivo = "cuda" if torch.cuda.is_available() else "cpu"
@@ -181,7 +198,7 @@ def main():
     embeddings = crear_embeddings(textos_extraidos, model)
     print(f"Embeddings generados con éxito. Forma del tensor: {embeddings.shape}")
 
-    guardar_coleccion(documentos, embeddings)
+    guardar_coleccion(coleccion, nombre_perfil, documentos, embeddings)
 
 
 if __name__ == '__main__':

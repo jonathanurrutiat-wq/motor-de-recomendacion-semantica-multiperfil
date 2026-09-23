@@ -36,7 +36,7 @@ def main():
                 embPerfiles.main()
 
             case "4":
-                print("\n[4] Generando embeddings del lote de reseñas más reciente...")
+                print("\n[4] Generando embeddings de los lotes de reseñas pendientes...")
                 embResenias.main()
 
             case "5":

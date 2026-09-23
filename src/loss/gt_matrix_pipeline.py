@@ -3,6 +3,7 @@ from pathlib import Path
 import pandas as pd
 
 from src.config import DIR_FILTRADOS, RUTA_GT, RUTA_PENDIENTES
+from src.loss.ingest_maestro import filas_evaluadas, leer_csv_editado
 from src.loss.matrix import generar_matriz_vacia
 from src.normalizacion import canonicalizar_film_id
 
@@ -70,6 +71,13 @@ def main():
     for film_id in sorted(peliculas_pendientes):
         print(f"  - {film_id}")
 
+    if RUTA_PENDIENTES.exists():
+        sin_importar = int(filas_evaluadas(leer_csv_editado(RUTA_PENDIENTES)).sum())
+        if sin_importar:
+            print(f"\n[!] {RUTA_PENDIENTES.name} tiene {sin_importar} película(s) ya evaluadas que aún no se "
+                  "importan. No se sobrescribe: ejecuta primero el módulo 5 para importarlas.")
+            return
+
     # Plantilla con las columnas correctas (según los filtros/afinidades
     # del perfil actual) para facilitar la evaluación manual de lo pendiente.
     plantilla = generar_matriz_vacia()
@@ -81,6 +89,7 @@ def main():
     salida_path = RUTA_PENDIENTES
     plantilla_pendientes.to_csv(salida_path, index=False, encoding="utf-8")
     print(f"\nPlantilla para evaluación manual guardada en: {salida_path}")
+    print("Completa las notas (al menos gt_nota_global) y ejecuta el módulo 5 para sumarlas a la Verdad Base.")
 
 
 if __name__ == '__main__':

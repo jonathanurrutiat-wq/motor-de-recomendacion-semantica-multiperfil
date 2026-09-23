@@ -14,18 +14,36 @@ NOMBRE_COLECCION = "resenias"
 COLUMNAS_REQUERIDAS = {"film_id", "review_text"}
 
 
-"""Selección del lote filtrado más reciente"""
+"""Selección de lotes filtrados pendientes"""
 
-def obtener_csv_mas_reciente(directorio: Path) -> Path:
+def obtener_lotes_pendientes(directorio: Path, coleccion) -> list[Path]:
+    # Un lote está pendiente si ninguno de sus chunks está en la colección.
     if not directorio.exists():
         raise FileNotFoundError(f"No existe el directorio {directorio}")
 
-    archivos = list(directorio.glob("filtrado_*.csv"))
+    archivos = sorted(directorio.glob("filtrado_*.csv"), key=lambda p: p.stat().st_mtime)
     if not archivos:
         raise FileNotFoundError(f"No se encontraron csv 'filtrado_*.csv' en {directorio}")
 
-    # Por fecha real de modificación, no por el nombre del archivo.
-    return max(archivos, key=lambda p: p.stat().st_mtime)
+    return [
+        archivo for archivo in archivos
+        if not coleccion.get(where={"lote": archivo.stem}, limit=1, include=[])['ids']
+    ]
+
+
+def limpiar_ids_antiguos(coleccion):
+    # Antes el id no incluía el lote ("pelicula::review_N::chunk_M") y
+    # reseñas de lotes distintos se pisaban entre sí.
+    ids_antiguos = [i for i in coleccion.get(include=[])['ids'] if len(i.split("::")) == 3]
+    if not ids_antiguos:
+        return
+
+    print(f"\n[!] Hay {len(ids_antiguos)} chunks guardados con el formato de id antiguo (sin lote).")
+    print("    Si no se eliminan, quedarán duplicados al volver a vectorizar sus lotes.")
+    print(f"    Elimínalos solo si todavía tienes los csv filtrados en {DIR_FILTRADOS}: se vectorizarán de nuevo desde ahí.")
+    if input("¿Eliminarlos? (s/n): ").strip().lower() == "s":
+        coleccion.delete(ids=ids_antiguos)
+        print(f"Eliminados {len(ids_antiguos)} chunks antiguos.")
 
 
 def cargar_resenias(csv_path: Path) -> pd.DataFrame:
@@ -86,12 +104,7 @@ def crear_embeddings_resenias(resenias_chunkeadas: list[dict], model: SentenceTr
 
 """Persistencia en ChromaDB"""
 
-def guardar_coleccion(resenias_embebidas: list[dict]) -> chromadb.api.models.Collection.Collection:
-    DIR_CHROMA.mkdir(parents=True, exist_ok=True)
-
-    cliente = chromadb.PersistentClient(path=str(DIR_CHROMA))
-    coleccion = cliente.get_or_create_collection(name=NOMBRE_COLECCION)
-
+def guardar_lote(coleccion, lote: str, resenias_embebidas: list[dict]):
     ids, embeddings, documentos, metadatas = [], [], [], []
 
     for entrada in resenias_embebidas:
@@ -99,21 +112,20 @@ def guardar_coleccion(resenias_embebidas: list[dict]) -> chromadb.api.models.Col
         review_idx = entrada["review_idx"]
 
         for i, (chunk_texto, vector) in enumerate(zip(entrada["chunks"], entrada["embeddings"])):
-            ids.append(f"{film_id}::review_{review_idx}::chunk_{i}")
+            ids.append(f"{film_id}::{lote}::review_{review_idx}::chunk_{i}")
             embeddings.append(vector.tolist())
             documentos.append(chunk_texto)
             metadatas.append({
                 "film_id": str(film_id),
+                "lote": lote,
                 "review_idx": int(review_idx),
                 "chunk_idx": i,
             })
 
     if not ids:
-        print("No hay chunks nuevos para guardar.")
-        return coleccion
+        print(f"El lote {lote} no tiene chunks para guardar.")
+        return
 
-    # upsert: si vuelves a correr esto sobre el mismo lote, actualiza en vez
-    # de duplicar (mismo id = misma película, misma reseña, mismo chunk).
     coleccion.upsert(
         ids=ids,
         embeddings=embeddings,
@@ -121,28 +133,38 @@ def guardar_coleccion(resenias_embebidas: list[dict]) -> chromadb.api.models.Col
         metadatas=metadatas,
     )
 
-    print(f"Colección '{NOMBRE_COLECCION}' actualizada en: {DIR_CHROMA}")
-    print(f"Chunks guardados/actualizados: {len(ids)}")
-
-    return coleccion
+    print(f"Lote {lote}: {len(ids)} chunks guardados en la colección '{NOMBRE_COLECCION}'.")
 
 
 def main():
+    DIR_CHROMA.mkdir(parents=True, exist_ok=True)
+    cliente = chromadb.PersistentClient(path=str(DIR_CHROMA))
+    coleccion = cliente.get_or_create_collection(name=NOMBRE_COLECCION)
+
+    limpiar_ids_antiguos(coleccion)
+
+    lotes = obtener_lotes_pendientes(DIR_FILTRADOS, coleccion)
+    if not lotes:
+        print("Todos los lotes filtrados ya están vectorizados. No hay nada nuevo que procesar.")
+        return
+
+    print(f"Lotes pendientes de vectorizar: {', '.join(lote.name for lote in lotes)}")
+
     dispositivo = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Cargando nuevo modelo neuronal en memoria ({dispositivo.upper()}). Por favor espere...")
     model = SentenceTransformer(EMBEDDING_MODEL_NAME, device=dispositivo)
 
-    csv_path = obtener_csv_mas_reciente(DIR_FILTRADOS)
-    print(f"Leyendo lote más reciente: {csv_path.name}")
-    resenias = cargar_resenias(csv_path)
+    for csv_path in lotes:
+        print(f"\nLeyendo lote: {csv_path.name}")
+        resenias = cargar_resenias(csv_path)
 
-    print("Chunkeando reseñas...")
-    resenias_chunkeadas = chunking_resenias(resenias)
+        print("Chunkeando reseñas...")
+        resenias_chunkeadas = chunking_resenias(resenias)
 
-    print("Generando embeddings...")
-    resenias_embebidas = crear_embeddings_resenias(resenias_chunkeadas, model)
+        print("Generando embeddings...")
+        resenias_embebidas = crear_embeddings_resenias(resenias_chunkeadas, model)
 
-    guardar_coleccion(resenias_embebidas)
+        guardar_lote(coleccion, csv_path.stem, resenias_embebidas)
 
 
 if __name__ == '__main__':
