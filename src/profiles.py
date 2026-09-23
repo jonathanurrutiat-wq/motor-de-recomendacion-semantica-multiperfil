@@ -1,10 +1,8 @@
 import json
 import os
-from pathlib import Path
 
 import visuals as vis
-
-archivo_perfiles = Path.cwd() / "src" / "db" / "profiles" / "perfiles.json"
+from config import RUTA_PERFILES as archivo_perfiles
 
 
 def cargar_datos():

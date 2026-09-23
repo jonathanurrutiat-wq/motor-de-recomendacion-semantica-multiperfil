@@ -7,10 +7,8 @@ import semchunk
 import torch
 from sentence_transformers import SentenceTransformer
 
-from config import EMBEDDING_MODEL_NAME
+from config import DIR_CHROMA, DIR_FILTRADOS, EMBEDDING_MODEL_NAME
 
-DIR_FILTRADOS = Path.cwd() / "src" / "db" / "filtered" / "result"
-DIR_CHROMA = Path.cwd() / "src" / "db" / "embeddings" / "chroma"
 NOMBRE_COLECCION = "resenias"
 
 COLUMNAS_REQUERIDAS = {"film_id", "review_text"}

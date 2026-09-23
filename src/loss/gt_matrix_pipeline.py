@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from src.config import DIR_FILTRADOS, RUTA_GT, RUTA_PENDIENTES
 from src.loss.matrix import generar_matriz_vacia
 from src.normalizacion import canonicalizar_film_id
 
@@ -37,9 +38,8 @@ def obtener_peliculas_evaluadas(gt_path: Path) -> set:
 
 
 def main():
-    root_dir = Path.cwd()
-    dir_filtrados = root_dir / "src" / "db" / "filtered" / "result"
-    gt_path = root_dir / "src" / "loss" / "matriz_perdida.csv"
+    dir_filtrados = DIR_FILTRADOS
+    gt_path = RUTA_GT
 
     print("Recolectando películas con reseñas procesadas...")
     peliculas_con_resenias = obtener_peliculas_con_resenias(dir_filtrados)
@@ -78,7 +78,7 @@ def main():
         if columna != "film_id":
             plantilla_pendientes[columna] = pd.NA
 
-    salida_path = root_dir / "src" / "loss" / "pendientes_evaluar.csv"
+    salida_path = RUTA_PENDIENTES
     plantilla_pendientes.to_csv(salida_path, index=False, encoding="utf-8")
     print(f"\nPlantilla para evaluación manual guardada en: {salida_path}")
 

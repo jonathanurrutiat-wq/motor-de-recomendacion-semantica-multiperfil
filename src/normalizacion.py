@@ -20,7 +20,8 @@ alterar el film_id real que se usa para guardar o mostrar datos.
 
 import json
 import re
-from pathlib import Path
+
+from src.config import RUTA_PERFILES
 
 
 def parse_film_id(raw_title: str) -> str:
@@ -59,21 +60,34 @@ diccionario en cada archivo. Estas funciones leen esa información
 directamente desde perfiles.json, así que siempre están al día.
 """
 
-RUTA_PERFILES = Path.cwd() / "src" / "db" / "profiles" / "perfiles.json"
-
-
-def cargar_perfil_actual() -> dict:
-    # Carga el primer (y hoy único) perfil guardado en perfiles.json.
+def seleccionar_perfil() -> tuple[str, dict]:
+    # Devuelve (nombre, perfil). Si hay más de un perfil guardado, se le
+    # pregunta al usuario cuál usar en vez de tomar el primero del json.
     if not RUTA_PERFILES.exists():
         raise FileNotFoundError(
-            f"No se encontró {RUTA_PERFILES}. Crea un perfil primero desde profiles.py."
+            f"No se encontró {RUTA_PERFILES}. Crea un perfil primero desde la opción 1 del menú principal."
         )
 
     with open(RUTA_PERFILES, "r", encoding="utf-8") as archivo:
         perfiles = json.load(archivo)
 
-    nombre_perfil = next(iter(perfiles))
-    return perfiles[nombre_perfil]
+    if not perfiles:
+        raise ValueError(f"No hay perfiles en {RUTA_PERFILES}. Crea uno primero desde la opción 1 del menú principal.")
+
+    if len(perfiles) == 1:
+        return next(iter(perfiles.items()))
+
+    print("\nPerfiles disponibles:")
+    for nombre in perfiles:
+        print(f"- {nombre}")
+
+    por_nombre = {nombre.lower(): nombre for nombre in perfiles}
+    while True:
+        eleccion = input("Ingrese el nombre del perfil a utilizar: ").strip().lower()
+        if eleccion in por_nombre:
+            nombre = por_nombre[eleccion]
+            return nombre, perfiles[nombre]
+        print("Perfil no encontrado. Intente nuevamente.")
 
 
 def obtener_filtros_del_perfil(perfil: dict) -> list:

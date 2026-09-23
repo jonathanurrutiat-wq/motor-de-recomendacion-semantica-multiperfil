@@ -1,0 +1,9 @@
+chromadb
+joblib
+langchain-core
+numpy
+pandas
+scikit-learn
+semchunk
+sentence-transformers
+torch

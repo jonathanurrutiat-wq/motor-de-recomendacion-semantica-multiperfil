@@ -74,6 +74,12 @@ def main():
   target_dir.mkdir(parents=True, exist_ok=True)
 
   for csv_file in csv_files:
+    # Se omite si ya existe un filtrado de este crudo más nuevo que el propio crudo.
+    previos = list(target_dir.glob(f"filtrado_{csv_file.stem}_*.csv"))
+    if any(p.stat().st_mtime >= csv_file.stat().st_mtime for p in previos):
+      print(f"Omitiendo {csv_file.name}: ya fue filtrado y no ha cambiado.\n")
+      continue
+
     print(f"Procesando archivo: {csv_file.name}\n")
 
     df = pd.read_csv(csv_file)
@@ -87,7 +93,7 @@ def main():
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
     # Crear nuevo nombre
-    new_filename = f"filtrado_{timestamp}.csv"
+    new_filename = f"filtrado_{csv_file.stem}_{timestamp}.csv"
     output_path = target_dir / new_filename
 
     # Mostrar data del dataframe final

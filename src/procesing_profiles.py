@@ -1,5 +1,4 @@
 import json
-from pathlib import Path
 
 import chromadb
 import numpy as np
@@ -7,10 +6,9 @@ import torch
 from langchain_core.documents import Document
 from sentence_transformers import SentenceTransformer
 
-from config import EMBEDDING_MODEL_NAME
+from config import DIR_CHROMA, EMBEDDING_MODEL_NAME
+from config import RUTA_PERFILES as ARCHIVO_PERFILES
 
-ARCHIVO_PERFILES = Path.cwd() / "src" / "db" / "profiles" / "perfiles.json"
-DIR_CHROMA = Path.cwd() / "src" / "db" / "embeddings" / "chroma"
 NOMBRE_COLECCION = "perfiles"
 
 
@@ -187,5 +185,4 @@ def main():
 
 
 if __name__ == '__main__':
-    nombre = input("Ingrese el nombre del perfil a embeddear: ").strip().title()
-    main(nombre)
+    main()

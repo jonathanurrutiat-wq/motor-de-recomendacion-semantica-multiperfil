@@ -11,14 +11,19 @@
 Este proyecto consiste en el desarrollo de un sistema híbrido de recomendación cinematográfica diseñado para superar las limitaciones de los algoritmos de filtrado colaborativo tradicionales. En lugar de basarse en metadatos genéricos o calificaciones numéricas masivas, el sistema evalúa obras cinematográficas analizando semánticamente cientos de reseñas críticas (texto libre) y contrastándolas contra un perfil de usuario dinámico y estructurado en lenguaje natural.
 La arquitectura es genérica: el modelo no está rígidamente programado para un solo usuario, sino que recibe el "Perfil Cinéfilo" como una entrada de datos (input), permitiendo procesar las preferencias de múltiples usuarios (Multiperfil).
 
-## **Cómmo ejecutar el programa?**
+## **¿Cómo ejecutar el programa?**
 
-* Abrir el terminal CMD o Powershell y utilizar el siguiente comando:
-    `python motor_recomendacion_semantica/src/main.py`
+* Instalar las dependencias (idealmente dentro de un entorno virtual):
+    `pip install -r requirements.txt`
+
+* Desde la raíz del repositorio, ejecutar:
+    `python src/main.py`
+
+    Las rutas se resuelven relativas a los archivos del proyecto, así que también funciona desde cualquier otro directorio indicando la ruta completa a `src/main.py`.
 
 ## **Guía del menú principal**
 
-<small>*Nota: cada opción depende de que las anteriores ya se hayan corrido al menos una vez (ej. no se puede entrenar el modelo sin haber generado los embeddings y el Ground-truth antes).*</small>
+<small>*Nota: cada opción depende de que las anteriores ya se hayan corrido al menos una vez (ej. no se puede entrenar el modelo sin haber generado los embeddings y el Ground-truth antes). Si hay más de un perfil guardado, las opciones 6 y 7 preguntan cuál usar. El Ground-truth (`dataset_maestro.csv`) corresponde a un único perfil, así que se debe elegir ese mismo perfil al entrenar.*</small>
 
 * **1) Gestionar perfiles cinéfilos.**
     Abre el menú de `profiles.py` para crear un perfil nuevo, o editar/eliminar uno existente (filtros restrictivos y afinidades). Se guarda en `perfiles.json`.
@@ -39,10 +44,10 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
     Compara las películas que ya tienen reseña procesada contra las que ya están en `matriz_perdida.csv`, y muestra cuáles todavía no tienen nota de Gemini. Genera `pendientes_evaluar.csv` con la estructura lista para completar esas evaluaciones.
 
 * **7) Entrenar modelo predictivo (Regresión Lineal).**
-    Entrena una regresión lineal que aprende a aproximar la nota de Gemini a partir de la similitud de coseno entre los embeddings de las reseñas y los del perfil. Informa el error del modelo (MSE), la varianza explicada (R²) y el peso aprendido para cada filtro/afinidad.
+    Entrena una regresión lineal que aprende a aproximar la nota de Gemini a partir de la similitud de coseno entre los embeddings de las reseñas (promediados por película) y los del perfil. Informa el error del modelo (MSE), la varianza explicada (R²) y el peso aprendido para cada filtro/afinidad, y guarda el modelo en `src/loss/modelo_regresion.joblib`.
 
 * **8) Recomendar películas según el perfil.**
-    Usa el modelo ya entrenado para estimar una nota a todas las películas con reseña procesada (tanto a las que ya evaluó Gemini, para comparar, como a las nuevas que todavía no tienen nota). Muestra todo en un único ranking ordenado de mayor a menor nota estimada.
+    Carga el modelo guardado en la opción 7 (y el perfil con el que se entrenó) para estimar una nota a todas las películas con reseña procesada (tanto a las que ya evaluó Gemini, para comparar, como a las nuevas que todavía no tienen nota). Muestra todo en un único ranking ordenado de mayor a menor nota estimada.
 
 * **9) Salir.**
     Cierra el programa.
@@ -106,16 +111,47 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
     * <code><b><span style="color: #009dff;">normalizacion.py</span></b></code>: Funciones compartidas para normalizar y comparar el `film_id` entre las distintas fuentes de datos del proyecto (reseñas vs. ground-truth).
 
-    * <code><b><span style="color: #009dff;">config.py</span></b></code>: Archivo de configuración centralizada del proyecto, contiene constantes reutilizadas por los distintos módulos.
+    * <code><b><span style="color: #009dff;">config.py</span></b></code>: Archivo de configuración centralizada del proyecto: nombre del modelo de embeddings y todas las rutas del proyecto.
 
-    * <code><b><span style="color: #009dff;">scoring.py</span></b></code>: <i>(pendiente)</i> Módulo donde se implementará el modelo de puntaje/regresión final que combina perfil y reseñas.
+    * <code><b><span style="color: #009dff;">scoring.py</span></b></code>: Entrena la regresión lineal (perfil vs. reseñas) contra la Verdad Base y la guarda en `src/loss/modelo_regresion.joblib`.
 
-* <code><b><span style="color: #23c523d4;">perfiles.json</span></b></code>: <i>(en la raíz del proyecto)</i> Almacena los perfiles cinéfilos creados desde `profiles.py`.
+    * <code><b><span style="color: #009dff;">recommend.py</span></b></code>: Carga el modelo entrenado y genera el ranking de recomendaciones.
+
+* <code><b><span style="color: #23c523d4;">perfiles.json</span></b></code>: <i>(en `src/db/profiles/`)</i> Almacena los perfiles cinéfilos creados desde `profiles.py`.
 
 
 
 ## **Changelog (historial de cambios)**
 <small>*Nota: Este changelog está en orden cronológico inverso.*</small>
+
+### [1.0.2] - 23-09-2026
+> Corrección del entrenamiento del modelo, soporte real para elegir perfil y rutas independientes del directorio de ejecución.
+
+* Arreglado
+
+    * `scoring.py` comparaba el id compuesto de cada chunk (`pelicula::review_N::chunk_M`) contra el `film_id` de la Verdad Base, así que la opción 7 nunca lograba cruzar datos. Ahora promedia los embeddings por película, igual que `recommend.py`.
+
+    * `scoring.py` y `recommend.py` buscaban el embedding de cada filtro solo por nombre, pudiendo tomar el de otro perfil que tuviera un filtro con el mismo nombre. Ahora filtran por persona.
+
+    * La opción 8 reentrenaba su propio modelo en vez de usar el de la opción 7. Ahora la opción 7 guarda el modelo (`modelo_regresion.joblib`) y la opción 8 lo carga.
+
+    * `procesing_profiles.py` fallaba con `TypeError` al ejecutarse directamente (llamaba `main(nombre)` con un `main()` sin parámetros).
+
+    * `ingest_maestro.py` fallaba con `KeyError` si al dataset maestro le faltaba alguna columna; ahora la omite con un aviso, y también avisa de columnas sin mapeo.
+
+    * `filter.py` volvía a filtrar todos los CSV crudos en cada ejecución, duplicando archivos en `result/`. Ahora omite los que ya fueron filtrados y no han cambiado (el nombre de salida incluye el nombre del crudo).
+
+* Cambios
+
+    * Las rutas se centralizan en `config.py` y se resuelven relativas a los archivos del proyecto, no a `Path.cwd()`: el programa ya no depende del directorio desde donde se ejecuta.
+
+    * `normalizacion.py`: `cargar_perfil_actual()` (que tomaba siempre el primer perfil de `perfiles.json`) se reemplazó por `seleccionar_perfil()`, que pregunta cuál usar cuando hay más de uno.
+
+    * `scoring.py` avisa cuando hay menos películas que filtros (modelo sobreajustado, métricas no confiables).
+
+* Añadido
+
+    * `requirements.txt` con las dependencias del proyecto.
 
 ### [1.0.1] - 17-09-2026
 >Arreglos menores sobre verificación de datos por medio de los inputs para mantener el flujo de datos correcto y sin guardados fantasmas.
