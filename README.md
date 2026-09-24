@@ -16,6 +16,8 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 * Instalar las dependencias (idealmente dentro de un entorno virtual):
     `pip install -r requirements.txt`
 
+* (Opcional) Para partir con un perfil ya armado, copiar `src/db/profiles/perfiles.ejemplo.json` como `src/db/profiles/perfiles.json`. Contiene el perfil de Ignacio Araya, el mismo con que se evaluó `dataset_maestro.csv` y con que se generaron los embeddings incluidos en el repositorio.
+
 * Desde la raíz del repositorio, ejecutar:
     `python src/main.py`
 
@@ -142,6 +144,8 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
     * `ingest_maestro.py` importa las evaluaciones completadas en `pendientes_evaluar.csv` hacia `evaluaciones_adicionales.csv`, que se une a la Verdad Base.
 
     * `gt_matrix_pipeline.py` no sobrescribe `pendientes_evaluar.csv` si tiene evaluaciones sin importar.
+
+    * `src/db/profiles/perfiles.ejemplo.json`: perfil de Ignacio Araya reconstruido desde ChromaDB (reproduce exactamente los textos de sus embeddings), para poder correr el pipeline sin crear el perfil a mano.
 
 ### [1.0.2] - 23-09-2026
 > Corrección del entrenamiento del modelo, soporte real para elegir perfil y rutas independientes del directorio de ejecución.

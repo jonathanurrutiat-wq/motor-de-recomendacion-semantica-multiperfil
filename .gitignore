@@ -220,3 +220,6 @@ __marimo__/
 
 # Modelo entrenado (generado por scoring.py)
 *.joblib
+
+# Perfil de ejemplo versionado (perfiles.json sigue siendo local)
+!src/db/profiles/perfiles.ejemplo.json
