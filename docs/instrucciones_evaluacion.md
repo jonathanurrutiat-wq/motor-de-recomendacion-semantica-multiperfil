@@ -59,6 +59,7 @@ Riesgo y forma cinematográfica. Narrativas abiertas, pensamiento visual, signif
 - La nota global NO es un promedio de los puntajes.
 - Si Resistencia Femenina llega a 9-10 (agencia, dignidad y complejidad), la nota global debe quedar alta (mínimo 7.5-8.0), aunque la película sea comercial o poco arriesgada formalmente.
 - Si aplica un filtro restrictivo sin que opere su excepción (sobre todo Camaradería Masculina Rancia, Insoportabilidad Prolongada, o una toxicidad enmarcada en Caos Asfixiante), la nota global puede desplomarse aunque la película tenga grandes virtudes formales.
+- En el resto de los casos, ponderar cualitativamente: las afinidades donde la película juega pesan más que las que le son ajenas.
 
 ## Formato de respuesta
 
