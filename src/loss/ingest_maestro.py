@@ -1,24 +1,30 @@
 import pandas as pd
 
 from src.config import RUTA_ADICIONALES, RUTA_DATASET_MAESTRO, RUTA_GT, RUTA_PENDIENTES
-from src.normalizacion import canonicalizar_film_id, parse_film_id
+from src.normalizacion import (
+    canonicalizar_film_id,
+    nombre_columna_gt,
+    obtener_filtros_del_perfil,
+    parse_film_id,
+    seleccionar_perfil,
+)
 
-# Traducción de los encabezados abreviados de la planilla evaluada por Gemini
-# a los nombres de columna de la Verdad Base. Si la planilla cambia de
-# columnas (o se evalúa con otro perfil), hay que actualizar este mapeo.
-MAPEO_ENCABEZADOS = {
-    "Rancia": "gt_cols_camaradería_masculina_rancia",
-    "Insoport.": "gt_cols_insoportabilidad_prolongada",
-    "Control": "gt_cols_control_emocional_artificial",
-    "Diorama": "gt_cols_personajes_diorama",
-    "Caos": "gt_cols_caos_asfixiante",
-    "Resist. Fem.": "gt_afinidad_resistencia_femenina",
-    "Contemp.": "gt_afinidad_contemplación_inmersiva",
-    "Ternura": "gt_afinidad_ternura_y_empatía_radical",
-    "Humanismo": "gt_afinidad_humanismo_social",
-    "Vanguardia": "gt_afinidad_vanguardia_y_simbolismo",
-    "Global": "gt_nota_global",
-}
+ENCABEZADO_NOTA_GLOBAL = "Global"
+
+
+def mapear_encabezados(perfil: dict, columnas_planilla) -> tuple[dict, list]:
+    # Cada filtro/afinidad se busca en la planilla por su "encabezado" (la
+    # abreviatura usada al evaluar, ej. "Insoport.") o, si no tiene, por su nombre.
+    mapeo, faltantes = {}, []
+    for tipo, nombre in obtener_filtros_del_perfil(perfil):
+        encabezado = perfil[tipo][nombre].get("encabezado") or nombre
+        if encabezado in columnas_planilla:
+            mapeo[encabezado] = nombre_columna_gt(tipo, nombre)
+        else:
+            faltantes.append(f"'{encabezado}'" + (f" ({nombre})" if encabezado != nombre else ""))
+
+    mapeo[ENCABEZADO_NOTA_GLOBAL] = "gt_nota_global"
+    return mapeo, faltantes
 
 
 def a_numerico(serie: pd.Series) -> pd.Series:
@@ -93,24 +99,33 @@ def main():
         print("[!] Error: El dataset maestro no tiene la columna 'Película'.")
         return
 
-    if "Global" not in df.columns:
-        print("[!] Error: El dataset maestro no tiene la columna 'Global' (nota global), necesaria para entrenar.")
+    if ENCABEZADO_NOTA_GLOBAL not in df.columns:
+        print(f"[!] Error: El dataset maestro no tiene la columna '{ENCABEZADO_NOTA_GLOBAL}' (nota global), necesaria para entrenar.")
         return
+
+    try:
+        nombre_perfil, perfil = seleccionar_perfil()
+    except (FileNotFoundError, ValueError) as error:
+        print(f"[!] Error: {error}")
+        return
+    print(f"Mapeando columnas según el perfil: {nombre_perfil}")
+
+    mapeo, faltantes = mapear_encabezados(perfil, df.columns)
+    if faltantes:
+        print(f"[!] Aviso: no se encontró en el dataset maestro la columna para: {', '.join(faltantes)}. "
+              "Se omiten; revisa el campo 'encabezado' del perfil.")
 
     df['film_id'] = df['Pelicula'].apply(parse_film_id)
     df['film_title'] = df['Pelicula']  # Conservamos el original por si acaso
 
     columnas_gt = []
-    for col_original, col_nueva in MAPEO_ENCABEZADOS.items():
-        if col_original not in df.columns:
-            print(f"[!] Aviso: falta la columna '{col_original}' en el dataset maestro, se omite.")
-            continue
+    for col_original, col_nueva in mapeo.items():
         df[col_nueva] = a_numerico(df[col_original])
         columnas_gt.append(col_nueva)
 
-    no_mapeadas = set(df.columns) - set(MAPEO_ENCABEZADOS) - set(columnas_gt) - {"Pelicula", "film_id", "film_title"}
+    no_mapeadas = set(df.columns) - set(mapeo) - set(columnas_gt) - {"Pelicula", "film_id", "film_title"}
     if no_mapeadas:
-        print(f"[!] Aviso: columnas sin mapeo en MAPEO_ENCABEZADOS, se ignoran: {', '.join(sorted(no_mapeadas))}")
+        print(f"[!] Aviso: columnas que no corresponden a ningún filtro del perfil, se ignoran: {', '.join(sorted(no_mapeadas))}")
 
     df_final = df[['film_id', 'film_title'] + columnas_gt]
 

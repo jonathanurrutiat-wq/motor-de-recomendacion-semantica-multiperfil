@@ -18,6 +18,12 @@ def buscar_perfil(datos, nombre):
     return por_nombre.get(nombre.strip().lower())
 
 
+def pedir_encabezado(previo):
+    # Abreviatura con que aparece la columna en dataset_maestro.csv (ej. "Insoport.").
+    actual = f" [actual: {previo}]" if previo else ""
+    return input(f"Ingrese su encabezado en la planilla de evaluación, si es distinto del nombre (opcional){actual}: ").strip() or previo
+
+
 def guardar_datos(datos):
     archivo_perfiles.parent.mkdir(parents=True, exist_ok=True)
     with open(archivo_perfiles, "w", encoding="utf-8") as archivo:
@@ -69,11 +75,15 @@ def gestionar_afinidades(datos, nombre_perfil, es_nuevo):
                         print("Por favor, ingrese un número válido entre 1 y 10.")
                 except ValueError:
                     print("Por favor, ingrese un número válido entre 1 y 10.")
-            
+
+            previo = datos[nombre_perfil]["afinidad"].get(afinidad_antigua, {}).get("encabezado")
+            encabezado = pedir_encabezado(previo)
+
             if afinidad_antigua:
                 del datos[nombre_perfil]["afinidad"][afinidad_antigua]
 
             datos[nombre_perfil]["afinidad"][afinidad] = {
+                "encabezado": encabezado,
                 "descripcion": descripcion_afinidad,
                 "importancia_base": float(importancia_base)
             }
@@ -183,11 +193,15 @@ def gestionar_restrictivos(datos, nombre_perfil):
                     break
 
             excepcion = input("Ingrese la excepcion del filtro (si no hay, deje en blanco): ").strip() or None
-            
+
+            previo = datos[nombre_perfil]["restrictivos"].get(filtro_antiguo, {}).get("encabezado")
+            encabezado = pedir_encabezado(previo)
+
             if filtro_antiguo:
                 del datos[nombre_perfil]["restrictivos"][filtro_antiguo]
-            
+
             datos[nombre_perfil]["restrictivos"][filtro] = {
+                "encabezado": encabezado,
                 "descripcion": desc_texto,
                 "nivel": nivel,
                 "severidad": severidad,
@@ -290,6 +304,8 @@ def main():
                     print(f"\nPerfil: {perfil}")
                     for filtro, detalles in contenido["restrictivos"].items():
                         print(f"  Filtro: {filtro}")
+                        if detalles.get('encabezado'):
+                            print(f"    Encabezado en planilla: {detalles['encabezado']}")
                         print(f"    Descripción: {detalles['descripcion']}")
                         print(f"    Severidad: {detalles['severidad']}")
                         print(f"    Nivel: {detalles['nivel']}")
@@ -299,6 +315,8 @@ def main():
                         print(f"    Excepción: {excepcion}")
                     for afinidad, detalles in contenido["afinidad"].items():
                         print(f"  Afinidad: {afinidad}")
+                        if detalles.get('encabezado'):
+                            print(f"    Encabezado en planilla: {detalles['encabezado']}")
                         print(f"    Descripción: {detalles['descripcion']}")
                         print(f"    Importancia Base: {detalles['importancia_base']}")
 

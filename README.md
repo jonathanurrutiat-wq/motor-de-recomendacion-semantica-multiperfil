@@ -40,7 +40,7 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
     Toma todos los `.csv` filtrados de `db/filtered/result/` que todavía no están en ChromaDB, chunkea el texto de cada reseña y genera sus embeddings (`procesing_reviews.py`), guardándolos en la colección `resenias`. Cada chunk se identifica como `pelicula::lote::review_N::chunk_M`, así que reseñas de lotes distintos no se pisan.
 
 * **5) Cargar Ground-truth (dataset_maestro.csv).**
-    Lee `dataset_maestro.csv` (las notas que evaluó Gemini para un grupo de películas según el perfil), lo limpia y normaliza, y genera `matriz_perdida.csv`: el archivo liviano que usan las opciones 6, 7 y 8. Además importa las películas ya evaluadas en `pendientes_evaluar.csv` (las que tienen `gt_nota_global`): las mueve a `evaluaciones_adicionales.csv`, que se suma a la Verdad Base en cada ejecución.
+    Lee `dataset_maestro.csv` (las notas que evaluó Gemini para un grupo de películas según el perfil), lo limpia y normaliza, y genera `matriz_perdida.csv`: el archivo liviano que usan las opciones 6, 7 y 8. Las columnas se asocian a los filtros y afinidades del perfil elegido: cada uno se busca en la planilla por su campo `encabezado` (la abreviatura usada al evaluar, ej. `"Insoport."`) o, si no lo tiene, por su nombre. La nota global se lee de la columna `Global`. Además importa las películas ya evaluadas en `pendientes_evaluar.csv` (las que tienen `gt_nota_global`): las mueve a `evaluaciones_adicionales.csv`, que se suma a la Verdad Base en cada ejecución.
 
 * **6) Revisar películas pendientes de evaluar.**
     Compara las películas que ya tienen reseña procesada contra las que ya están en `matriz_perdida.csv`, y muestra cuáles todavía no tienen nota de Gemini. Genera `pendientes_evaluar.csv` con la estructura lista para completar esas evaluaciones (se puede editar en Excel; se aceptan `;` como separador y coma decimal). Si la plantilla tiene evaluaciones aún sin importar, no la sobrescribe.
@@ -138,6 +138,8 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 * Añadido
 
     * Cada excepción tiene su propio embedding, y `scoring.py` incorpora la cadena afinidad ← filtro ← excepción como términos de interacción de la regresión.
+
+    * Campo opcional `encabezado` en cada filtro/afinidad del perfil (se pide al crearlo o editarlo en la opción 1). `ingest_maestro.py` arma con él el mapeo de columnas de la planilla, en vez del diccionario `MAPEO_ENCABEZADOS` fijo en el código que solo servía para un perfil.
 
 * Cambios
 
