@@ -2,11 +2,11 @@
     "Ignacio Araya": {
         "restrictivos": {
             "Camaradería Masculina Rancia": {
-                "descripcion": "Dinámicas que validan el sexismo desde el cinismo o la burla, donde la mujer es un trofeo o un chiste. Nota: No penaliza la 'protección masculina' o la nostalgia si la mirada de la película hacia el personaje femenino está construida desde la reverencia, el amor o la inocencia.",
+                "descripcion": "Dinámicas que validan el sexismo desde el cinismo o la burla, donde la mujer es un trofeo o un chiste.",
                 "nivel": 3.0,
                 "severidad": "Veto Absoluto",
                 "corrupcion_directa": ["Resistencia Femenina"],
-                "excepcion": null
+                "excepcion": "La protección masculina o la nostalgia, cuando la mirada de la película hacia el personaje femenino está construida desde la reverencia, el amor o la inocencia."
             },
             "Insoportabilidad Prolongada": {
                 "descripcion": "Obligar al espectador a convivir excesivamente con personajes arrogantes, crueles o de una superioridad moral sofocante.",
@@ -23,14 +23,14 @@
                 "excepcion": null
             },
             "Personajes Diorama": {
-                "descripcion": "Estética de vitrina. Cuadros visualmente hermosos y simétricos, pero absolutamente vacíos de sangre y conexión humana real.",
+                "descripcion": "Estética de vitrina. Cuadros visualmente hermosos y simétricos, habitados por personajes fríos y decorativos, distantes como figuras de museo.",
                 "nivel": 2.5,
                 "severidad": "Intermedio",
                 "corrupcion_directa": ["Ternura y Empatía Radical"],
                 "excepcion": null
             },
             "Caos Asfixiante": {
-                "descripcion": "Caos hiperactivo, montaje frenético, dar las respuestas servidas sin dejar respirar a la narrativa.",
+                "descripcion": "Caos hiperactivo, montaje frenético y una narrativa atropellada que entrega todas las respuestas masticadas.",
                 "nivel": 2.0,
                 "severidad": "Moderada",
                 "corrupcion_directa": ["Contemplación Inmersiva"],
@@ -47,15 +47,15 @@
                 "importancia_base": 9.0
             },
             "Ternura y Empatía Radical": {
-                "descripcion": "La ética del cuidado. Empatía radical hacia lo roto, gestos mínimos, compasión genuina por las fallas humanas. Mirada libre de cinismo.",
+                "descripcion": "La ética del cuidado. Empatía radical hacia lo roto, gestos mínimos, compasión genuina por las fallas humanas. Mirada sincera y afectuosa.",
                 "importancia_base": 10.0
             },
             "Humanismo Social": {
-                "descripcion": "Retrato crudo de la realidad. Naturalismo ético, comprensión del origen de la marginalidad, el trauma o la clase, observando sin superioridad moral ni juzgar a los afectados.",
+                "descripcion": "Retrato crudo de la realidad. Naturalismo ético, comprensión del origen de la marginalidad, el trauma o la clase, observando a los afectados con respeto, cercanía y horizontalidad.",
                 "importancia_base": 8.0
             },
             "Vanguardia y Simbolismo": {
-                "descripcion": "Riesgo y forma cinematográfica. Narrativas abiertas, pensamiento visual, significado que nace del desvío, la contradicción y el rechazo a fórmulas empaquetadas.",
+                "descripcion": "Riesgo y forma cinematográfica. Narrativas abiertas, pensamiento visual, significado que nace del desvío, la contradicción y la búsqueda de formas propias y arriesgadas.",
                 "importancia_base": 7.0
             }
         }

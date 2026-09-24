@@ -34,7 +34,7 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
     Corre `filter.py` sobre los `.csv` crudos de `db/raw/` (extraídos desde Letterboxd): limpia texto, descarta reseñas vacías o sin contenido real, y convierte la calificación en estrellas a un número. Guarda el resultado en `db/filtered/result/`.
 
 * **3) Generar embeddings de un perfil.**
-    Pide el nombre de un perfil ya creado y genera los vectores semánticos de sus filtros y afinidades (`procesing_profiles.py`), persistiéndolos en la colección `perfiles` de ChromaDB. Reemplaza por completo los embeddings anteriores de ese perfil y ofrece eliminar los de perfiles que ya no existen.
+    Pide el nombre de un perfil ya creado y genera los vectores semánticos de sus filtros y afinidades (`procesing_profiles.py`), persistiéndolos en la colección `perfiles` de ChromaDB. Cada filtro y afinidad se vectoriza solo con su nombre y descripción; cada excepción tiene su propio vector. Reemplaza por completo los embeddings anteriores de ese perfil y ofrece eliminar los de perfiles que ya no existen.
 
 * **4) Generar embeddings de los lotes de reseñas pendientes.**
     Toma todos los `.csv` filtrados de `db/filtered/result/` que todavía no están en ChromaDB, chunkea el texto de cada reseña y genera sus embeddings (`procesing_reviews.py`), guardándolos en la colección `resenias`. Cada chunk se identifica como `pelicula::lote::review_N::chunk_M`, así que reseñas de lotes distintos no se pisan.
@@ -46,7 +46,7 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
     Compara las películas que ya tienen reseña procesada contra las que ya están en `matriz_perdida.csv`, y muestra cuáles todavía no tienen nota de Gemini. Genera `pendientes_evaluar.csv` con la estructura lista para completar esas evaluaciones (se puede editar en Excel; se aceptan `;` como separador y coma decimal). Si la plantilla tiene evaluaciones aún sin importar, no la sobrescribe.
 
 * **7) Entrenar modelo predictivo (Regresión Lineal).**
-    Entrena una regresión lineal que aprende a aproximar la nota de Gemini a partir de la similitud de coseno entre los embeddings de las reseñas (promediados por película) y los del perfil. Informa el error del modelo (MSE), la varianza explicada (R²) y el peso aprendido para cada filtro/afinidad, y guarda el modelo en `src/loss/modelo_regresion.joblib`.
+    Entrena una regresión lineal que aprende a aproximar la nota de Gemini a partir de la similitud de coseno entre los embeddings de las reseñas (promediados por película) y los del perfil. Además de la similitud con cada filtro, afinidad y excepción, el modelo recibe un término por cada relación del perfil, siguiendo la cadena **afinidad ← filtro ← excepción**: afinidad × filtro (el filtro corrompe la afinidad, según `corrupcion_directa`) y filtro × excepción (la excepción neutraliza el filtro). El perfil define qué relaciones existen y la regresión aprende cuánto pesa cada una. La severidad, el nivel y la importancia base no se usan en el modelo. Informa el error del modelo (MSE), la varianza explicada (R²) y el peso aprendido para cada filtro/afinidad, y guarda el modelo en `src/loss/modelo_regresion.joblib`.
 
 * **8) Recomendar películas según el perfil.**
     Carga el modelo guardado en la opción 7 (y el perfil con el que se entrenó) para estimar una nota a todas las películas con reseña procesada (tanto a las que ya evaluó Gemini, para comparar, como a las nuevas que todavía no tienen nota). Muestra todo en un único ranking ordenado de mayor a menor nota estimada.
@@ -125,6 +125,23 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
 ## **Changelog (historial de cambios)**
 <small>*Nota: Este changelog está en orden cronológico inverso.*</small>
+
+### [1.0.4] - 24-09-2026
+> Embeddings del perfil sin contaminación y excepciones incorporadas al modelo.
+
+* Arreglado
+
+    * `procesing_profiles.py` vectorizaba cada filtro junto con su nivel, severidad, afinidades corrompidas y excepción, lo que acercaba su vector a los conceptos opuestos (ej. "Camaradería Masculina Rancia" quedaba con similitud 0.65 con "Resistencia Femenina"). Ahora solo se vectoriza el nombre y la descripción; el resto queda como metadatos.
+
+    * `perfiles.ejemplo.json`: descripciones reescritas en positivo, porque los embeddings no distinguen bien las negaciones ("sin superioridad moral" acercaba "Humanismo Social" a "Insoportabilidad Prolongada"). La nota de "Camaradería Masculina Rancia" pasó a ser su excepción.
+
+* Añadido
+
+    * Cada excepción tiene su propio embedding, y `scoring.py` incorpora la cadena afinidad ← filtro ← excepción como términos de interacción de la regresión.
+
+* Cambios
+
+    * El modelo guardado incluye la estructura del perfil; un modelo de la versión anterior pide reentrenar (opción 7). Tras actualizar hay que volver a ejecutar las opciones 3 y 7.
 
 ### [1.0.3] - 23-09-2026
 > Integridad de los embeddings en ChromaDB y cierre del ciclo de evaluación de películas pendientes.

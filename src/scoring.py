@@ -11,10 +11,11 @@ from sklearn.metrics.pairwise import cosine_similarity
 from src.config import DIR_CHROMA, RUTA_GT, RUTA_MODELO
 from src.normalizacion import (
     canonicalizar_film_id,
-    nombre_columna_gt,
     obtener_filtros_del_perfil,
     seleccionar_perfil,
 )
+
+ETIQUETAS_TIPO = {"restrictivos": "filtro", "afinidad": "afinidad", "excepcion": "excepción"}
 
 
 def agrupar_embeddings_por_pelicula(review_ids, review_embeddings):
@@ -30,7 +31,23 @@ def agrupar_embeddings_por_pelicula(review_ids, review_embeddings):
     return {film_id: np.mean(vectores, axis=0) for film_id, vectores in acumulador.items()}
 
 
-def obtener_embeddings_filtros(coleccion_perfiles, nombre_perfil, nombres_filtros):
+def construir_estructura(perfil: dict) -> dict:
+    # Términos a vectorizar y relaciones afinidad <- filtro <- excepción que define el perfil.
+    afinidades = set(perfil.get("afinidad", {}))
+    restrictivos = perfil.get("restrictivos", {})
+
+    excepciones = [filtro for filtro, datos in restrictivos.items() if datos.get("excepcion")]
+    corrupciones = [
+        (afinidad, filtro)
+        for filtro, datos in restrictivos.items()
+        for afinidad in datos.get("corrupcion_directa") or []
+        if afinidad in afinidades
+    ]
+    terminos = obtener_filtros_del_perfil(perfil) + [("excepcion", filtro) for filtro in excepciones]
+    return {"terminos": terminos, "corrupciones": corrupciones, "excepciones": excepciones}
+
+
+def obtener_embeddings_perfil(coleccion_perfiles, nombre_perfil, terminos):
     # Filtra por persona: distintos perfiles pueden compartir nombres de filtro.
     datos_perfil = coleccion_perfiles.get(where={"persona": nombre_perfil}, include=['embeddings', 'metadatas'])
     if len(datos_perfil['ids']) == 0:
@@ -38,16 +55,43 @@ def obtener_embeddings_filtros(coleccion_perfiles, nombre_perfil, nombres_filtro
             f"No hay embeddings del perfil '{nombre_perfil}'. Ejecuta el módulo 3 primero."
         )
 
-    por_filtro = {meta['filtro']: emb for meta, emb in zip(datos_perfil['metadatas'], datos_perfil['embeddings'])}
+    por_termino = {
+        (meta['tipo'], meta['filtro']): emb
+        for meta, emb in zip(datos_perfil['metadatas'], datos_perfil['embeddings'])
+    }
     dimension = len(datos_perfil['embeddings'][0])
 
-    faltantes = [nombre for nombre in nombres_filtros if nombre not in por_filtro]
+    faltantes = [f"{ETIQUETAS_TIPO[tipo]} '{nombre}'" for tipo, nombre in terminos if (tipo, nombre) not in por_termino]
     if faltantes:
         print(f"[!] Aviso: sin embedding para {', '.join(faltantes)}; se usa un vector nulo. "
               "Vuelve a ejecutar el módulo 3 si editaste el perfil.")
 
-    # vector nulo (ortogonal) si el filtro no tiene embedding
-    return np.array([por_filtro.get(nombre, np.zeros(dimension)) for nombre in nombres_filtros])
+    # vector nulo (ortogonal) si el término no tiene embedding
+    return np.array([por_termino.get(tuple(termino), np.zeros(dimension)) for termino in terminos])
+
+
+def construir_features(similitudes, estructura, medias=None):
+    # Similitud con cada término, más un producto por cada relación del perfil:
+    # afinidad x filtro (el filtro corrompe la afinidad) y filtro x excepción
+    # (la excepción neutraliza el filtro). Se centra antes de multiplicar para
+    # que los productos no queden casi idénticos a los términos simples.
+    if medias is None:
+        medias = similitudes.mean(axis=0)
+    centradas = similitudes - medias
+    indice = {tuple(termino): i for i, termino in enumerate(estructura["terminos"])}
+
+    columnas = [similitudes[:, i] for i in range(similitudes.shape[1])]
+    nombres = [f"{ETIQUETAS_TIPO[tipo]} · {nombre}" for tipo, nombre in estructura["terminos"]]
+
+    for afinidad, filtro in estructura["corrupciones"]:
+        columnas.append(centradas[:, indice[("afinidad", afinidad)]] * centradas[:, indice[("restrictivos", filtro)]])
+        nombres.append(f"{afinidad} × {filtro}")
+
+    for filtro in estructura["excepciones"]:
+        columnas.append(centradas[:, indice[("restrictivos", filtro)]] * centradas[:, indice[("excepcion", filtro)]])
+        nombres.append(f"{filtro} × excepción")
+
+    return np.column_stack(columnas), nombres, medias
 
 
 def cargar_embeddings_peliculas(cliente):
@@ -66,16 +110,14 @@ def main():
         print(f"[!] Error: {error}")
         return
 
-    filtros_perfil = obtener_filtros_del_perfil(perfil)
-    nombres_filtros = [nombre for _, nombre in filtros_perfil]
-    columnas = [nombre_columna_gt(tipo, nombre) for tipo, nombre in filtros_perfil]
+    estructura = construir_estructura(perfil)
 
     print("Conectando con la base de datos vectorial ChromaDB...")
     cliente = chromadb.PersistentClient(path=str(DIR_CHROMA))
 
     try:
-        embeddings_filtros = obtener_embeddings_filtros(
-            cliente.get_collection(name="perfiles"), nombre_perfil, nombres_filtros
+        embeddings_perfil = obtener_embeddings_perfil(
+            cliente.get_collection(name="perfiles"), nombre_perfil, estructura["terminos"]
         )
     except ValueError as error:
         print(f"[!] Error: {error}")
@@ -103,7 +145,8 @@ def main():
 
     # cálculo de la Similitud del Coseno (Matriz X)
     print("Calculando distancias semánticas (Matriz X)...")
-    matriz_x = cosine_similarity(embeddings_reviews, embeddings_filtros)
+    similitudes = cosine_similarity(embeddings_reviews, embeddings_perfil)
+    matriz_x, columnas, medias = construir_features(similitudes, estructura)
 
     print("Entrenando Regresión Lineal...")
     modelo = LinearRegression()
@@ -114,7 +157,7 @@ def main():
     r2 = r2_score(y_array, predicciones)
 
     joblib.dump(
-        {"modelo": modelo, "perfil": nombre_perfil, "filtros": nombres_filtros},
+        {"modelo": modelo, "perfil": nombre_perfil, "estructura": estructura, "medias": medias},
         RUTA_MODELO,
     )
 
@@ -123,11 +166,11 @@ def main():
     print(f"Películas evaluadas con éxito (Cruce Vectorial): {len(matriz_x)}")
     print(f"Error Cuadrático Medio (MSE): {mse:.4f}")
     print(f"Varianza Explicada (R^2): {r2:.4f}")
-    if len(matriz_x) <= len(nombres_filtros):
-        print(f"[!] Aviso: hay {len(matriz_x)} películas para {len(nombres_filtros)} filtros; el modelo está "
+    if len(matriz_x) <= len(columnas):
+        print(f"[!] Aviso: hay {len(matriz_x)} películas para {len(columnas)} variables; el modelo está "
               "sobreajustado y estas métricas no son confiables. Evalúa más películas (módulo 6).")
 
-    print("\n| -- Pesos Sinápticos (Impacto semántico de cada filtro) -- |")
+    print("\n| -- Pesos Sinápticos (Impacto semántico de cada término y relación) -- |")
     for columna, peso in zip(columnas, modelo.coef_):
         print(f" {columna}: {peso:.4f}")
 

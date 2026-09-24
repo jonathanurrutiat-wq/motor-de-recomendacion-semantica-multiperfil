@@ -15,7 +15,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 from src.config import DIR_CHROMA, RUTA_GT, RUTA_MODELO
 from src.normalizacion import canonicalizar_film_id
-from src.scoring import cargar_embeddings_peliculas, obtener_embeddings_filtros
+from src.scoring import cargar_embeddings_peliculas, construir_features, obtener_embeddings_perfil
 
 
 def main():
@@ -24,16 +24,21 @@ def main():
         return
 
     guardado = joblib.load(RUTA_MODELO)
+    if "estructura" not in guardado:
+        print("[!] Error: El modelo guardado es de una versión anterior. Ejecuta el módulo 7 de nuevo.")
+        return
+
     modelo = guardado["modelo"]
     nombre_perfil = guardado["perfil"]
+    estructura = guardado["estructura"]
     print(f"Usando el modelo entrenado para el perfil: {nombre_perfil}")
 
     print("Conectando con la base de datos vectorial ChromaDB...")
     cliente = chromadb.PersistentClient(path=str(DIR_CHROMA))
 
     try:
-        embeddings_filtros = obtener_embeddings_filtros(
-            cliente.get_collection(name="perfiles"), nombre_perfil, guardado["filtros"]
+        embeddings_perfil = obtener_embeddings_perfil(
+            cliente.get_collection(name="perfiles"), nombre_perfil, estructura["terminos"]
         )
     except ValueError as error:
         print(f"[!] Error: {error}")
@@ -52,7 +57,8 @@ def main():
         notas_gemini = dict(zip(df_gt['film_id'].apply(canonicalizar_film_id), df_gt['gt_nota_global']))
 
     film_ids = list(embeddings_por_pelicula.keys())
-    matriz_x = cosine_similarity(np.array(list(embeddings_por_pelicula.values())), embeddings_filtros)
+    similitudes = cosine_similarity(np.array(list(embeddings_por_pelicula.values())), embeddings_perfil)
+    matriz_x, _, _ = construir_features(similitudes, estructura, guardado["medias"])
     predicciones = modelo.predict(matriz_x)
 
     # Para las candidatas no hay nota de Gemini, así que se muestra como NaN.

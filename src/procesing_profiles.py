@@ -58,9 +58,6 @@ def construir_chunk(perfiles: dict) -> list[Document]:
         for tipo_categoria, filtros in categoria.items():
 
             for nombre_filtro, datos in filtros.items():
-                partes = [f"Filtro: {nombre_filtro}"]
-                partes.append(f"Descripcion: {datos.get('descripcion', '  ')}")
-
                 metadata = {
                     "persona": perfil,
                     "tipo": tipo_categoria,
@@ -68,25 +65,24 @@ def construir_chunk(perfiles: dict) -> list[Document]:
                 }
 
                 if tipo_categoria == "restrictivos":
-                    partes.append(f"Nivel : {datos.get('nivel')}")
-                    partes.append(f"Severidad : {datos.get('severidad')}")
-
-                    if datos.get("corrupcion_directa"):
-                        partes.append(f"Corrupcion Directa : {datos.get('corrupcion_directa')}")
-
-                    if datos.get("excepcion"):
-                        partes.append(f"Excepciones: {datos.get('excepcion')}")
-
                     metadata["nivel"] = datos.get("nivel")
                     metadata["severidad"] = datos.get("severidad")
                     metadata["corrupcion_directa"] = datos.get("corrupcion_directa", [])
                     metadata["tiene_excepcion"] = bool(datos.get("excepcion"))
                 else:
-                    partes.append(f"Importancia Base  {datos.get('importancia_base')}")
                     metadata["importancia_base"] = datos.get("importancia_base")
 
-                texto_chunk = "\n".join(partes)
-                documentos.append(Document(page_content=texto_chunk, metadata=metadata))
+                # Solo el nombre y la descripción: incluir las afinidades
+                # corrompidas o la excepción acercaba el vector del filtro
+                # a los conceptos que se oponen a él.
+                texto = f"{nombre_filtro}. {datos.get('descripcion', '')}"
+                documentos.append(Document(page_content=texto, metadata=metadata))
+
+                if tipo_categoria == "restrictivos" and datos.get("excepcion"):
+                    documentos.append(Document(
+                        page_content=datos["excepcion"],
+                        metadata={"persona": perfil, "tipo": "excepcion", "filtro": nombre_filtro},
+                    ))
 
     return documentos
 
