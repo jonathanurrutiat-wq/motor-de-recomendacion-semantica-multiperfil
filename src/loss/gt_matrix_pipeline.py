@@ -2,10 +2,11 @@ from pathlib import Path
 
 import pandas as pd
 
-from src.config import DIR_FILTRADOS, RUTA_GT, RUTA_PENDIENTES
+from src.config import DIR_FILTRADOS, RUTA_GT, RUTA_INSTRUCCIONES, RUTA_PENDIENTES
 from src.loss.ingest_maestro import filas_evaluadas, leer_csv_editado
+from src.loss.instrucciones import generar_instrucciones
 from src.loss.matrix import generar_matriz_vacia
-from src.normalizacion import canonicalizar_film_id
+from src.normalizacion import canonicalizar_film_id, seleccionar_perfil
 
 
 def obtener_peliculas_con_resenias(directorio_filtrados: Path) -> set:
@@ -78,18 +79,28 @@ def main():
                   "importan. No se sobrescribe: ejecuta primero el módulo 5 para importarlas.")
             return
 
+    try:
+        nombre_perfil, perfil = seleccionar_perfil()
+    except (FileNotFoundError, ValueError) as error:
+        print(f"[!] Error: {error}")
+        return
+
     # Plantilla con las columnas correctas (según los filtros/afinidades
-    # del perfil actual) para facilitar la evaluación manual de lo pendiente.
-    plantilla = generar_matriz_vacia()
+    # del perfil elegido) para facilitar la evaluación de lo pendiente.
+    plantilla = generar_matriz_vacia(perfil)
     plantilla_pendientes = pd.DataFrame({"film_id": sorted(peliculas_pendientes)})
     for columna in plantilla.columns:
         if columna != "film_id":
             plantilla_pendientes[columna] = pd.NA
 
-    salida_path = RUTA_PENDIENTES
-    plantilla_pendientes.to_csv(salida_path, index=False, encoding="utf-8")
-    print(f"\nPlantilla para evaluación manual guardada en: {salida_path}")
-    print("Completa las notas (al menos gt_nota_global) y ejecuta el módulo 5 para sumarlas a la Verdad Base.")
+    plantilla_pendientes.to_csv(RUTA_PENDIENTES, index=False, encoding="utf-8")
+    RUTA_INSTRUCCIONES.write_text(
+        generar_instrucciones(nombre_perfil, perfil, sorted(peliculas_pendientes)), encoding="utf-8"
+    )
+    print(f"\nPlantilla para evaluación guardada en: {RUTA_PENDIENTES}")
+    print(f"Instrucciones para evaluar con Gemini guardadas en: {RUTA_INSTRUCCIONES}")
+    print("Pega su respuesta en la plantilla (al menos gt_nota_global) y ejecuta el módulo 5 "
+          "para sumarla a la Verdad Base.")
 
 
 if __name__ == '__main__':

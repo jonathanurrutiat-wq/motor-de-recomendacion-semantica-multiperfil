@@ -24,6 +24,28 @@ def pedir_encabezado(previo):
     return input(f"Ingrese su encabezado en la planilla de evaluación, si es distinto del nombre (opcional){actual}: ").strip() or previo
 
 
+def editar_regla_global(datos, nombre_perfil):
+    # Instrucciones para calcular la nota global (se incluyen en las
+    # instrucciones de evaluación que genera la opción 6).
+    actual = datos[nombre_perfil].get("regla_global") or []
+    if actual:
+        print("Regla global actual:")
+        for punto in actual:
+            print(f"  - {punto}")
+    print("Ingrese la regla global, un punto por línea. Línea en blanco para terminar "
+          "(si no escribe nada, se mantiene la actual).")
+
+    puntos = []
+    while linea := input("- ").strip():
+        puntos.append(linea)
+
+    if puntos:
+        datos[nombre_perfil]["regla_global"] = puntos
+        print("Regla global actualizada.")
+    else:
+        print("No se realizaron cambios en la regla global.")
+
+
 def guardar_datos(datos):
     archivo_perfiles.parent.mkdir(parents=True, exist_ok=True)
     with open(archivo_perfiles, "w", encoding="utf-8") as archivo:
@@ -264,6 +286,7 @@ def main():
                 # Flujo forzado: primero afinidades, después restrictivos
                 gestionar_afinidades(datos, nombre_perfil, es_nuevo)
                 gestionar_restrictivos(datos, nombre_perfil)
+                editar_regla_global(datos, nombre_perfil)
             else:
                 # Perfil existente: acceso libre a cualquier sección
                 while True:
@@ -289,6 +312,9 @@ def main():
                         gestionar_restrictivos(datos, nombre_perfil)
 
                     elif opcion_edicion == "4":
+                        editar_regla_global(datos, nombre_perfil)
+
+                    elif opcion_edicion == "5":
                         print("Volviendo al menú principal.")
                         break
 
@@ -319,6 +345,10 @@ def main():
                             print(f"    Encabezado en planilla: {detalles['encabezado']}")
                         print(f"    Descripción: {detalles['descripcion']}")
                         print(f"    Importancia Base: {detalles['importancia_base']}")
+                    if contenido.get("regla_global"):
+                        print("  Regla global:")
+                        for punto in contenido["regla_global"]:
+                            print(f"    - {punto}")
 
         elif opcion == "3":
             if not datos:

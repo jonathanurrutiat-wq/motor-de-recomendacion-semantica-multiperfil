@@ -40,10 +40,15 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
     Toma todos los `.csv` filtrados de `db/filtered/result/` que todavía no están en ChromaDB, chunkea el texto de cada reseña y genera sus embeddings (`procesing_reviews.py`), guardándolos en la colección `resenias`. Cada chunk se identifica como `pelicula::lote::review_N::chunk_M`, así que reseñas de lotes distintos no se pisan.
 
 * **5) Cargar Ground-truth (dataset_maestro.csv).**
-    Lee `dataset_maestro.csv` (las notas que evaluó Gemini para un grupo de películas según el perfil), lo limpia y normaliza, y genera `matriz_perdida.csv`: el archivo liviano que usan las opciones 6, 7 y 8. Las columnas se asocian a los filtros y afinidades del perfil elegido: cada uno se busca en la planilla por su campo `encabezado` (la abreviatura usada al evaluar, ej. `"Insoport."`) o, si no lo tiene, por su nombre. La nota global se lee de la columna `Global`. Además importa las películas ya evaluadas en `pendientes_evaluar.csv` (las que tienen `gt_nota_global`): las mueve a `evaluaciones_adicionales.csv`, que se suma a la Verdad Base en cada ejecución.
+    Lee `dataset_maestro.csv` (las notas que evaluó Gemini para un grupo de películas según el perfil), lo limpia y normaliza, y genera `matriz_perdida.csv`: el archivo liviano que usan las opciones 6, 7 y 8. Las columnas se asocian a los filtros y afinidades del perfil elegido: cada uno se busca en la planilla por su campo `encabezado` (la abreviatura usada al evaluar, ej. `"Insoport."`) o, si no lo tiene, por su nombre. La nota global se lee de la columna `Global`, y un asterisco junto al puntaje de un filtro (ej. `0*`) se guarda como excepción aplicada en la columna `gt_excepcion_*`. Además importa las películas ya evaluadas en `pendientes_evaluar.csv` (las que tienen `gt_nota_global`): las mueve a `evaluaciones_adicionales.csv`, que se suma a la Verdad Base en cada ejecución.
 
 * **6) Revisar películas pendientes de evaluar.**
-    Compara las películas que ya tienen reseña procesada contra las que ya están en `matriz_perdida.csv`, y muestra cuáles todavía no tienen nota de Gemini. Genera `pendientes_evaluar.csv` con la estructura lista para completar esas evaluaciones (se puede editar en Excel; se aceptan `;` como separador y coma decimal). Si la plantilla tiene evaluaciones aún sin importar, no la sobrescribe.
+    Compara las películas que ya tienen reseña procesada contra las que ya están en `matriz_perdida.csv`, y muestra cuáles todavía no tienen nota de Gemini. Genera dos archivos a partir del perfil elegido:
+
+    * `pendientes_evaluar.csv`: plantilla con una fila por película pendiente y una columna por filtro, excepción (`gt_excepcion_*`, 1 si la excepción del filtro aplica), afinidad y nota global. Se puede editar en Excel (se aceptan `;` como separador y coma decimal).
+    * `instrucciones_evaluacion.md`: instrucciones para pedirle a Gemini la evaluación con el mismo criterio de la Verdad Base (descripción de cada filtro y afinidad, excepciones, regla global y formato de respuesta en CSV con las columnas de la plantilla). Su respuesta se pega en la plantilla.
+
+    Si la plantilla tiene evaluaciones aún sin importar, no la sobrescribe. En `docs/instrucciones_evaluacion.md` hay una versión de estas instrucciones para el perfil de ejemplo.
 
 * **7) Entrenar modelo predictivo (Regresión Lineal).**
     Entrena una regresión lineal que aprende a aproximar la nota de Gemini a partir de la similitud de coseno entre los embeddings de las reseñas (promediados por película) y los del perfil. Además de la similitud con cada filtro, afinidad y excepción, el modelo recibe un término por cada relación del perfil, siguiendo la cadena **afinidad ← filtro ← excepción**: afinidad × filtro (el filtro corrompe la afinidad, según `corrupcion_directa`) y filtro × excepción (la excepción neutraliza el filtro). El perfil define qué relaciones existen y la regresión aprende cuánto pesa cada una. La severidad, el nivel y la importancia base no se usan en el modelo. Informa el error del modelo (MSE), la varianza explicada (R²) y el peso aprendido para cada filtro/afinidad, y guarda el modelo en `src/loss/modelo_regresion.joblib`.
@@ -138,6 +143,10 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 * Añadido
 
     * Cada excepción tiene su propio embedding, y `scoring.py` incorpora la cadena afinidad ← filtro ← excepción como términos de interacción de la regresión.
+
+    * Campo `regla_global` en el perfil (se edita desde la opción 1) con las instrucciones para calcular la nota global, que no es un promedio. La opción 6 genera con el perfil las instrucciones de evaluación para Gemini (`src/loss/instrucciones.py`).
+
+    * Columnas `gt_excepcion_*` en la Verdad Base y en la plantilla de pendientes, para registrar si la excepción de cada filtro aplica. En `dataset_maestro.csv` se obtienen del asterisco que acompaña al puntaje, que antes se descartaba.
 
     * Campo opcional `encabezado` en cada filtro/afinidad del perfil (se pide al crearlo o editarlo en la opción 1). `ingest_maestro.py` arma con él el mapeo de columnas de la planilla, en vez del diccionario `MAPEO_ENCABEZADOS` fijo en el código que solo servía para un perfil.
 

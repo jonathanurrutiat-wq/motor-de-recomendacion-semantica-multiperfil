@@ -107,3 +107,19 @@ def nombre_columna_gt(tipo_categoria: str, nombre_filtro: str) -> str:
     slug = nombre_filtro.lower().replace(' ', '_')
     prefijo = "gt_cols" if tipo_categoria == "restrictivos" else "gt_afinidad"
     return f"{prefijo}_{slug}"
+
+
+def nombre_columna_excepcion(nombre_filtro: str) -> str:
+    # 1 si la excepción del filtro aplica a la película, 0 si no.
+    return f"gt_excepcion_{nombre_filtro.lower().replace(' ', '_')}"
+
+
+def columnas_evaluacion(perfil: dict) -> list:
+    # Columnas de una evaluación, en orden: cada filtro seguido de su columna
+    # de excepción, luego las afinidades y al final la nota global.
+    columnas = []
+    for tipo, nombre in obtener_filtros_del_perfil(perfil):
+        columnas.append(nombre_columna_gt(tipo, nombre))
+        if tipo == "restrictivos":
+            columnas.append(nombre_columna_excepcion(nombre))
+    return columnas + ["gt_nota_global"]

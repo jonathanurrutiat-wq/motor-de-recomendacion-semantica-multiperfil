@@ -41,7 +41,8 @@ def menu_perfil_existente(nombre_perfil):
     print("1. Modificar nombre de perfil")
     print("2. Gestionar afinidades")
     print("3. Gestionar filtros restrictivos")
-    print("4. Volver al menú principal")
+    print("4. Editar regla de puntaje global")
+    print("5. Volver al menú principal")
     print("="*35)
 
 def menu_afinidades(es_nuevo):

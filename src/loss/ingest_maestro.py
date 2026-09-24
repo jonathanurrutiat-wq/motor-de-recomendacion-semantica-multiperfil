@@ -3,6 +3,8 @@ import pandas as pd
 from src.config import RUTA_ADICIONALES, RUTA_DATASET_MAESTRO, RUTA_GT, RUTA_PENDIENTES
 from src.normalizacion import (
     canonicalizar_film_id,
+    columnas_evaluacion,
+    nombre_columna_excepcion,
     nombre_columna_gt,
     obtener_filtros_del_perfil,
     parse_film_id,
@@ -12,19 +14,21 @@ from src.normalizacion import (
 ENCABEZADO_NOTA_GLOBAL = "Global"
 
 
-def mapear_encabezados(perfil: dict, columnas_planilla) -> tuple[dict, list]:
+def mapear_encabezados(perfil: dict, columnas_planilla) -> tuple[dict, dict, list]:
     # Cada filtro/afinidad se busca en la planilla por su "encabezado" (la
     # abreviatura usada al evaluar, ej. "Insoport.") o, si no tiene, por su nombre.
-    mapeo, faltantes = {}, []
+    mapeo, excepciones, faltantes = {}, {}, []
     for tipo, nombre in obtener_filtros_del_perfil(perfil):
         encabezado = perfil[tipo][nombre].get("encabezado") or nombre
         if encabezado in columnas_planilla:
             mapeo[encabezado] = nombre_columna_gt(tipo, nombre)
+            if tipo == "restrictivos":
+                excepciones[encabezado] = nombre_columna_excepcion(nombre)
         else:
             faltantes.append(f"'{encabezado}'" + (f" ({nombre})" if encabezado != nombre else ""))
 
     mapeo[ENCABEZADO_NOTA_GLOBAL] = "gt_nota_global"
-    return mapeo, faltantes
+    return mapeo, excepciones, faltantes
 
 
 def a_numerico(serie: pd.Series) -> pd.Series:
@@ -110,7 +114,7 @@ def main():
         return
     print(f"Mapeando columnas según el perfil: {nombre_perfil}")
 
-    mapeo, faltantes = mapear_encabezados(perfil, df.columns)
+    mapeo, excepciones, faltantes = mapear_encabezados(perfil, df.columns)
     if faltantes:
         print(f"[!] Aviso: no se encontró en el dataset maestro la columna para: {', '.join(faltantes)}. "
               "Se omiten; revisa el campo 'encabezado' del perfil.")
@@ -118,10 +122,16 @@ def main():
     df['film_id'] = df['Pelicula'].apply(parse_film_id)
     df['film_title'] = df['Pelicula']  # Conservamos el original por si acaso
 
-    columnas_gt = []
     for col_original, col_nueva in mapeo.items():
         df[col_nueva] = a_numerico(df[col_original])
-        columnas_gt.append(col_nueva)
+
+    # En la planilla, un asterisco junto al puntaje de un filtro ("0*") indica
+    # que su excepción aplica a la película.
+    for col_original, col_excepcion in excepciones.items():
+        con_asterisco = df[col_original].astype(str).str.contains('*', regex=False).astype(float)
+        df[col_excepcion] = con_asterisco.where(df[mapeo[col_original]].notna())
+
+    columnas_gt = [columna for columna in columnas_evaluacion(perfil) if columna in df.columns]
 
     no_mapeadas = set(df.columns) - set(mapeo) - set(columnas_gt) - {"Pelicula", "film_id", "film_title"}
     if no_mapeadas:

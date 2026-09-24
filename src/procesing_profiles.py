@@ -55,7 +55,8 @@ def construir_chunk(perfiles: dict) -> list[Document]:
     documentos = []
 
     for perfil, categoria in perfiles.items():
-        for tipo_categoria, filtros in categoria.items():
+        for tipo_categoria in ("restrictivos", "afinidad"):
+            filtros = categoria.get(tipo_categoria, {})
 
             for nombre_filtro, datos in filtros.items():
                 metadata = {
