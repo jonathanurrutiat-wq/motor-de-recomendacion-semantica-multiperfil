@@ -59,7 +59,16 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 * **8) Recomendar películas según el perfil.**
     Carga el modelo guardado en la opción 7 (y el perfil con el que se entrenó) para estimar una nota a todas las películas con reseña procesada (tanto a las que ya evaluó Gemini, para comparar, como a las nuevas que todavía no tienen nota). Muestra todo en un único ranking ordenado de mayor a menor nota estimada.
 
-* **9) Salir.**
+* **9) Ejecutar todo y generar datos de análisis.**
+    Pregunta el perfil una sola vez y ejecuta las opciones 2 a 8 en orden, sin más preguntas, mostrando cada paso con su duración (`src/analisis.py`). No borra datos: si hay chunks con formato antiguo o embeddings de perfiles huérfanos, solo lo informa (se limpian desde las opciones 3 y 4). Además evalúa el modelo con validación cruzada de 5 particiones (error sobre películas que el modelo no vio al entrenar) y lo compara con una línea base que predice siempre el promedio y con una regresión Ridge. Guarda los resultados en `analisis/<fecha_hora>/`:
+
+    * `resumen.md` y `resumen.json`: datos usados, métricas (entrenamiento, validación cruzada, Ridge y línea base), variables con más peso, películas peor predichas, mejores candidatas y tiempos.
+    * `peliculas.csv`: una fila por película con su número de chunks, su similitud con cada término del perfil, la nota de Gemini, la del modelo y el error en validación cruzada.
+    * `pesos.csv`: peso de cada variable del modelo (con las similitudes estandarizadas, así que son comparables entre sí).
+    * `similitud_perfil.csv`: similitud entre los términos del perfil.
+    * `ranking.csv`: ranking completo de recomendaciones.
+
+* **10) Salir.**
     Cierra el programa.
 
 ## **Librerias Utilizadas**
@@ -133,6 +142,21 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
 ## **Changelog (historial de cambios)**
 <small>*Nota: Este changelog está en orden cronológico inverso.*</small>
+
+### [1.1.0] - 25-09-2026
+> Ejecución completa del pipeline en un paso y datos para analizar el modelo.
+
+* Añadido
+
+    * Opción 9 del menú (`src/analisis.py`): ejecuta las opciones 2 a 8 sin preguntas y guarda en `analisis/<fecha_hora>/` métricas con validación cruzada, datos por película, pesos, ranking y similitud entre los términos del perfil. "Salir" pasó a ser la opción 10.
+
+    * Las opciones 3 a 7 aceptan el perfil (y qué hacer con los datos antiguos) como parámetros, para poder ejecutarse sin preguntas; desde el menú siguen preguntando igual que antes.
+
+* Cambios
+
+    * `scoring.py` estandariza las similitudes antes de construir las interacciones. Como varían muy poco entre películas, los productos quedaban diminutos y la regresión les asignaba pesos de cientos de miles; ahora los pesos son comparables entre variables. El modelo guardado cambió de formato: hay que reentrenar (opción 7).
+
+    * `procesing_reviews.py` codifica todos los chunks en una sola pasada por tandas, con barra de progreso, en vez de llamar al modelo una vez por reseña.
 
 ### [1.0.4] - 24-09-2026
 > Embeddings del perfil sin contaminación y excepciones incorporadas al modelo.

@@ -32,9 +32,10 @@ def obtener_lotes_pendientes(directorio: Path, coleccion) -> list[Path]:
     ]
 
 
-def limpiar_ids_antiguos(coleccion):
+def limpiar_ids_antiguos(coleccion, eliminar: bool | None = None):
     # Antes el id no incluía el lote ("pelicula::review_N::chunk_M") y
-    # reseñas de lotes distintos se pisaban entre sí.
+    # reseñas de lotes distintos se pisaban entre sí. Si no se indica qué
+    # hacer, se pregunta.
     ids_antiguos = [i for i in coleccion.get(include=[])['ids'] if len(i.split("::")) == 3]
     if not ids_antiguos:
         return
@@ -42,9 +43,13 @@ def limpiar_ids_antiguos(coleccion):
     print(f"\n[!] Hay {len(ids_antiguos)} chunks guardados con el formato de id antiguo (sin lote).")
     print("    Si no se eliminan, quedarán duplicados al volver a vectorizar sus lotes.")
     print(f"    Elimínalos solo si todavía tienes los csv filtrados en {DIR_FILTRADOS}: se vectorizarán de nuevo desde ahí.")
-    if input("¿Eliminarlos? (s/n): ").strip().lower() == "s":
+    if eliminar is None:
+        eliminar = input("¿Eliminarlos? (s/n): ").strip().lower() == "s"
+    if eliminar:
         coleccion.delete(ids=ids_antiguos)
         print(f"Eliminados {len(ids_antiguos)} chunks antiguos.")
+    else:
+        print("    Se mantienen; se pueden eliminar desde la opción 4 del menú principal.")
 
 
 def cargar_resenias(csv_path: Path) -> pd.DataFrame:
@@ -85,20 +90,25 @@ def chunking_resenias(resenias: pd.DataFrame) -> list[dict]:
 """Construccion de embeddings"""
 
 def crear_embeddings_resenias(resenias_chunkeadas: list[dict], model: SentenceTransformer) -> list[dict]:
-    resultado = []
+    # Todos los chunks se codifican en una sola pasada por tandas: llamar al
+    # modelo una vez por reseña es mucho más lento con lotes grandes.
+    entradas = [entrada for entrada in resenias_chunkeadas if entrada["chunks"]]
+    todos_los_chunks = [chunk for entrada in entradas for chunk in entrada["chunks"]]
+    if not todos_los_chunks:
+        return []
+    print(f"Codificando {len(todos_los_chunks)} chunks de {len(entradas)} reseñas...")
+    vectores = np.asarray(model.encode(todos_los_chunks, batch_size=64, show_progress_bar=True), dtype="float32")
 
-    for entrada in resenias_chunkeadas:
-        chunks = entrada["chunks"]
-        if not chunks:
-            continue
-
-        vectores = model.encode(chunks)
+    resultado, inicio = [], 0
+    for entrada in entradas:
+        fin = inicio + len(entrada["chunks"])
         resultado.append({
             "film_id": entrada["film_id"],
             "review_idx": entrada["review_idx"],
-            "chunks": chunks,
-            "embeddings": np.asarray(vectores, dtype="float32"),
+            "chunks": entrada["chunks"],
+            "embeddings": vectores[inicio:fin],
         })
+        inicio = fin
 
     return resultado
 
@@ -140,12 +150,12 @@ def guardar_lote(coleccion, lote: str, resenias_embebidas: list[dict]):
     print(f"Lote {lote}: {len(ids)} chunks guardados en la colección '{NOMBRE_COLECCION}'.")
 
 
-def main():
+def main(eliminar_ids_antiguos: bool | None = None):
     DIR_CHROMA.mkdir(parents=True, exist_ok=True)
     cliente = chromadb.PersistentClient(path=str(DIR_CHROMA))
     coleccion = cliente.get_or_create_collection(name=NOMBRE_COLECCION)
 
-    limpiar_ids_antiguos(coleccion)
+    limpiar_ids_antiguos(coleccion, eliminar_ids_antiguos)
 
     lotes = obtener_lotes_pendientes(DIR_FILTRADOS, coleccion)
     if not lotes:

@@ -39,7 +39,7 @@ def obtener_peliculas_evaluadas(gt_path: Path) -> set:
     return {canonicalizar_film_id(fid) for fid in df_gt["film_id"].dropna()}
 
 
-def main():
+def main(perfil_elegido=None):
     dir_filtrados = DIR_FILTRADOS
     gt_path = RUTA_GT
 
@@ -80,7 +80,7 @@ def main():
             return
 
     try:
-        nombre_perfil, perfil = seleccionar_perfil()
+        nombre_perfil, perfil = seleccionar_perfil(perfil_elegido)
     except (FileNotFoundError, ValueError) as error:
         print(f"[!] Error: {error}")
         return

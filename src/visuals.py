@@ -17,7 +17,8 @@ def mostrar_menu_principal():
     print("6) Revisar películas pendientes de evaluar.")
     print("7) Entrenar modelo predictivo (Regresión Lineal).")
     print("8) Recomendar películas según el perfil.")
-    print("9) Salir.")
+    print("9) Ejecutar todo (opciones 2 a 8) y generar datos de análisis.")
+    print("10) Salir.")
 
     imprimir_separador2()
 

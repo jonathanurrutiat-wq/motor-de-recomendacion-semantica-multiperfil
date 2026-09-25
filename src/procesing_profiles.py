@@ -128,18 +128,23 @@ def obtener_coleccion():
     return cliente.get_or_create_collection(name=NOMBRE_COLECCION)
 
 
-def limpiar_perfiles_huerfanos(coleccion, perfiles: dict):
-    # Embeddings de perfiles que ya no existen en perfiles.json (eliminados o renombrados).
+def limpiar_perfiles_huerfanos(coleccion, perfiles: dict, eliminar: bool | None = None):
+    # Embeddings de perfiles que ya no existen en perfiles.json (eliminados o
+    # renombrados). Si no se indica qué hacer, se pregunta.
     metadatas = coleccion.get(include=['metadatas'])['metadatas']
     huerfanos = sorted({meta['persona'] for meta in metadatas} - set(perfiles))
     if not huerfanos:
         return
 
     print(f"\n[!] Hay embeddings de perfiles que ya no existen: {', '.join(huerfanos)}")
-    if input("¿Eliminarlos de ChromaDB? (s/n): ").strip().lower() == "s":
+    if eliminar is None:
+        eliminar = input("¿Eliminarlos de ChromaDB? (s/n): ").strip().lower() == "s"
+    if eliminar:
         for persona in huerfanos:
             coleccion.delete(where={"persona": persona})
         print("Embeddings huérfanos eliminados.")
+    else:
+        print("Se mantienen; se pueden eliminar desde la opción 3 del menú principal.")
 
 
 def guardar_coleccion(coleccion, nombre_perfil: str, documentos: list[Document], embeddings: np.ndarray):
@@ -160,26 +165,26 @@ def guardar_coleccion(coleccion, nombre_perfil: str, documentos: list[Document],
     print(f"Documentos guardados/actualizados: {len(ids)}")
 
 
-def main():
+def main(perfil_elegido: str | None = None, eliminar_huerfanos: bool | None = None):
     perfiles = obtener_todos_los_perfiles()
-    
+
     if not perfiles:
         print("No hay perfiles disponibles para generar embeddings. Crea uno primero desde la opción 1 del menú principal.")
         return
 
-    print("\nPerfiles disponibles:")
-    for perfil in perfiles.keys():
-        print(f"- {perfil}")
-    
-    entrada = input("Ingrese el nombre del perfil a embeddear: ")
-    nombre_perfil = buscar_perfil(perfiles, entrada)
+    if perfil_elegido is None:
+        print("\nPerfiles disponibles:")
+        for perfil in perfiles.keys():
+            print(f"- {perfil}")
+        perfil_elegido = input("Ingrese el nombre del perfil a embeddear: ")
 
+    nombre_perfil = buscar_perfil(perfiles, perfil_elegido)
     if not nombre_perfil:
-        print(f"El perfil '{entrada.strip()}' no existe.")
+        print(f"El perfil '{perfil_elegido.strip()}' no existe.")
         return
 
     coleccion = obtener_coleccion()
-    limpiar_perfiles_huerfanos(coleccion, perfiles)
+    limpiar_perfiles_huerfanos(coleccion, perfiles, eliminar_huerfanos)
 
     perfil_a_procesar = {nombre_perfil: perfiles[nombre_perfil]}
     

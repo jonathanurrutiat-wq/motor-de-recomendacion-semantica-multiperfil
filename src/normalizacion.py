@@ -60,9 +60,9 @@ diccionario en cada archivo. Estas funciones leen esa información
 directamente desde perfiles.json, así que siempre están al día.
 """
 
-def seleccionar_perfil() -> tuple[str, dict]:
-    # Devuelve (nombre, perfil). Si hay más de un perfil guardado, se le
-    # pregunta al usuario cuál usar en vez de tomar el primero del json.
+def seleccionar_perfil(nombre_perfil: str | None = None) -> tuple[str, dict]:
+    # Devuelve (nombre, perfil). Si hay más de un perfil guardado y no se indica
+    # cuál, se le pregunta al usuario en vez de tomar el primero del json.
     if not RUTA_PERFILES.exists():
         raise FileNotFoundError(
             f"No se encontró {RUTA_PERFILES}. Crea un perfil primero desde la opción 1 del menú principal."
@@ -74,6 +74,13 @@ def seleccionar_perfil() -> tuple[str, dict]:
     if not perfiles:
         raise ValueError(f"No hay perfiles en {RUTA_PERFILES}. Crea uno primero desde la opción 1 del menú principal.")
 
+    por_nombre = {nombre.lower(): nombre for nombre in perfiles}
+    if nombre_perfil is not None:
+        if nombre_perfil.strip().lower() not in por_nombre:
+            raise ValueError(f"El perfil '{nombre_perfil}' no existe en {RUTA_PERFILES}.")
+        nombre = por_nombre[nombre_perfil.strip().lower()]
+        return nombre, perfiles[nombre]
+
     if len(perfiles) == 1:
         return next(iter(perfiles.items()))
 
@@ -81,7 +88,6 @@ def seleccionar_perfil() -> tuple[str, dict]:
     for nombre in perfiles:
         print(f"- {nombre}")
 
-    por_nombre = {nombre.lower(): nombre for nombre in perfiles}
     while True:
         eleccion = input("Ingrese el nombre del perfil a utilizar: ").strip().lower()
         if eleccion in por_nombre:

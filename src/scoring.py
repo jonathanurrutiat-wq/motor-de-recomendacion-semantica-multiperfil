@@ -70,28 +70,32 @@ def obtener_embeddings_perfil(coleccion_perfiles, nombre_perfil, terminos):
     return np.array([por_termino.get(tuple(termino), np.zeros(dimension)) for termino in terminos])
 
 
-def construir_features(similitudes, estructura, medias=None):
+def construir_features(similitudes, estructura, escala=None):
     # Similitud con cada término, más un producto por cada relación del perfil:
     # afinidad x filtro (el filtro corrompe la afinidad) y filtro x excepción
-    # (la excepción neutraliza el filtro). Se centra antes de multiplicar para
-    # que los productos no queden casi idénticos a los términos simples.
-    if medias is None:
-        medias = similitudes.mean(axis=0)
-    centradas = similitudes - medias
+    # (la excepción neutraliza el filtro). Las similitudes se estandarizan con
+    # la media y desviación de entrenamiento (escala): varían muy poco entre
+    # películas, y sin estandarizar los productos quedan diminutos y la
+    # regresión les asigna pesos gigantes e inestables.
+    if escala is None:
+        desviaciones = similitudes.std(axis=0)
+        escala = (similitudes.mean(axis=0), np.where(desviaciones > 0, desviaciones, 1.0))
+    medias, desviaciones = escala
+    z = (similitudes - medias) / desviaciones
     indice = {tuple(termino): i for i, termino in enumerate(estructura["terminos"])}
 
-    columnas = [similitudes[:, i] for i in range(similitudes.shape[1])]
+    columnas = [z[:, i] for i in range(z.shape[1])]
     nombres = [f"{ETIQUETAS_TIPO[tipo]} · {nombre}" for tipo, nombre in estructura["terminos"]]
 
     for afinidad, filtro in estructura["corrupciones"]:
-        columnas.append(centradas[:, indice[("afinidad", afinidad)]] * centradas[:, indice[("restrictivos", filtro)]])
+        columnas.append(z[:, indice[("afinidad", afinidad)]] * z[:, indice[("restrictivos", filtro)]])
         nombres.append(f"{afinidad} × {filtro}")
 
     for filtro in estructura["excepciones"]:
-        columnas.append(centradas[:, indice[("restrictivos", filtro)]] * centradas[:, indice[("excepcion", filtro)]])
+        columnas.append(z[:, indice[("restrictivos", filtro)]] * z[:, indice[("excepcion", filtro)]])
         nombres.append(f"{filtro} × excepción")
 
-    return np.column_stack(columnas), nombres, medias
+    return np.column_stack(columnas), nombres, escala
 
 
 def cargar_embeddings_peliculas(cliente):
@@ -99,75 +103,78 @@ def cargar_embeddings_peliculas(cliente):
     return agrupar_embeddings_por_pelicula(datos_resenias['ids'], datos_resenias['embeddings'])
 
 
-def main():
+def entrenar(nombre_perfil: str, perfil: dict) -> dict:
+    # Cruza las películas con reseñas vectorizadas contra la Verdad Base y
+    # entrena la regresión. Lanza ValueError si faltan datos.
     if not RUTA_GT.exists():
-        print("[!] Error: No se encontró matriz_perdida.csv. Ejecuta el módulo 5 primero.")
-        return
-
-    try:
-        nombre_perfil, perfil = seleccionar_perfil()
-    except (FileNotFoundError, ValueError) as error:
-        print(f"[!] Error: {error}")
-        return
+        raise ValueError("No se encontró matriz_perdida.csv. Ejecuta el módulo 5 primero.")
 
     estructura = construir_estructura(perfil)
 
     print("Conectando con la base de datos vectorial ChromaDB...")
     cliente = chromadb.PersistentClient(path=str(DIR_CHROMA))
-
-    try:
-        embeddings_perfil = obtener_embeddings_perfil(
-            cliente.get_collection(name="perfiles"), nombre_perfil, estructura["terminos"]
-        )
-    except ValueError as error:
-        print(f"[!] Error: {error}")
-        return
-
+    embeddings_perfil = obtener_embeddings_perfil(
+        cliente.get_collection(name="perfiles"), nombre_perfil, estructura["terminos"]
+    )
     embeddings_por_pelicula = cargar_embeddings_peliculas(cliente)
 
     df_gt = pd.read_csv(RUTA_GT)
     df_gt['canon_id'] = df_gt['film_id'].apply(canonicalizar_film_id)
 
-    embeddings_entrenamiento, y_entrenamiento = [], []
+    film_ids, embeddings_entrenamiento, y_entrenamiento = [], [], []
     for _, fila in df_gt.iterrows():
         canon_id = fila['canon_id']
         if canon_id in embeddings_por_pelicula and pd.notna(fila['gt_nota_global']):
+            film_ids.append(canon_id)
             embeddings_entrenamiento.append(embeddings_por_pelicula[canon_id])
             y_entrenamiento.append(fila['gt_nota_global'])
 
     if len(y_entrenamiento) < 2:
-        print("[!] Error: No se lograron cruzar suficientes reseñas vectorizadas con el Ground Truth "
-              f"({len(y_entrenamiento)} película(s)). Se necesitan al menos 2.")
-        return
+        raise ValueError("No se lograron cruzar suficientes reseñas vectorizadas con el Ground Truth "
+                         f"({len(y_entrenamiento)} película(s)). Se necesitan al menos 2.")
 
-    embeddings_reviews = np.array(embeddings_entrenamiento)
     y_array = np.array(y_entrenamiento)
 
     # cálculo de la Similitud del Coseno (Matriz X)
     print("Calculando distancias semánticas (Matriz X)...")
-    similitudes = cosine_similarity(embeddings_reviews, embeddings_perfil)
-    matriz_x, columnas, medias = construir_features(similitudes, estructura)
+    similitudes = cosine_similarity(np.array(embeddings_entrenamiento), embeddings_perfil)
+    matriz_x, columnas, escala = construir_features(similitudes, estructura)
 
     print("Entrenando Regresión Lineal...")
     modelo = LinearRegression()
     modelo.fit(matriz_x, y_array)
-
     predicciones = modelo.predict(matriz_x)
-    mse = mean_squared_error(y_array, predicciones)
-    r2 = r2_score(y_array, predicciones)
+
+    return {
+        "perfil": nombre_perfil, "estructura": estructura, "modelo": modelo, "escala": escala,
+        "columnas": columnas, "film_ids": film_ids, "similitudes": similitudes, "matriz_x": matriz_x,
+        "y": y_array, "predicciones": predicciones, "embeddings_perfil": embeddings_perfil,
+        "embeddings_por_pelicula": embeddings_por_pelicula,
+        "mse": mean_squared_error(y_array, predicciones), "r2": r2_score(y_array, predicciones),
+    }
+
+
+def main(perfil_elegido: str | None = None):
+    try:
+        nombre_perfil, perfil = seleccionar_perfil(perfil_elegido)
+        resultado = entrenar(nombre_perfil, perfil)
+    except (FileNotFoundError, ValueError) as error:
+        print(f"[!] Error: {error}")
+        return None
 
     joblib.dump(
-        {"modelo": modelo, "perfil": nombre_perfil, "estructura": estructura, "medias": medias},
+        {key: resultado[key] for key in ("modelo", "perfil", "estructura", "escala")},
         RUTA_MODELO,
     )
 
+    n_peliculas, columnas, modelo = len(resultado["y"]), resultado["columnas"], resultado["modelo"]
     print("\n| -- Métricas Finales de Entrenamiento -- |")
     print(f"Perfil: {nombre_perfil}")
-    print(f"Películas evaluadas con éxito (Cruce Vectorial): {len(matriz_x)}")
-    print(f"Error Cuadrático Medio (MSE): {mse:.4f}")
-    print(f"Varianza Explicada (R^2): {r2:.4f}")
-    if len(matriz_x) <= len(columnas):
-        print(f"[!] Aviso: hay {len(matriz_x)} películas para {len(columnas)} variables; el modelo está "
+    print(f"Películas evaluadas con éxito (Cruce Vectorial): {n_peliculas}")
+    print(f"Error Cuadrático Medio (MSE): {resultado['mse']:.4f}")
+    print(f"Varianza Explicada (R^2): {resultado['r2']:.4f}")
+    if n_peliculas <= len(columnas):
+        print(f"[!] Aviso: hay {n_peliculas} películas para {len(columnas)} variables; el modelo está "
               "sobreajustado y estas métricas no son confiables. Evalúa más películas (módulo 6).")
 
     print("\n| -- Pesos Sinápticos (Impacto semántico de cada término y relación) -- |")
@@ -176,6 +183,7 @@ def main():
 
     print(f"\nSesgo Base (Bias): {modelo.intercept_:.4f}")
     print(f"\nModelo guardado en: {RUTA_MODELO}")
+    return resultado
 
 
 if __name__ == '__main__':

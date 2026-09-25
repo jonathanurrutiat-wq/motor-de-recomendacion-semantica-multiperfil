@@ -17,4 +17,6 @@ RUTA_GT = LOSS_DIR / "matriz_perdida.csv"
 RUTA_PENDIENTES = LOSS_DIR / "pendientes_evaluar.csv"
 RUTA_ADICIONALES = LOSS_DIR / "evaluaciones_adicionales.csv"
 RUTA_INSTRUCCIONES = LOSS_DIR / "instrucciones_evaluacion.md"
+
+DIR_ANALISIS = SRC_DIR.parent / "analisis"
 RUTA_MODELO = LOSS_DIR / "modelo_regresion.joblib"

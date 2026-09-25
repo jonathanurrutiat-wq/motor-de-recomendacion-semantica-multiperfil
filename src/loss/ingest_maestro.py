@@ -86,7 +86,7 @@ def importar_pendientes_evaluadas():
           f"a {RUTA_ADICIONALES.name}.")
 
 
-def main():
+def main(perfil_elegido=None):
     if not RUTA_DATASET_MAESTRO.exists():
         print(f"[!] Error: No se encontró el dataset en {RUTA_DATASET_MAESTRO}")
         print("Por favor, renombra el CSV de ground-truth a 'dataset_maestro.csv' y colócalo en src/loss/")
@@ -108,7 +108,7 @@ def main():
         return
 
     try:
-        nombre_perfil, perfil = seleccionar_perfil()
+        nombre_perfil, perfil = seleccionar_perfil(perfil_elegido)
     except (FileNotFoundError, ValueError) as error:
         print(f"[!] Error: {error}")
         return

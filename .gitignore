@@ -228,3 +228,6 @@ __marimo__/
 src/db/raw/*.db
 src/db/raw/*.zip
 src/db/filtered/result/filtrado_reviews_*.csv
+
+# Datos de análisis generados por la opción 9
+analisis/

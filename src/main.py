@@ -10,6 +10,7 @@ import profiles as prfs
 import src.procesing_profiles as embPerfiles
 import src.procesing_reviews as embResenias
 import visuals as vis
+from src.analisis import main as runAnalisis
 from src.db.filtered.filter import main as runFilter
 from src.loss.gt_matrix_pipeline import main as runPipeline
 from src.loss.ingest_maestro import main as runMaestro
@@ -56,11 +57,15 @@ def main():
                 runRecommend()
 
             case "9":
+                print("\n[9] Ejecutando todo el pipeline y generando datos de análisis...")
+                runAnalisis()
+
+            case "10":
                 print("Saliendo del panel central.")
                 sys.exit(0)
 
             case _:
-                print("Opción no válida. Por favor, seleccione una opción del 1 al 9.")
+                print("Opción no válida. Por favor, seleccione una opción del 1 al 10.")
 
 if __name__ == '__main__':
     main()
