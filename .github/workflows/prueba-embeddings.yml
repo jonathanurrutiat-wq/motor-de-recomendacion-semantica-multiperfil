@@ -1,0 +1,39 @@
+name: Prueba de embeddings
+
+on:
+  push:
+    branches: [feature/program-refinement]
+    paths: [.github/workflows/prueba-embeddings.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  prueba:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Instalar dependencias (torch para CPU)
+        run: |
+          pip install --index-url https://download.pytorch.org/whl/cpu torch
+          pip install sentence-transformers
+      - name: Descargar el modelo y medir velocidad
+        run: |
+          python - <<'PY'
+          import os, time
+          from sentence_transformers import SentenceTransformer
+          t = time.time()
+          modelo = SentenceTransformer("sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2", device="cpu")
+          descarga = time.time() - t
+          base = ("Una película contemplativa sobre el duelo, con planos largos, silencios y una actuación "
+                  "contenida que deja respirar cada escena. The pacing is slow but rewarding. ")
+          textos = [base * 2 + str(i) for i in range(2000)]
+          t = time.time()
+          vectores = modelo.encode(textos, batch_size=64)
+          velocidad = len(textos) / (time.time() - t)
+          print(f"::notice title=Embeddings OK::forma {vectores.shape}; {os.cpu_count()} CPU; modelo en {descarga:.0f} s; "
+                f"{velocidad:.0f} chunks/s; 58 mil chunks tomarían ~{58000 / velocidad / 60:.1f} min")
+          PY
