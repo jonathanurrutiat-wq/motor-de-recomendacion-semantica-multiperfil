@@ -223,3 +223,8 @@ __marimo__/
 
 # Perfil de ejemplo versionado (perfiles.json sigue siendo local)
 !src/db/profiles/perfiles.ejemplo.json
+
+# Bases de reseñas extraídas (pesadas; se distribuyen fuera del repo)
+src/db/raw/*.db
+src/db/raw/*.zip
+src/db/filtered/result/filtrado_reviews_*.csv

@@ -31,7 +31,10 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
     Abre el menú de `profiles.py` para crear un perfil nuevo, o editar/eliminar uno existente (filtros restrictivos y afinidades). Se guarda en `perfiles.json`.
 
 * **2) Ejecutar pipeline ETL (filtrar CSVs crudos).**
-    Corre `filter.py` sobre los `.csv` crudos de `db/raw/` (extraídos desde Letterboxd): limpia texto, descarta reseñas vacías o sin contenido real, y convierte la calificación en estrellas a un número. Guarda el resultado en `db/filtered/result/`.
+    Corre `filter.py` sobre los archivos crudos de `db/raw/` (extraídos desde Letterboxd) y guarda el resultado en `db/filtered/result/`. Omite los que ya fueron filtrados y no han cambiado.
+
+    * `.csv` (formato de `extract.ipynb`): limpia texto, descarta reseñas vacías o sin contenido real, y convierte la calificación en estrellas a un número.
+    * `reviews.db` (base SQLite del scraper, con tablas `films` y `reviews`): exporta, de las películas con al menos 20 reseñas, hasta 200 reseñas de al menos 100 caracteres por película, priorizando las con más likes. Los tres valores son constantes al inicio de `filter.py`. La base pesa más de 100 MB y no está en el repositorio: se descarga aparte y se deja en `src/db/raw/reviews.db`.
 
 * **3) Generar embeddings de un perfil.**
     Pide el nombre de un perfil ya creado y genera los vectores semánticos de sus filtros y afinidades (`procesing_profiles.py`), persistiéndolos en la colección `perfiles` de ChromaDB. Cada filtro y afinidad se vectoriza solo con su nombre y descripción; cada excepción tiene su propio vector. Reemplaza por completo los embeddings anteriores de ese perfil y ofrece eliminar los de perfiles que ya no existen.
@@ -147,6 +150,10 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
     * Campo `regla_global` en el perfil (se edita desde la opción 1) con las instrucciones para calcular la nota global, que no es un promedio. La opción 6 genera con el perfil las instrucciones de evaluación para Gemini (`src/loss/instrucciones.py`).
 
     * Columnas `gt_excepcion_*` en la Verdad Base y en la plantilla de pendientes, para registrar si la excepción de cada filtro aplica. En `dataset_maestro.csv` se obtienen del asterisco que acompaña al puntaje, que antes se descartaba.
+
+    * La opción 2 lee también `src/db/raw/reviews.db` (base del scraper de Letterboxd, fuera del repositorio) y exporta sus reseñas como un lote filtrado más. Con ella, 101 de las 110 películas evaluadas tienen reseñas para entrenar (antes eran 2).
+
+    * `procesing_reviews.py` guarda en ChromaDB en tandas de 5.000 chunks: un lote grande superaba el máximo por llamada de Chroma y fallaba.
 
     * Columna `film_slug` en `dataset_maestro.csv` con el identificador de Letterboxd de cada película, usada como `film_id`. Antes el id se deducía del título, lo que fallaba con los títulos cortados en la planilla ("A Woman Under the...") y con tildes ("Cléo"). Con esto, 104 de las 110 películas evaluadas cruzan con la base de reseñas; las 6 restantes no tienen reseñas extraídas y quedan sin slug.
 

@@ -10,6 +10,7 @@ from sentence_transformers import SentenceTransformer
 from config import DIR_CHROMA, DIR_FILTRADOS, EMBEDDING_MODEL_NAME
 
 NOMBRE_COLECCION = "resenias"
+TAMANO_TANDA_CHROMA = 5000
 
 COLUMNAS_REQUERIDAS = {"film_id", "review_text"}
 
@@ -126,12 +127,15 @@ def guardar_lote(coleccion, lote: str, resenias_embebidas: list[dict]):
         print(f"El lote {lote} no tiene chunks para guardar.")
         return
 
-    coleccion.upsert(
-        ids=ids,
-        embeddings=embeddings,
-        documents=documentos,
-        metadatas=metadatas,
-    )
+    # Chroma limita la cantidad de registros por llamada (~5.400).
+    for inicio in range(0, len(ids), TAMANO_TANDA_CHROMA):
+        fin = inicio + TAMANO_TANDA_CHROMA
+        coleccion.upsert(
+            ids=ids[inicio:fin],
+            embeddings=embeddings[inicio:fin],
+            documents=documentos[inicio:fin],
+            metadatas=metadatas[inicio:fin],
+        )
 
     print(f"Lote {lote}: {len(ids)} chunks guardados en la colección '{NOMBRE_COLECCION}'.")
 
