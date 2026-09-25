@@ -148,6 +148,8 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
     * Columnas `gt_excepcion_*` en la Verdad Base y en la plantilla de pendientes, para registrar si la excepción de cada filtro aplica. En `dataset_maestro.csv` se obtienen del asterisco que acompaña al puntaje, que antes se descartaba.
 
+    * Columna `film_slug` en `dataset_maestro.csv` con el identificador de Letterboxd de cada película, usada como `film_id`. Antes el id se deducía del título, lo que fallaba con los títulos cortados en la planilla ("A Woman Under the...") y con tildes ("Cléo"). Con esto, 104 de las 110 películas evaluadas cruzan con la base de reseñas; las 6 restantes no tienen reseñas extraídas y quedan sin slug.
+
     * Campo opcional `encabezado` en cada filtro/afinidad del perfil (se pide al crearlo o editarlo en la opción 1). `ingest_maestro.py` arma con él el mapeo de columnas de la planilla, en vez del diccionario `MAPEO_ENCABEZADOS` fijo en el código que solo servía para un perfil.
 
 * Cambios

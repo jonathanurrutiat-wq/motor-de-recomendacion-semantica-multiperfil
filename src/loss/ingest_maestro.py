@@ -119,7 +119,12 @@ def main():
         print(f"[!] Aviso: no se encontró en el dataset maestro la columna para: {', '.join(faltantes)}. "
               "Se omiten; revisa el campo 'encabezado' del perfil.")
 
+    # film_slug es el identificador de Letterboxd; si falta, se deduce del título
+    # (lo que falla con títulos cortados o con tildes).
     df['film_id'] = df['Pelicula'].apply(parse_film_id)
+    if 'film_slug' in df.columns:
+        slug = df['film_slug'].astype('string').str.strip()
+        df['film_id'] = slug.where(slug.notna() & (slug != ""), df['film_id'])
     df['film_title'] = df['Pelicula']  # Conservamos el original por si acaso
 
     for col_original, col_nueva in mapeo.items():
@@ -133,7 +138,7 @@ def main():
 
     columnas_gt = [columna for columna in columnas_evaluacion(perfil) if columna in df.columns]
 
-    no_mapeadas = set(df.columns) - set(mapeo) - set(columnas_gt) - {"Pelicula", "film_id", "film_title"}
+    no_mapeadas = set(df.columns) - set(mapeo) - set(columnas_gt) - {"Pelicula", "film_slug", "film_id", "film_title"}
     if no_mapeadas:
         print(f"[!] Aviso: columnas que no corresponden a ningún filtro del perfil, se ignoran: {', '.join(sorted(no_mapeadas))}")
 
