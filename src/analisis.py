@@ -149,6 +149,11 @@ def guardar_analisis(nombre_perfil, resultado, pred_cv, pred_ridge, pred_base, n
             "peliculas_para_entrenar": int(len(y)),
             "peliculas_candidatas": int((~ranking["evaluada"]).sum()),
             "variables_del_modelo": len(resultado["columnas"]),
+            "parametros": {
+                "regresion_lineal": len(resultado["columnas"]) + 1,
+                "reglas_etapa_1": modelo_reglas.n_parametros_etapa_1(),
+                "reglas_etapa_2": modelo_reglas.regla.n_parametros(),
+            },
             "evaluadas_sin_resenias": sin_resenias,
         },
         "metricas": {
@@ -204,6 +209,10 @@ def guardar_analisis(nombre_perfil, resultado, pred_cv, pred_ridge, pred_base, n
         "Etapa 2: calcula la nota global con la forma de la regla global, con pesos y umbrales aprendidos.",
         "",
         "### Reglas aprendidas (modelo final)",
+        "",
+        f"Parámetros: etapa 2 (la regla) {modelo_reglas.regla.n_parametros()}; etapa 1 "
+        f"{modelo_reglas.n_parametros_etapa_1()} (regresiones Ridge desde el embedding de {todas.shape[1]} dimensiones, "
+        f"una por criterio). Regresión lineal actual: {len(resultado['columnas']) + 1}.",
         "",
         *[f"- {linea}" for linea in modelo_reglas.regla.describir()],
         "",

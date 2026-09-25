@@ -6,13 +6,13 @@ afinidades tenga.
 Etapa 1: predice el puntaje 0-10 de cada filtro y afinidad, y si aplica la
 excepción de cada filtro, a partir del embedding promedio de las reseñas.
 
-Etapa 2: calcula la nota global con reglas cuyos pesos y umbrales se aprenden
-de la Verdad Base:
-  - base: suma ponderada de las afinidades;
-  - corrupción: un filtro activo reduce las afinidades que corrompe;
-  - desplome: un filtro activo cuya excepción no aplica resta puntos;
-  - piso: una afinidad alta puede asegurar una nota mínima.
-Los umbrales son suaves (sigmoides) para poder ajustarlos por optimización.
+Etapa 2: calcula la nota global con una regla simple cuyos pesos y umbrales
+se aprenden de la Verdad Base:
+  nota = base + suma(peso * afinidad) - suma(desplome * [filtro > umbral y su excepción no aplica])
+Opcionalmente (usar_corrupcion, usar_pisos) un filtro activo puede además
+reducir las afinidades que corrompe, y una afinidad alta asegurar una nota
+mínima. Los umbrales son suaves (sigmoides) para poder ajustarlos por
+optimización.
 """
 
 import numpy as np
@@ -67,7 +67,11 @@ def matrices_puntajes(df, afinidades, filtros):
 class ReglaGlobal:
     """Etapa 2: de los puntajes por criterio a la nota global."""
 
-    def __init__(self, afinidades, filtros, corrupciones):
+    def __init__(self, afinidades, filtros, corrupciones, usar_pisos=False, usar_corrupcion=False):
+        # Por defecto la regla es simple (pesos + desplomes): en validación
+        # cruzada con la Verdad Base, pisos y corrupción no mejoraron la
+        # precisión y casi duplican los parámetros. Se pueden activar.
+        self.usar_pisos, self.usar_corrupcion = usar_pisos, usar_corrupcion
         self.afinidades, self.filtros = list(afinidades), list(filtros)
         self.pares = [(self.afinidades.index(a), self.filtros.index(f)) for a, f in corrupciones]
         n_a, n_f = len(self.afinidades), len(self.filtros)
@@ -94,8 +98,10 @@ class ReglaGlobal:
         n_a, n_f = len(self.afinidades), len(self.filtros)
         pesos0 = np.full(n_a, 1.0 / n_a) if n_a else np.zeros(0)
         sesgo0 = float(y.mean() - (A @ pesos0).mean()) if n_a else float(y.mean())
-        limites = ([(-10, 10)] + [(0, 2)] * n_a + [(0, 10)] * n_a + [(0, 10)] * n_a
-                   + [(0, 10)] * n_f + [(0, 10)] * n_f + [(0, 1)] * n_f)
+        limite_piso = (0, 10) if self.usar_pisos else (0, 0)
+        limite_corrupcion = (0, 1) if self.usar_corrupcion and self.pares else (0, 0)
+        limites = ([(-10, 10)] + [(0, 2)] * n_a + [(0, 10)] * n_a + [limite_piso] * n_a
+                   + [(0, 10)] * n_f + [(0, 10)] * n_f + [limite_corrupcion] * n_f)
 
         def perdida(theta):
             _, _, _, piso, _, desplome, corrupcion = self._separar(theta)
@@ -111,6 +117,13 @@ class ReglaGlobal:
                 mejor = intento
         self.theta = mejor.x
         return self
+
+    def n_parametros(self) -> int:
+        # Parámetros que realmente se ajustan: sesgo, peso por afinidad, umbral y
+        # desplome por filtro, más los de pisos y corrupción si están activos.
+        n_a, n_f = len(self.afinidades), len(self.filtros)
+        return (1 + n_a + 2 * n_f + (2 * n_a if self.usar_pisos else 0)
+                + (n_f if self.usar_corrupcion and self.pares else 0))
 
     def predict(self, A, F, E):
         return self._predecir(self.theta, A, F, E)
@@ -171,6 +184,10 @@ class ModeloDosEtapas:
                 self.constantes[columna] = float(np.nanmean(valores)) if con_dato.any() else 0.0
         self.regla.fit(*matrices_puntajes(puntajes_etapa_2, self.afinidades, self.filtros), y_etapa_2)
         return self
+
+    def n_parametros_etapa_1(self) -> int:
+        # Un coeficiente por dimensión del embedding más el sesgo, por cada criterio predicho (regularizados con Ridge).
+        return sum(len(p[-1].coef_) + 1 for p in self.predictores.values())
 
     def predecir_puntajes(self, embeddings):
         puntajes = {}
