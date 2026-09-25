@@ -24,6 +24,7 @@ from src.config import DIR_ANALISIS, DIR_CHROMA, RUTA_GT
 from src.db.filtered import filter as filtro
 from src.loss.gt_matrix_pipeline import main as revisar_pendientes
 from src.loss.ingest_maestro import main as cargar_verdad_base
+from src.modelo_reglas import evaluar as evaluar_reglas
 from src.normalizacion import canonicalizar_film_id, seleccionar_perfil
 from src.recommend import calcular_ranking
 from src.scoring import ETIQUETAS_TIPO, construir_features
@@ -81,7 +82,7 @@ def tabla_markdown(df: pd.DataFrame, decimales: int = 2) -> str:
     return "\n".join(filas)
 
 
-def guardar_analisis(nombre_perfil, resultado, pred_cv, pred_ridge, pred_base, n_particiones, ranking, tiempos):
+def guardar_analisis(nombre_perfil, resultado, pred_cv, pred_ridge, pred_base, n_particiones, ranking, reglas, tiempos):
     carpeta = DIR_ANALISIS / datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     carpeta.mkdir(parents=True, exist_ok=True)
 
@@ -98,10 +99,17 @@ def guardar_analisis(nombre_perfil, resultado, pred_cv, pred_ridge, pred_base, n
     chunks = contar_chunks_por_pelicula()
     peliculas.insert(1, "n_chunks", [chunks.get(f, 0) for f in film_ids])
 
+    modelo_reglas = reglas["modelo"]
+    todas = np.array(list(por_pelicula.values()))
+    puntajes_reglas = modelo_reglas.predecir_puntajes(todas).add_prefix("pred · ")
+    peliculas = pd.concat([peliculas, puntajes_reglas], axis=1)
+    peliculas["nota_reglas"] = modelo_reglas.predict(todas)
+    ranking = ranking.merge(peliculas[["film_id", "nota_reglas"]], on="film_id", how="left")
+
     entrenamiento = pd.DataFrame({
         "film_id": resultado["film_ids"], "nota_gemini": y,
         "nota_modelo_entrenamiento": resultado["predicciones"], "nota_modelo_cv": pred_cv,
-        "error_cv": pred_cv - y,
+        "error_cv": pred_cv - y, "nota_reglas_cv": reglas["pred_cv"], "error_reglas_cv": reglas["pred_cv"] - y,
     })
     peliculas = (peliculas
                  .merge(entrenamiento, on="film_id", how="left")
@@ -119,6 +127,10 @@ def guardar_analisis(nombre_perfil, resultado, pred_cv, pred_ridge, pred_base, n
         carpeta / "similitud_perfil.csv", encoding="utf-8")
 
     ranking.to_csv(carpeta / "ranking.csv", index=False, encoding="utf-8")
+    (carpeta / "reglas.json").write_text(json.dumps({
+        "reglas": modelo_reglas.regla.describir(), "parametros": modelo_reglas.regla.parametros(),
+        "metricas": reglas["metricas"],
+    }, indent=2, ensure_ascii=False), encoding="utf-8")
 
     df_gt = pd.read_csv(RUTA_GT)
     sin_resenias = sorted(set(df_gt["film_id"].apply(canonicalizar_film_id)) - set(resultado["film_ids"]))
@@ -144,6 +156,7 @@ def guardar_analisis(nombre_perfil, resultado, pred_cv, pred_ridge, pred_base, n
             f"validacion_cruzada_{n_particiones}_particiones": metricas(y, pred_cv),
             f"validacion_cruzada_ridge_{n_particiones}_particiones": metricas(y, pred_ridge),
             "linea_base_promedio": metricas(y, pred_base),
+            f"reglas_dos_etapas_{n_particiones}_particiones": reglas["metricas"]["completo"],
         },
         "tiempos_segundos": {paso: round(segundos, 1) for paso, segundos in tiempos.items()},
     }
@@ -152,6 +165,10 @@ def guardar_analisis(nombre_perfil, resultado, pred_cv, pred_ridge, pred_base, n
     m = resumen["metricas"]
     cv = m[f"validacion_cruzada_{n_particiones}_particiones"]
     ridge = m[f"validacion_cruzada_ridge_{n_particiones}_particiones"]
+    mr = reglas["metricas"]
+    completo = mr["completo"]
+    fila = lambda nombre, x: f"| {nombre} | {x['mse']:.3f} | {x['mae']:.3f} | {x['r2']:.3f} |"
+    etapa_1 = pd.DataFrame([{"criterio": c, "MAE": v["mae"], "R²": v["r2"]} for c, v in mr["etapa_1_por_criterio"].items()])
     peores = entrenamiento.reindex(entrenamiento["error_cv"].abs().sort_values(ascending=False).index).head(10)
     candidatas = ranking[~ranking["evaluada"]].head(10)
     lineas = [
@@ -178,9 +195,31 @@ def guardar_analisis(nombre_perfil, resultado, pred_cv, pred_ridge, pred_base, n
         f"| Entrenamiento (optimista) | {m['entrenamiento']['mse']:.3f} | {m['entrenamiento']['mae']:.3f} | {m['entrenamiento']['r2']:.3f} |",
         f"| Validación cruzada ({n_particiones} particiones) | {cv['mse']:.3f} | {cv['mae']:.3f} | {cv['r2']:.3f} |",
         f"| Validación cruzada con Ridge (comparación) | {ridge['mse']:.3f} | {ridge['mae']:.3f} | {ridge['r2']:.3f} |",
+        fila("Validación cruzada, modelo de reglas en dos etapas", completo),
         f"| Línea base (promedio) | {m['linea_base_promedio']['mse']:.3f} | {m['linea_base_promedio']['mae']:.3f} | {m['linea_base_promedio']['r2']:.3f} |",
         "",
-        "## Variables con más peso",
+        "## Modelo de reglas en dos etapas",
+        "",
+        "Etapa 1: predice el puntaje de cada filtro y afinidad (y si aplica cada excepción) desde las reseñas. "
+        "Etapa 2: calcula la nota global con la forma de la regla global, con pesos y umbrales aprendidos.",
+        "",
+        "### Reglas aprendidas (modelo final)",
+        "",
+        *[f"- {linea}" for linea in modelo_reglas.regla.describir()],
+        "",
+        "### Etapa 2 por separado: ¿cuánto de la nota global explican los puntajes de Gemini?",
+        "",
+        "| Modelo | MSE | MAE | R² |",
+        "|---|---|---|---|",
+        fila("Regla con condiciones", mr["etapa_2_regla"]),
+        fila("Regresión lineal sobre los puntajes", mr["etapa_2_lineal"]),
+        fila("Línea base (promedio)", mr["etapa_2_linea_base"]),
+        "",
+        "### Etapa 1: qué tan bien se predice cada puntaje desde las reseñas (validación cruzada)",
+        "",
+        tabla_markdown(etapa_1, 3) if len(etapa_1) else "Sin datos.",
+        "",
+        "## Variables con más peso (regresión lineal)",
         "",
         tabla_markdown(pesos.head(10), 3),
         "",
@@ -190,24 +229,25 @@ def guardar_analisis(nombre_perfil, resultado, pred_cv, pred_ridge, pred_base, n
         "",
         "## Mejores candidatas a recomendar",
         "",
-        tabla_markdown(candidatas[["film_id", "nota_modelo"]]) if len(candidatas) else "No hay películas candidatas.",
+        tabla_markdown(candidatas[["film_id", "nota_modelo", "nota_reglas"]]) if len(candidatas) else "No hay películas candidatas.",
         "",
         "## Archivos",
         "",
-        "- `peliculas.csv`: una fila por película, con sus similitudes con cada término del perfil, notas y errores.",
-        "- `pesos.csv`: peso de cada variable del modelo.",
+        "- `peliculas.csv`: una fila por película, con sus similitudes con cada término del perfil, los puntajes que predice el modelo de reglas, notas y errores.",
+        "- `pesos.csv`: peso de cada variable de la regresión lineal.",
+        "- `reglas.json`: reglas y parámetros aprendidos por el modelo de reglas, con sus métricas.",
         "- `similitud_perfil.csv`: similitud entre los términos del perfil (valores altos entre un filtro y una afinidad indican que el modelo los confunde).",
         "- `ranking.csv`: ranking completo de recomendaciones.",
         "- `resumen.json`: estos datos en formato legible por programas.",
         "",
     ]
     (carpeta / "resumen.md").write_text("\n".join(lineas), encoding="utf-8")
-    return carpeta, resumen
+    return carpeta, resumen, ranking
 
 
 def main():
     try:
-        nombre_perfil, _ = seleccionar_perfil()
+        nombre_perfil, perfil = seleccionar_perfil()
     except (FileNotFoundError, ValueError) as error:
         print(f"[!] Error: {error}")
         return
@@ -223,7 +263,7 @@ def main():
         ("Películas pendientes de evaluar (opción 6)", lambda: revisar_pendientes(nombre_perfil)),
         ("Entrenamiento del modelo (opción 7)", lambda: entrenar_y_guardar(nombre_perfil)),
     ]
-    total = len(pasos) + 2
+    total = len(pasos) + 3
     tiempos, inicio_total, resultado = {}, time.time(), None
 
     for numero, (titulo, paso) in enumerate(pasos, 1):
@@ -237,10 +277,18 @@ def main():
         print("\n[!] El entrenamiento no se completó; revisa los mensajes anteriores. No se generó el análisis.")
         return
 
-    encabezado(total - 1, total, f"Validación cruzada ({N_PARTICIONES} particiones)")
+    encabezado(total - 2, total, f"Validación cruzada de la regresión lineal ({N_PARTICIONES} particiones)")
     inicio = time.time()
     pred_cv, pred_ridge, pred_base, n_particiones = validacion_cruzada(resultado["similitudes"], resultado["y"], resultado["estructura"])
     tiempos["Validación cruzada"] = time.time() - inicio
+
+    encabezado(total - 1, total, "Modelo de reglas en dos etapas")
+    inicio = time.time()
+    df_gt = pd.read_csv(RUTA_GT)
+    df_gt["canon_id"] = df_gt["film_id"].apply(canonicalizar_film_id)
+    embeddings = np.array([resultado["embeddings_por_pelicula"][f] for f in resultado["film_ids"]])
+    reglas = evaluar_reglas(perfil, df_gt, resultado["film_ids"], embeddings, N_PARTICIONES)
+    tiempos["Modelo de reglas"] = time.time() - inicio
 
     encabezado(total, total, "Ranking (opción 8) y datos de análisis")
     inicio = time.time()
@@ -249,8 +297,8 @@ def main():
     except ValueError as error:
         print(f"[!] Error: {error}")
         return
-    carpeta, resumen = guardar_analisis(
-        nombre_perfil, resultado, pred_cv, pred_ridge, pred_base, n_particiones, ranking, tiempos)
+    carpeta, resumen, ranking = guardar_analisis(
+        nombre_perfil, resultado, pred_cv, pred_ridge, pred_base, n_particiones, ranking, reglas, tiempos)
     tiempos["Ranking y análisis"] = time.time() - inicio
 
     m = resumen["metricas"]
@@ -262,6 +310,8 @@ def main():
           f"| MAE línea base: {m['linea_base_promedio']['mae']:.3f}")
     ridge = m[f"validacion_cruzada_ridge_{n_particiones}_particiones"]
     print(f"R² validación cruzada: {cv['r2']:.3f} | con Ridge: {ridge['r2']:.3f} (MAE {ridge['mae']:.3f})")
+    completo = m[f"reglas_dos_etapas_{n_particiones}_particiones"]
+    print(f"Modelo de reglas en dos etapas: MAE {completo['mae']:.3f} | R² {completo['r2']:.3f}")
     print(f"Tiempo total: {time.time() - inicio_total:.1f} s")
     print(f"\nDatos de análisis guardados en: {carpeta}")
     for archivo in sorted(carpeta.iterdir()):
