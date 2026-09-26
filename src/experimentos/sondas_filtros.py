@@ -120,6 +120,10 @@ def main():
                 metricas = {"promedio": [], "percentil 90": [], "fracción sobre p95": []}
                 for f in evaluadas:
                     s = matriz[indices[f][mascara[indices[f]]]] @ vector
+                    if not len(s):  # película sin chunks en esta variante
+                        for valores in metricas.values():
+                            valores.append(np.nan)
+                        continue
                     metricas["promedio"].append(s.mean())
                     metricas["percentil 90"].append(np.percentile(s, 90))
                     metricas["fracción sobre p95"].append((s > umbral).mean())
@@ -135,7 +139,7 @@ def main():
                     top.setdefault(caso, {}).setdefault(filtro, {})[nombre] = [
                         {"id": str(ids[indices[caso][k]]), "similitud": round(float(s[k]), 3)} for k in orden]
         for variante, fracciones in fracciones_sondas.items():
-            rho, p = spearmanr(np.mean(fracciones, axis=0), puntajes, nan_policy="omit")
+            rho, p = spearmanr(np.nanmean(fracciones, axis=0), puntajes, nan_policy="omit")
             filas.append({"filtro": filtro, "chunks": variante, "texto": "sondas combinadas", "métrica": "fracción sobre p95", "rho": round(float(rho), 3), "p": round(float(p), 4)})
         mejor = max((f for f in filas if f["filtro"] == filtro), key=lambda f: f["rho"])
         print(f"{filtro}: mejor ρ = {mejor['rho']:.2f} ({mejor['texto'][:50]}, {mejor['métrica']})")
