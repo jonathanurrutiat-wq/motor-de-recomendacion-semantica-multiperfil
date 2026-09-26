@@ -34,6 +34,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Descargar las reseñas del release en borrador
+        id: datos
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: datos-resenas
@@ -53,12 +54,24 @@ jobs:
           PY
           unzip -o /tmp/resenias.zip -d src/db/raw/
           ls -la src/db/raw/
+          echo "huella=$(sha256sum /tmp/resenias.zip | cut -c1-16)" >> "$GITHUB_OUTPUT"
 
       - name: Preparar perfil y base de embeddings limpia
         run: |
           mkdir -p src/db/profiles
           cp src/db/profiles/perfiles.ejemplo.json src/db/profiles/perfiles.json
           rm -rf src/db/embeddings/chroma
+
+      # Reutiliza los embeddings de corridas anteriores si no cambiaron las
+      # reseñas ni el código que las filtra y vectoriza (evita ~1 hora de cómputo).
+      # El caché es privado del repositorio: no se puede descargar desde fuera.
+      - name: Restaurar embeddings de corridas anteriores
+        uses: actions/cache@v4
+        with:
+          path: |
+            src/db/embeddings/chroma
+            src/db/filtered/result
+          key: embeddings-${{ steps.datos.outputs.huella }}-${{ hashFiles('src/db/filtered/filter.py', 'src/procesing_reviews.py', 'src/config.py') }}
 
       - name: Verificar la integridad de la base de reseñas
         run: |

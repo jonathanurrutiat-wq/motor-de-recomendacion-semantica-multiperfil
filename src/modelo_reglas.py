@@ -171,6 +171,11 @@ class ModeloDosEtapas:
     def fit(self, embeddings, puntajes, puntajes_etapa_2, y_etapa_2):
         # Etapa 1 con las películas que tienen embedding; etapa 2 con todas las
         # que tienen puntajes completos en la Verdad Base (no necesita reseñas).
+        self.fit_etapa_1(embeddings, puntajes)
+        self.regla.fit(*matrices_puntajes(puntajes_etapa_2, self.afinidades, self.filtros), y_etapa_2)
+        return self
+
+    def fit_etapa_1(self, embeddings, puntajes):
         for columna in self.columnas:
             if columna not in puntajes:
                 self.constantes[columna] = 0.0
@@ -182,7 +187,6 @@ class ModeloDosEtapas:
                     embeddings[con_dato], valores[con_dato])
             else:
                 self.constantes[columna] = float(np.nanmean(valores)) if con_dato.any() else 0.0
-        self.regla.fit(*matrices_puntajes(puntajes_etapa_2, self.afinidades, self.filtros), y_etapa_2)
         return self
 
     def n_parametros_etapa_1(self) -> int:
@@ -280,3 +284,59 @@ def evaluar(perfil: dict, df_gt, film_ids, embeddings, n_particiones: int, semil
             "etapa_1_por_criterio": etapa_1,
         },
     }
+
+
+def comparar_representaciones(perfil: dict, df_gt, film_ids, representaciones: dict, n_particiones: int,
+                              semilla: int = 0) -> pd.DataFrame:
+    # Evalúa el modelo en dos etapas con distintas formas de resumir las reseñas
+    # de cada película (representaciones: nombre -> matriz alineada con film_ids).
+    # Todas usan las mismas particiones, y la etapa 2 (que no depende de las
+    # reseñas) se entrena una sola vez por partición.
+    from sklearn.metrics import mean_absolute_error, r2_score
+    from sklearn.model_selection import KFold
+
+    afinidades, filtros, corrupciones, _ = criterios_del_perfil(perfil, df_gt.columns)
+    A, F, E = matrices_puntajes(df_gt, afinidades, filtros)
+    completas = ~(np.isnan(A).any(axis=1) | np.isnan(F).any(axis=1) | df_gt["gt_nota_global"].isna().to_numpy())
+    gt_completa = df_gt[completas].reset_index(drop=True)
+    A, F, E = A[completas], F[completas], E[completas]
+    y2 = gt_completa["gt_nota_global"].to_numpy(float)
+
+    indice_gt = {canon: i for i, canon in enumerate(df_gt["canon_id"])}
+    puntajes = df_gt.iloc[[indice_gt[f] for f in film_ids]].reset_index(drop=True)
+    y = puntajes["gt_nota_global"].to_numpy(float)
+    particiones = list(KFold(min(n_particiones, len(y)), shuffle=True, random_state=semilla).split(np.zeros(len(y))))
+
+    print(f"Entrenando la etapa 2 una vez por partición ({len(particiones)})...")
+    reglas = []
+    for _, te in particiones:
+        fuera = ~gt_completa["canon_id"].isin(set(np.asarray(film_ids)[te])).to_numpy()
+        reglas.append(ReglaGlobal(afinidades, filtros, corrupciones).fit(A[fuera], F[fuera], E[fuera], y2[fuera]))
+
+    columnas_a = [nombre_columna_gt("afinidad", n) for n in afinidades]
+    columnas_f = [nombre_columna_gt("restrictivos", n) for n in filtros]
+    filas = []
+    for nombre, X in representaciones.items():
+        pred = np.empty(len(y))
+        pred_puntajes = pd.DataFrame(index=range(len(y)), columns=columnas_a + columnas_f, dtype=float)
+        for (tr, te), regla in zip(particiones, reglas):
+            modelo = ModeloDosEtapas(afinidades, filtros, corrupciones).fit_etapa_1(X[tr], puntajes.iloc[tr])
+            modelo.regla = regla
+            pred[te] = modelo.predict(X[te])
+            pred_puntajes.iloc[te] = modelo.predecir_puntajes(X[te])[columnas_a + columnas_f].to_numpy()
+
+        def r2_medio(columnas):
+            valores = []
+            for c in columnas:
+                reales = puntajes[c].to_numpy(float)
+                ok = ~np.isnan(reales)
+                if ok.sum() >= 2 and np.std(reales[ok]) > 0:
+                    valores.append(r2_score(reales[ok], pred_puntajes[c].to_numpy(float)[ok]))
+            return float(np.mean(valores)) if valores else float("nan")
+
+        filas.append({"representacion": nombre, "dimensiones": X.shape[1],
+                      "MAE": float(mean_absolute_error(y, pred)), "R²": float(r2_score(y, pred)),
+                      "R² etapa 1 afinidades": r2_medio(columnas_a), "R² etapa 1 filtros": r2_medio(columnas_f)})
+        print(f"  {nombre:45} MAE {filas[-1]['MAE']:.3f} | R² {filas[-1]['R²']:.3f} "
+              f"| etapa 1: afinidades {filas[-1]['R² etapa 1 afinidades']:.3f}, filtros {filas[-1]['R² etapa 1 filtros']:.3f}")
+    return pd.DataFrame(filas).sort_values("MAE", ignore_index=True)
