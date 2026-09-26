@@ -65,7 +65,10 @@ jobs:
           python - <<'PY'
           import glob, sqlite3, sys
           for ruta in glob.glob("src/db/raw/*.db"):
-              resultado = sqlite3.connect(f"file:{ruta}?mode=ro", uri=True).execute("pragma quick_check").fetchone()[0]
+              try:
+                  resultado = sqlite3.connect(f"file:{ruta}?mode=ro", uri=True).execute("pragma quick_check").fetchone()[0]
+              except sqlite3.DatabaseError as error:
+                  resultado = str(error)
               print(f"{ruta}: {resultado}")
               if resultado != "ok":
                   print(f"::error title=Base de reseñas dañada::{ruta}: {resultado[:300]}. "
