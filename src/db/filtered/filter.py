@@ -37,7 +37,6 @@ def parse_rating(rating_str):
 
   return score
 
-import re
 
 def parse_review(serie_review):
   serie_limpia = serie_review.fillna("").astype(str).str.replace(

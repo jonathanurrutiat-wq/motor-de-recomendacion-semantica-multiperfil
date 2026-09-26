@@ -33,7 +33,7 @@ def main():
                 runFilter()
 
             case "3":
-                print(f"\n[3] Generando embeddings para el perfil...")
+                print("\n[3] Generando embeddings para el perfil...")
                 embPerfiles.main()
 
             case "4":
