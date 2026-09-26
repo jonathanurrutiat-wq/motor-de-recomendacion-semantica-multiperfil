@@ -34,11 +34,12 @@ from src.scoring import main as entrenar_y_guardar
 
 N_PARTICIONES = 5
 # Formas de resumir las reseñas de cada película y cuántas usar, que compara la opción 9.
-ESTRATEGIAS_POOLING = ["media", "p75", "p90", "media+similitud"]
+ESTRATEGIAS_POOLING = ["media", "p50", "p75", "p90", "p95", "media+similitud"]
 MAXIMOS_RESENIAS = [50, 100, None]
-# La comparación de frases de reseña se repite con varias particiones distintas
-# para distinguir diferencias reales del ruido de una sola partición.
-SEMILLAS_FRASES = [0, 1, 2, 3, 4]
+# Las comparaciones de pooling y de frases de reseña se repiten con varias
+# particiones distintas: con ~100 películas, el MAE de una sola partición varía
+# ~0,02, lo mismo que las diferencias que se quieren medir.
+SEMILLAS_REPETICIONES = [0, 1, 2, 3, 4]
 # Intensidades de regularización que prueba Ridge (se elige la mejor en cada partición).
 ALFAS_RIDGE = np.logspace(-2, 3, 30)
 
@@ -90,6 +91,25 @@ def tabla_markdown(df: pd.DataFrame, decimales: int = 2) -> str:
     return "\n".join(filas)
 
 
+def comparar_con_repeticiones(perfil, df_gt, film_ids, variantes: dict, referencia: str):
+    # Promedia comparar_representaciones sobre SEMILLAS_REPETICIONES. Δ MAE es la
+    # diferencia con la variante de referencia en las mismas particiones, que
+    # varía mucho menos que el MAE mismo. Devuelve también las filas de cada
+    # repetición (con el R² de la etapa 1 de cada criterio).
+    corridas = []
+    for semilla in SEMILLAS_REPETICIONES:
+        print(f"\nParticiones con semilla {semilla}:")
+        corridas.append(comparar_representaciones(perfil, df_gt, film_ids, variantes, N_PARTICIONES, semilla))
+    for corrida in corridas:
+        corrida["Δ MAE"] = corrida["MAE"] - corrida.set_index("representacion").loc[referencia, "MAE"]
+    todas = pd.concat(corridas, ignore_index=True)
+    numericas = ["MAE", "R²", "R² etapa 1 afinidades", "R² etapa 1 filtros", "Δ MAE"]
+    comparacion = todas.groupby("representacion", sort=False).agg(
+        dimensiones=("dimensiones", "first"), **{c: (c, "mean") for c in numericas},
+        **{"desv. Δ MAE": ("Δ MAE", "std")}).reset_index().sort_values("MAE", ignore_index=True)
+    return comparacion, todas
+
+
 def comparar_frases(nombre_perfil, perfil, df_gt, film_ids, chunks):
     # Modelo de reglas con y sin los rasgos de frases_resenia del perfil. Como
     # control se usan los mismos rasgos calculados solo con la descripción, para
@@ -112,18 +132,7 @@ def comparar_frases(nombre_perfil, perfil, df_gt, film_ids, chunks):
         "promedio + descripción (control)": (promedio, con_descripcion, "concatenar"),
         "solo descripción (control)": (promedio, con_descripcion, "solo_frases"),
     }
-    corridas = []
-    for semilla in SEMILLAS_FRASES:
-        print(f"\nParticiones con semilla {semilla}:")
-        corridas.append(comparar_representaciones(perfil, df_gt, film_ids, variantes, N_PARTICIONES, semilla))
-    todas = pd.concat(corridas, ignore_index=True)
-    # Diferencia de MAE contra el modelo sin frases en las mismas particiones.
-    base = {i: c.set_index("representacion").loc["promedio (sin frases)", "MAE"] for i, c in enumerate(corridas)}
-    todas["Δ MAE"] = todas["MAE"] - np.repeat([base[i] for i in range(len(corridas))], len(variantes))
-    numericas = ["MAE", "R²", "R² etapa 1 afinidades", "R² etapa 1 filtros", "Δ MAE"]
-    comparacion = todas.groupby("representacion", sort=False).agg(
-        dimensiones=("dimensiones", "first"), **{c: (c, "mean") for c in numericas},
-        **{"desv. Δ MAE": ("Δ MAE", "std")}).reset_index().sort_values("MAE", ignore_index=True)
+    comparacion, todas = comparar_con_repeticiones(perfil, df_gt, film_ids, variantes, "promedio (sin frases)")
     por_criterio = pd.DataFrame({
         nombre: pd.DataFrame(list(grupo["r2_por_criterio"])).mean()
         for nombre, grupo in todas.groupby("representacion", sort=False)})
@@ -288,7 +297,9 @@ def guardar_analisis(nombre_perfil, resultado, pred_cv, pred_ridge, pred_base, n
         "",
         "Cómo se resumen los chunks de reseñas de cada película antes de la etapa 1: promedio (el actual), "
         "percentil de cada dimensión del embedding, o promedio más los percentiles 50/75/90/máximo de la "
-        "similitud de los chunks con cada término del perfil. Las reseñas se toman en orden de likes.",
+        "similitud de los chunks con cada término del perfil. Las reseñas se toman en orden de likes. "
+        f"Promedios de {len(SEMILLAS_REPETICIONES)} repeticiones con particiones distintas; Δ MAE es la diferencia con "
+        f"«{pooling.nombre('media', None)}» en las mismas particiones (negativa = mejor).",
         "",
         tabla_markdown(comparacion, 3),
         "",
@@ -298,7 +309,7 @@ def guardar_analisis(nombre_perfil, resultado, pred_cv, pred_ridge, pred_base, n
             "Para los criterios con frases_resenia, la etapa 1 recibe además (o en vez del embedding promedio) "
             "la fracción de chunks de cada película muy similares a cada frase (sobre el percentil 95 de todos los chunks) "
             "y el percentil 90 de esa similitud. Los controles usan lo mismo pero solo con la descripción del perfil. "
-            f"Promedios de {len(SEMILLAS_FRASES)} repeticiones con particiones distintas; Δ MAE es la diferencia con el modelo "
+            f"Promedios de {len(SEMILLAS_REPETICIONES)} repeticiones con particiones distintas; Δ MAE es la diferencia con el modelo "
             "sin frases en las mismas particiones (negativa = mejor) y su desviación indica cuánto varía entre repeticiones.",
             "",
             tabla_markdown(frases_comparacion, 3),
@@ -389,8 +400,8 @@ def main():
             chunks, resultado["film_ids"], estrategia, maximo, resultado["embeddings_perfil"])
         for estrategia in ESTRATEGIAS_POOLING for maximo in MAXIMOS_RESENIAS
     }
-    comparacion = comparar_representaciones(perfil, df_gt, resultado["film_ids"], representaciones, N_PARTICIONES)
-    comparacion = comparacion.drop(columns="r2_por_criterio")
+    comparacion, _ = comparar_con_repeticiones(perfil, df_gt, resultado["film_ids"], representaciones,
+                                               pooling.nombre("media", None))
     tiempos["Comparación de pooling"] = time.time() - inicio
 
     encabezado(total - 1, total, "Frases de reseña del perfil")
