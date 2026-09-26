@@ -26,7 +26,7 @@ from src.db.filtered import filter as filtro
 from src.loss.gt_matrix_pipeline import main as revisar_pendientes
 from src.loss.ingest_maestro import main as cargar_verdad_base
 from src.metricas import K_RANKING, metricas, metricas_linea_base
-from src.modelo_reglas import MODO_FRASES_POR_DEFECTO, comparar_representaciones
+from src.modelo_reglas import MODO_FRASES_POR_DEFECTO, SEMILLAS_EVALUACION, comparar_representaciones
 from src import pooling
 from src.normalizacion import canonicalizar_film_id, seleccionar_perfil
 from src.recommend import calcular_ranking
@@ -40,7 +40,7 @@ MAXIMOS_RESENIAS = [50, 100, None]
 # Las comparaciones de pooling y de frases de reseña se repiten con varias
 # particiones distintas: con ~100 películas, el MAE de una sola partición varía
 # ~0,02, lo mismo que las diferencias que se quieren medir.
-SEMILLAS_REPETICIONES = list(range(10))
+SEMILLAS_REPETICIONES = list(SEMILLAS_EVALUACION)
 # Intensidades de regularización que prueba Ridge (se elige la mejor en cada partición).
 ALFAS_RIDGE = np.logspace(-2, 3, 30)
 
@@ -288,7 +288,8 @@ def guardar_analisis(nombre_perfil, resultado, pred_cv, pred_ridge, pred_base, n
         "La línea base no ordena: sus valores son los esperados con un orden al azar.",
         "",
         *encabezado_tabla,
-        fila(f"**Modelo de reglas (opciones 7 y 8), validación cruzada ({n_particiones} particiones)**", completo),
+        fila(f"**Modelo de reglas (opciones 7 y 8), validación cruzada ({n_particiones} particiones, promedio de "
+             f"{reglas['metricas']['repeticiones']} repeticiones)**", completo),
         fila("Regresión lineal anterior, entrenamiento (optimista)", m["entrenamiento"]),
         fila(f"Regresión lineal anterior, validación cruzada ({n_particiones} particiones)", cv),
         fila("Regresión lineal anterior con Ridge, validación cruzada", ridge),

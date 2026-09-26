@@ -217,8 +217,10 @@ def entrenar_reglas(nombre_perfil: str, perfil: dict) -> dict:
 
     df_gt = pd.read_csv(RUTA_GT)
     df_gt["canon_id"] = df_gt["film_id"].apply(canonicalizar_film_id)
-    evaluadas = set(df_gt.loc[df_gt["gt_nota_global"].notna(), "canon_id"])
-    indices = [i for i, film_id in enumerate(entradas["film_ids"]) if film_id in evaluadas]
+    # En el orden de la Verdad Base, el mismo que usan las comparaciones de la opción 9.
+    posicion = {film_id: i for i, film_id in enumerate(entradas["film_ids"])}
+    evaluadas = df_gt.loc[df_gt["gt_nota_global"].notna(), "canon_id"]
+    indices = [posicion[film_id] for film_id in dict.fromkeys(evaluadas) if film_id in posicion]
     if len(indices) < MINIMO_PELICULAS:
         raise ValueError(f"Solo {len(indices)} películas tienen reseñas vectorizadas y nota de Gemini; "
                          f"se necesitan al menos {MINIMO_PELICULAS}. Evalúa más películas (módulo 6).")
@@ -252,7 +254,9 @@ def main(perfil_elegido: str | None = None):
     cv = evaluacion["metricas"]["completo"]
     print("\n| -- Modelo de reglas: validación cruzada (películas que el modelo no vio) -- |")
     print(f"Perfil: {nombre_perfil} | películas evaluadas: {len(resultado['film_ids'])}")
-    print(f"ρ de Spearman (orden de las películas contra el de Gemini): {cv['spearman']:.3f}")
+    desviacion = evaluacion["metricas"]["completo_desviacion"]
+    print(f"Promedio de {evaluacion['metricas']['repeticiones']} repeticiones con particiones distintas.")
+    print(f"ρ de Spearman (orden de las películas contra el de Gemini): {cv['spearman']:.3f} ± {desviacion['spearman']:.3f}")
     print(f"NDCG@{K_RANKING}: {cv[f'ndcg@{K_RANKING}']:.3f} | Precisión@{K_RANKING}: {cv[f'precision@{K_RANKING}']:.3f}")
     print(f"Error absoluto medio de la nota (MAE): {cv['mae']:.3f} | R²: {cv['r2']:.3f}")
     if textos:

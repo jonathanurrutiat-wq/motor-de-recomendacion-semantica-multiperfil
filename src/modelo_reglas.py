@@ -41,6 +41,9 @@ MODOS_FRASES = ("concatenar", "ponderar", "solo_frases")
 # El que usan las opciones 7 y 8: con e5, mejoró el orden (ρ de Spearman) en las
 # 10 repeticiones de la validación cruzada y además bajó el MAE.
 MODO_FRASES_POR_DEFECTO = "ponderar"
+# El ρ de una sola partición de la validación cruzada varía ~±0,05 con ~100
+# películas; se informa el promedio de varias particiones distintas.
+SEMILLAS_EVALUACION = tuple(range(10))
 
 
 def sigmoide(x):
@@ -247,12 +250,17 @@ class ModeloDosEtapas:
         return self.regla.predict(*matrices_puntajes(self.predecir_puntajes(embeddings, rasgos), self.afinidades, self.filtros))
 
 
-def evaluar(perfil: dict, df_gt, film_ids, embeddings, n_particiones: int, semilla: int = 0,
+def evaluar(perfil: dict, df_gt, film_ids, embeddings, n_particiones: int, semillas=SEMILLAS_EVALUACION,
             rasgos: dict | None = None, modo_frases: str = MODO_FRASES_POR_DEFECTO) -> dict:
     # Validación cruzada del modelo en dos etapas y de la etapa 2 por separado,
     # y modelo final entrenado con todos los datos. film_ids y embeddings son las
     # películas con reseñas y nota global; df_gt debe tener la columna canon_id.
-    # rasgos: rasgos de frases de reseña alineados con film_ids (opcional).
+    # rasgos: rasgos de frases de reseña alineados con film_ids (opcional). La
+    # validación del modelo completo se repite con cada semilla (particiones
+    # distintas): sus métricas son el promedio de las repeticiones y pred_cv el
+    # promedio de las predicciones de cada película, todas fuera de muestra.
+    semillas = tuple(semillas)
+    semilla = semillas[0]
     from sklearn.linear_model import LinearRegression
     from sklearn.metrics import mean_absolute_error
     from sklearn.model_selection import KFold
@@ -287,18 +295,30 @@ def evaluar(perfil: dict, df_gt, film_ids, embeddings, n_particiones: int, semil
     puntajes = df_gt.iloc[[indice_gt[f] for f in film_ids]].reset_index(drop=True)
     y = puntajes["gt_nota_global"].to_numpy(float)
     modelo_vacio = ModeloDosEtapas(afinidades, filtros, corrupciones, modo_frases)
-    pred_completo = np.empty(len(y))
-    pred_puntajes = pd.DataFrame(index=range(len(y)), columns=modelo_vacio.columnas, dtype=float)
     k = min(n_particiones, len(y))
-    for numero, (tr, te) in enumerate(KFold(k, shuffle=True, random_state=semilla).split(embeddings), 1):
-        prueba = set(np.asarray(film_ids)[te])
-        entrenamiento_2 = ~gt_completa["canon_id"].isin(prueba).to_numpy()
-        modelo = ModeloDosEtapas(afinidades, filtros, corrupciones, modo_frases).fit(
-            embeddings[tr], puntajes.iloc[tr], gt_completa[entrenamiento_2], y2[entrenamiento_2],
-            subconjunto_rasgos(rasgos, tr))
-        pred_completo[te] = modelo.predict(embeddings[te], subconjunto_rasgos(rasgos, te))
-        pred_puntajes.iloc[te] = modelo.predecir_puntajes(embeddings[te], subconjunto_rasgos(rasgos, te)).to_numpy()
-        print(f"  Partición {numero}/{k}: MAE {mean_absolute_error(y[te], pred_completo[te]):.3f}")
+    por_semilla, predicciones, predicciones_puntajes = [], [], []
+    for repeticion, semilla_actual in enumerate(semillas, 1):
+        pred_completo = np.empty(len(y))
+        pred_puntajes = pd.DataFrame(index=range(len(y)), columns=modelo_vacio.columnas, dtype=float)
+        for tr, te in KFold(k, shuffle=True, random_state=semilla_actual).split(embeddings):
+            prueba = set(np.asarray(film_ids)[te])
+            entrenamiento_2 = ~gt_completa["canon_id"].isin(prueba).to_numpy()
+            modelo = ModeloDosEtapas(afinidades, filtros, corrupciones, modo_frases).fit(
+                embeddings[tr], puntajes.iloc[tr], gt_completa[entrenamiento_2], y2[entrenamiento_2],
+                subconjunto_rasgos(rasgos, tr))
+            pred_completo[te] = modelo.predict(embeddings[te], subconjunto_rasgos(rasgos, te))
+            pred_puntajes.iloc[te] = modelo.predecir_puntajes(embeddings[te], subconjunto_rasgos(rasgos, te)).to_numpy()
+        por_semilla.append(metricas(y, pred_completo))
+        predicciones.append(pred_completo)
+        predicciones_puntajes.append(pred_puntajes.to_numpy(float))
+        print(f"  Repetición {repeticion}/{len(semillas)} ({k} particiones): ρ {por_semilla[-1]['spearman']:.3f} "
+              f"| MAE {por_semilla[-1]['mae']:.3f}")
+    pred_completo = np.mean(predicciones, axis=0)
+    pred_puntajes = pd.DataFrame(np.mean(predicciones_puntajes, axis=0), columns=modelo_vacio.columnas)
+    completo = {clave: float(np.mean([m[clave] for m in por_semilla])) for clave in por_semilla[0]}
+    desviacion = {clave: float(np.std([m[clave] for m in por_semilla])) for clave in por_semilla[0]}
+    print(f"  Promedio de {len(semillas)} repeticiones: ρ {completo['spearman']:.3f} ± {desviacion['spearman']:.3f} "
+          f"| MAE {completo['mae']:.3f} ± {desviacion['mae']:.3f}")
 
     etapa_1 = {}
     for columna in modelo_vacio.columnas:
@@ -315,7 +335,9 @@ def evaluar(perfil: dict, df_gt, film_ids, embeddings, n_particiones: int, semil
         "modelo": final,
         "pred_cv": pred_completo,
         "metricas": {
-            "completo": metricas(y, pred_completo),
+            "completo": completo,
+            "completo_desviacion": desviacion,
+            "repeticiones": len(semillas),
             "etapa_2_regla": metricas(y2, pred_regla),
             "etapa_2_lineal": metricas(y2, pred_lineal),
             "etapa_2_linea_base": metricas_linea_base(y2, pred_base),
