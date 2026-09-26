@@ -80,7 +80,9 @@ def idiomas_de_chunks(ids):
         _, lote, resenia, _ = i.split("::")
         if lote not in lotes:
             ruta = DIR_FILTRADOS / f"{lote}.csv"
-            lotes[lote] = pd.read_csv(ruta, usecols=["lang"])["lang"].to_numpy() if ruta.exists() else None
+            # Los lotes de los csv antiguos no tienen idioma: quedan como desconocido.
+            tabla = pd.read_csv(ruta) if ruta.exists() else None
+            lotes[lote] = tabla["lang"].to_numpy() if tabla is not None and "lang" in tabla else None
         idiomas.append(lotes[lote][int(resenia.split("_")[1])] if lotes[lote] is not None else None)
     return np.array(idiomas, dtype=object)
 
@@ -95,8 +97,10 @@ def main():
     ids, peliculas, matriz = cargar_chunks_con_ids(chromadb.PersistentClient(path=str(DIR_CHROMA)))
     evaluadas = [f for f in gt["canon"] if f in set(peliculas)]
     indices = {f: np.flatnonzero(peliculas == f) for f in evaluadas + [c for c in CASOS if c not in evaluadas]}
-    en_ingles = idiomas_de_chunks(ids) == "en"
-    print(f"{len(ids)} chunks ({en_ingles.mean():.0%} en inglés); {len(evaluadas)} películas evaluadas con reseñas.")
+    idiomas = idiomas_de_chunks(ids)
+    en_ingles = idiomas == "en"
+    print(f"{len(ids)} chunks ({en_ingles.mean():.0%} en inglés, {pd.isna(idiomas).mean():.0%} sin idioma conocido); "
+          f"{len(evaluadas)} películas evaluadas con reseñas.")
     rng = np.random.default_rng(0)
     variantes = {"todos": np.ones(len(ids), bool), "solo inglés": en_ingles}
     muestras = {v: matriz[rng.choice(np.flatnonzero(m), min(20000, m.sum()), replace=False)] for v, m in variantes.items()}
