@@ -1,0 +1,89 @@
+{
+  "fecha": "2026-09-26T16:10:59",
+  "perfil": "Ignacio Araya",
+  "modelo_embeddings": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+  "pooling": "media",
+  "parametros_filtrado": {
+    "min_caracteres_resenia": 100,
+    "max_resenias_por_pelicula": 200,
+    "min_resenias_por_pelicula": 20
+  },
+  "datos": {
+    "peliculas_con_embeddings": 158,
+    "chunks_de_resenias": 106021,
+    "peliculas_en_verdad_base": 110,
+    "peliculas_para_entrenar": 101,
+    "peliculas_candidatas": 57,
+    "variables_del_modelo": 21,
+    "parametros": {
+      "regresion_lineal": 22,
+      "reglas_etapa_1": 5775,
+      "reglas_etapa_2": 16
+    },
+    "evaluadas_sin_resenias": [
+      "all-quiet-on-the-western",
+      "avatar-the-way-of-water",
+      "elvis",
+      "everything-everywhere-all-at-once",
+      "frankenstein",
+      "im-still-here",
+      "nickel-boys",
+      "oppenheimer",
+      "the-fabelmans"
+    ]
+  },
+  "metricas": {
+    "entrenamiento": {
+      "mse": 0.7096051906728268,
+      "mae": 0.577361095211175,
+      "r2": 0.43036229334649834,
+      "spearman": 0.6934364964221637,
+      "ndcg@10": 0.9561505027506113,
+      "precision@10": 0.5
+    },
+    "validacion_cruzada_5_particiones": {
+      "mse": 1.3624334195847514,
+      "mae": 0.8279406800955483,
+      "r2": -0.09369753604039555,
+      "spearman": 0.46386430565884745,
+      "ndcg@10": 0.9088801513829206,
+      "precision@10": 0.2
+    },
+    "validacion_cruzada_ridge_5_particiones": {
+      "mse": 1.2392635702530144,
+      "mae": 0.8088441098460367,
+      "r2": 0.005177431933925947,
+      "spearman": 0.4000282101684281,
+      "ndcg@10": 0.885802233549866,
+      "precision@10": 0.3
+    },
+    "linea_base_promedio": {
+      "mse": 1.273565803077007,
+      "mae": 0.8115167766776682,
+      "r2": -0.02235878890519527,
+      "spearman": 0.0,
+      "ndcg@10": 0.7804402450641265,
+      "precision@10": 0.12871287128712872
+    },
+    "reglas_dos_etapas_5_particiones": {
+      "mse": 0.8551125760403925,
+      "mae": 0.6076359087282679,
+      "r2": 0.31355580095974334,
+      "spearman": 0.6403695578537588,
+      "ndcg@10": 0.951489156257784,
+      "precision@10": 0.3
+    }
+  },
+  "tiempos_segundos": {
+    "Filtrado de reseñas crudas (opción 2)": 0.0,
+    "Embeddings del perfil (opción 3)": 7.6,
+    "Embeddings de reseñas (opción 4)": 0.6,
+    "Verdad Base (opción 5)": 0.0,
+    "Películas pendientes de evaluar (opción 6)": 0.4,
+    "Entrenamiento del modelo (opción 7)": 3.5,
+    "Validación cruzada": 0.0,
+    "Modelo de reglas": 100.6,
+    "Comparación de pooling": 533.0,
+    "Frases de reseña": 463.5
+  }
+}
