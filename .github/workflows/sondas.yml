@@ -18,6 +18,9 @@ jobs:
   sondas:
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    env:
+      # Usa la base de MiniLM del caché, no la del modelo por defecto.
+      MODELO_EMBEDDINGS: sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
     steps:
       - uses: actions/checkout@v4
 

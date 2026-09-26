@@ -8,7 +8,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.metrics.pairwise import cosine_similarity
 
-from src.config import DIR_CHROMA, RUTA_GT, RUTA_MODELO
+from src.config import DIR_CHROMA, POOLING_RESENIAS, RUTA_GT, RUTA_MODELO
 from src.normalizacion import (
     canonicalizar_film_id,
     obtener_filtros_del_perfil,
@@ -18,17 +18,20 @@ from src.normalizacion import (
 ETIQUETAS_TIPO = {"restrictivos": "filtro", "afinidad": "afinidad", "excepcion": "excepción"}
 
 
-def agrupar_embeddings_por_pelicula(review_ids, review_embeddings):
+def agrupar_embeddings_por_pelicula(review_ids, review_embeddings, pooling: str = POOLING_RESENIAS):
     # Cada reseña se guardó en varios chunks (y puede haber más de una
-    # reseña por película). Promediamos todos los vectores de la misma
-    # película para tener un solo embedding por film_id, comparable contra
-    # la Verdad Base (que también es por película).
+    # reseña por película). Resumimos todos los vectores de la misma
+    # película en uno solo por film_id, comparable contra la Verdad Base
+    # (que también es por película): con el promedio, o con un percentil de
+    # cada dimensión si pooling es "pXX".
     acumulador = defaultdict(list)
     for id_compuesto, vector in zip(review_ids, review_embeddings):
         film_id = canonicalizar_film_id(id_compuesto.split("::")[0])
         acumulador[film_id].append(vector)
 
-    return {film_id: np.mean(vectores, axis=0) for film_id, vectores in acumulador.items()}
+    if pooling == "media":
+        return {film_id: np.mean(vectores, axis=0) for film_id, vectores in acumulador.items()}
+    return {film_id: np.percentile(vectores, int(pooling[1:]), axis=0) for film_id, vectores in acumulador.items()}
 
 
 def construir_estructura(perfil: dict) -> dict:
@@ -98,9 +101,9 @@ def construir_features(similitudes, estructura, escala=None):
     return np.column_stack(columnas), nombres, escala
 
 
-def cargar_embeddings_peliculas(cliente):
+def cargar_embeddings_peliculas(cliente, pooling: str = POOLING_RESENIAS):
     datos_resenias = cliente.get_collection(name="resenias").get(include=['embeddings'])
-    return agrupar_embeddings_por_pelicula(datos_resenias['ids'], datos_resenias['embeddings'])
+    return agrupar_embeddings_por_pelicula(datos_resenias['ids'], datos_resenias['embeddings'], pooling)
 
 
 def entrenar(nombre_perfil: str, perfil: dict) -> dict:
@@ -162,8 +165,9 @@ def main(perfil_elegido: str | None = None):
         print(f"[!] Error: {error}")
         return None
 
+    # Se guarda el pooling para que la opción 8 resuma las reseñas igual que al entrenar.
     joblib.dump(
-        {key: resultado[key] for key in ("modelo", "perfil", "estructura", "escala")},
+        {**{key: resultado[key] for key in ("modelo", "perfil", "estructura", "escala")}, "pooling": POOLING_RESENIAS},
         RUTA_MODELO,
     )
 

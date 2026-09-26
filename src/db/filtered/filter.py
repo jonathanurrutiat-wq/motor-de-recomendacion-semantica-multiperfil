@@ -9,8 +9,10 @@ import pandas as pd
 DEFAULT_VALUE = float(0.0)
 
 MIN_CARACTERES_RESENIA = 100
-# Se puede cambiar con la variable de entorno MAX_RESENIAS_POR_PELICULA (ej. para modelos lentos).
-MAX_RESENIAS_POR_PELICULA = int(os.environ.get("MAX_RESENIAS_POR_PELICULA", 200))
+# Reseñas con más likes que se toman de cada película: con 100 o 200 los modelos
+# rinden igual, y 100 reduce a la mitad el tiempo de generar embeddings. Se
+# puede cambiar con la variable de entorno MAX_RESENIAS_POR_PELICULA.
+MAX_RESENIAS_POR_PELICULA = int(os.environ.get("MAX_RESENIAS_POR_PELICULA", 100))
 # Con pocas reseñas, el embedding promedio de la película es demasiado ruidoso.
 MIN_RESENIAS_POR_PELICULA = 20
 
@@ -134,6 +136,15 @@ def main():
       mostrar_data(df, f"Inspección inicial: {csv_file.name}")
       df = filtrar_data(df)
 
+    # Si el resultado es idéntico al último filtrado de esta fuente (ej. el crudo
+    # se volvió a copiar sin cambios), no se crea otro: con otro nombre, la
+    # opción 4 lo tomaría como un lote nuevo y duplicaría sus embeddings.
+    contenido = df.to_csv(index=False)
+    ultimo = max(previos, key=lambda p: p.stat().st_mtime, default=None)
+    if ultimo is not None and ultimo.read_text(encoding='utf-8') == contenido:
+      print(f"Omitiendo {csv_file.name}: el resultado es idéntico a {ultimo.name}.\n")
+      continue
+
     # ==== Crear nuevo nombre para archivo filtrado resultante ====
 
     # Extraer hora actual
@@ -147,7 +158,7 @@ def main():
     mostrar_data(df, f"Datos limpios: {new_filename}")
 
     # Serializar a archivo .csv
-    df.to_csv(output_path, index=False, encoding='utf-8')
+    output_path.write_text(contenido, encoding='utf-8')
     print(f"Archivo {new_filename} guardado exitosamente en:\n{output_path}.\n")
 
 if __name__ == '__main__':

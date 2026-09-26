@@ -31,17 +31,22 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Modelo actual; recupera el caché de la versión anterior del workflow.
+          # Modelo usado hasta la versión 1.2.0; recupera el caché de la versión anterior del workflow.
           - modelo: sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
             max_resenias: 200
             cache_anterior: embeddings-
+            publicar_embeddings: false
           # Modelos ~3 veces más lentos: hasta 100 reseñas por película (con MiniLM rinde igual que 200).
           - modelo: sentence-transformers/paraphrase-multilingual-mpnet-base-v2
             max_resenias: 100
             cache_anterior: ""
+            publicar_embeddings: false
+          # Modelo por defecto: su base de embeddings se publica en el release en
+          # borrador para no tener que regenerarla localmente.
           - modelo: intfloat/multilingual-e5-base
             max_resenias: 100
             cache_anterior: ""
+            publicar_embeddings: true
     concurrency:
       group: analisis-${{ matrix.modelo }}
       cancel-in-progress: false
@@ -129,6 +134,54 @@ jobs:
             echo "::error title=No se generó el análisis::$(tail -n 25 salida_opcion9.txt | sed ':a;N;$!ba;s/%/%25/g;s/\n/%0A/g')"
             exit 1
           fi
+
+      # La base contiene fragmentos de reseñas: solo va al release en borrador,
+      # visible únicamente para quienes tienen permiso de escritura, igual que
+      # el zip de reseñas. Se sube una vez por cada versión de las reseñas.
+      - name: Publicar la base de embeddings en el release en borrador
+        if: matrix.publicar_embeddings
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: datos-resenas
+          HUELLA: ${{ steps.datos.outputs.huella }}
+        run: |
+          python - <<'PY'
+          import json, os, sys, urllib.request, zipfile
+          from pathlib import Path
+          sys.path.insert(0, "src")
+          from config import DIR_CHROMA, DIR_FILTRADOS, SLUG_MODELO
+          from db.filtered.filter import MAX_RESENIAS_POR_PELICULA
+
+          api = f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}"
+          cabeceras = {"Authorization": f"Bearer {os.environ['GH_TOKEN']}", "Accept": "application/vnd.github+json"}
+
+          def pedir(url, metodo="GET", datos=None, tipo=None):
+              extra = {"Content-Type": tipo} if tipo else {}
+              with urllib.request.urlopen(urllib.request.Request(url, data=datos, method=metodo, headers={**cabeceras, **extra})) as r:
+                  cuerpo = r.read()
+                  return json.loads(cuerpo) if cuerpo else None
+
+          release = next(r for r in pedir(f"{api}/releases?per_page=100") if r["tag_name"] == os.environ["RELEASE_TAG"])
+          prefijo = f"embeddings-{SLUG_MODELO}-"
+          nombre = f"{prefijo}{MAX_RESENIAS_POR_PELICULA}-{os.environ['HUELLA']}.zip"
+          anteriores = [a for a in release["assets"] if a["name"].startswith(prefijo)]
+          if any(a["name"] == nombre for a in anteriores):
+              print(f"{nombre} ya está publicado.")
+              sys.exit(0)
+
+          raiz = Path.cwd()
+          archivos = [p for p in DIR_CHROMA.rglob("*") if p.is_file()] + sorted(DIR_FILTRADOS.glob("filtrado_*.csv"))
+          with zipfile.ZipFile("/tmp/embeddings.zip", "w", zipfile.ZIP_DEFLATED) as salida:
+              for archivo in archivos:
+                  salida.write(archivo, archivo.relative_to(raiz))
+          datos = Path("/tmp/embeddings.zip").read_bytes()
+          subida = release["upload_url"].split("{")[0] + f"?name={nombre}"
+          pedir(subida, "POST", datos, "application/zip")
+          print(f"Publicado {nombre} ({len(datos) / 1e6:.0f} MB, {len(archivos)} archivos).")
+          for anterior in anteriores:
+              pedir(f"{api}/releases/assets/{anterior['id']}", "DELETE")
+              print(f"Eliminado {anterior['name']} (versión anterior).")
+          PY
 
       - name: Publicar resultados en la rama resultados-analisis
         run: |

@@ -23,6 +23,14 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
     Las rutas se resuelven relativas a los archivos del proyecto, así que también funciona desde cualquier otro directorio indicando la ruta completa a `src/main.py`.
 
+* Variables de entorno opcionales (se definen antes de ejecutar, ej. `MODELO_EMBEDDINGS=... python src/main.py`):
+
+    * `MODELO_EMBEDDINGS`: modelo de embeddings. Por defecto `intfloat/multilingual-e5-base`, que predice y ordena mejor que el anterior (`sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`) a cambio de ser unas 3 veces más lento. Cada modelo guarda sus embeddings en su propia carpeta (`src/db/embeddings/chroma_<modelo>/`; MiniLM conserva `chroma/`), así que cambiar de modelo no mezcla vectores: para volver a MiniLM y a la base incluida en el repositorio basta con `MODELO_EMBEDDINGS=sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`.
+    * `MAX_RESENIAS_POR_PELICULA`: reseñas con más likes que se toman de cada película (por defecto 100; con 100 o 200 los modelos rinden igual).
+    * `POOLING_RESENIAS`: cómo se resumen las reseñas de cada película, `media` (por defecto) o `pXX`, el percentil XX de cada dimensión del embedding (ej. `p90`). El modelo entrenado recuerda con cuál se entrenó.
+
+* Embeddings con e5: generarlos en CPU (opciones 2 a 4, o la 9) tarda varias horas. El workflow de análisis publica la base ya generada en el release en borrador `datos-resenas` (visible solo para quienes tienen permiso de escritura) como `embeddings-multilingual-e5-base-100-<huella>.zip`. Para usarla, poner el `reviews.db` del mismo release en `src/db/raw/` y descomprimir el zip en la raíz del repositorio: crea `src/db/embeddings/chroma_multilingual-e5-base/` y el csv filtrado correspondiente en `src/db/filtered/result/`. Las opciones 2 y 4 reconocen que ya están procesados y no los duplican.
+
 ## **Guía del menú principal**
 
 <small>*Nota: cada opción depende de que las anteriores ya se hayan corrido al menos una vez (ej. no se puede entrenar el modelo sin haber generado los embeddings y el Ground-truth antes). Si hay más de un perfil guardado, las opciones 6 y 7 preguntan cuál usar. El Ground-truth (`dataset_maestro.csv`) corresponde a un único perfil, así que se debe elegir ese mismo perfil al entrenar.*</small>
@@ -73,9 +81,9 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
     * `similitud_perfil.csv`: similitud entre los términos del perfil.
     * `ranking.csv`: ranking completo de recomendaciones, con la nota de la regresión lineal y la del modelo de reglas.
     * `reglas.json`: reglas y parámetros aprendidos por el modelo de reglas, con sus métricas por etapa y por criterio.
-    * `pooling.csv`: comparación, con el modelo de reglas y validación cruzada, de formas de resumir los chunks de reseñas de cada película (`src/pooling.py`): promedio, percentil 75 o 90 de cada dimensión del embedding, o promedio más los percentiles 50/75/90/máximo de la similitud de los chunks con cada término del perfil; cada una con las 50, 100 o todas las reseñas con más likes. No requiere recalcular embeddings.
+    * `pooling.csv`: comparación, con el modelo de reglas y validación cruzada, de formas de resumir los chunks de reseñas de cada película (`src/pooling.py`): promedio, percentil 50, 75, 90 o 95 de cada dimensión del embedding, o promedio más los percentiles 50/75/90/máximo de la similitud de los chunks con cada término del perfil; cada una con las 50, 100 o todas las reseñas con más likes, con 5 repeticiones de la validación cruzada. No requiere recalcular embeddings. La opción 9 informa, además del error de la nota (MAE), métricas de ranking: NDCG@10 y precisión@10 (si las 10 primeras según el modelo son las mejores según Gemini) y ρ de Spearman (orden completo).
 
-    La opción 9 también se puede ejecutar en GitHub Actions con el workflow `.github/workflows/analisis.yml`, útil cuando no se tiene GPU o no se puede descargar el modelo de embeddings. Toma las reseñas del `.zip` adjunto al release en borrador `datos-resenas` (un borrador solo lo ven quienes tienen permiso de escritura en el repositorio), usa `perfiles.ejemplo.json` como perfil, parte de una base de embeddings vacía y publica la carpeta `analisis/` y el log completo en la rama `resultados-analisis`. Se lanza desde la pestaña *Actions* ("Run workflow", una vez que el archivo esté en la rama principal) o al modificar el propio archivo del workflow. La primera vez tarda cerca de una hora (casi todo en generar los embeddings); los embeddings quedan en el caché de Actions, así que las siguientes corridas tardan unos minutos mientras no cambien las reseñas ni `filter.py`, `procesing_reviews.py` o `config.py`.
+    La opción 9 también se puede ejecutar en GitHub Actions con el workflow `.github/workflows/analisis.yml`, útil cuando no se tiene GPU o no se puede descargar el modelo de embeddings. Toma las reseñas del `.zip` adjunto al release en borrador `datos-resenas` (un borrador solo lo ven quienes tienen permiso de escritura en el repositorio), usa `perfiles.ejemplo.json` como perfil, parte de una base de embeddings vacía y publica la carpeta `analisis/` y el log completo en la rama `resultados-analisis`. Se lanza desde la pestaña *Actions* ("Run workflow", una vez que el archivo esté en la rama principal), al modificar el propio archivo del workflow, el perfil de ejemplo o el código de análisis (`analisis.py`, `modelo_reglas.py`, `pooling.py`). Corre en paralelo con tres modelos de embeddings (MiniLM, mpnet-base y e5-base). La primera vez tarda cerca de una hora (casi todo en generar los embeddings); los embeddings quedan en el caché de Actions, así que las siguientes corridas tardan unos minutos mientras no cambien las reseñas ni `filter.py`, `procesing_reviews.py` o `config.py`.
 
 * **10) Salir.**
     Cierra el programa.
@@ -113,7 +121,9 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
         * <code><b><span style="color: #23c523d4;">embeddings/</span></b></code>: Carpeta donde se persisten los vectores generados a partir de los perfiles y las reseñas.
 
-            * <code><b><span style="color: #23c523d4;">chroma/</span></b></code>: Base de datos vectorial (ChromaDB) con las colecciones `perfiles` y `resenias`, generadas por `procesing_profiles.py` y `procesing_reviews.py` respectivamente.
+            * <code><b><span style="color: #23c523d4;">chroma/</span></b></code>: Base de datos vectorial (ChromaDB) con las colecciones `perfiles` y `resenias`, generadas por `procesing_profiles.py` y `procesing_reviews.py` respectivamente, con el modelo MiniLM.
+
+            * <code><b><span style="color: #23c523d4;">chroma_&lt;modelo&gt;/</span></b></code>: Lo mismo para cualquier otro modelo de embeddings, como el por defecto (`chroma_multilingual-e5-base/`). No se sube al repositorio.
 
     * <code><b><span style="color: #23c523d4;">loss/</span></b></code>: Módulo dedicado a construir y supervisar el entrenamiento del modelo matemático.
         
@@ -151,6 +161,29 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
 ## **Changelog (historial de cambios)**
 <small>*Nota: Este changelog está en orden cronológico inverso.*</small>
+
+### [1.3.0] - 26-09-2026
+> e5 como modelo de embeddings por defecto y métricas de ranking.
+
+* Cambios
+
+    * El modelo de embeddings por defecto pasa a ser `intfloat/multilingual-e5-base`, con sus embeddings en `src/db/embeddings/chroma_multilingual-e5-base/`. MiniLM conserva `chroma/` y se sigue pudiendo usar con `MODELO_EMBEDDINGS`. Hay que generar los embeddings de e5 (opciones 2 a 4, varias horas en CPU) o descargarlos del release en borrador `datos-resenas` (ver "¿Cómo ejecutar el programa?").
+
+    * `filter.py` toma por defecto 100 reseñas por película en vez de 200 (rinden igual y reducen a la mitad el tiempo de generar embeddings), y ya no crea un csv filtrado nuevo si el resultado es idéntico al anterior, para que la opción 4 no duplique embeddings.
+
+* Añadido
+
+    * Variable de entorno `POOLING_RESENIAS` para elegir cómo se resumen las reseñas de cada película (`media` por defecto, o `pXX`). El modelo guardado por la opción 7 recuerda con cuál se entrenó y la opción 8 usa el mismo.
+
+    * Métricas de ranking en la opción 9 (`src/metricas.py`): NDCG@10, precisión@10 y ρ de Spearman, además del MAE. Las comparaciones de pooling y de frases se ordenan por NDCG@10.
+
+    * El workflow de análisis publica la base de embeddings de e5 en el release en borrador, una vez por cada versión de las reseñas.
+
+* Resultados (modelo de reglas, promedio de 5 repeticiones; con un orden al azar NDCG@10 0,78, precisión@10 0,13 y ρ 0)
+
+    * MiniLM: NDCG@10 0,929, precisión@10 0,28, ρ 0,60. mpnet-base: 0,938, 0,28, 0,64. e5-base: 0,937, 0,30, 0,66. e5 ordena mejor el conjunto completo (ρ) y es el que menos se equivoca en la nota.
+
+    * Con e5, ningún pooling ordena mejor que el promedio (el mejor percentil queda en −0,000 de NDCG@10). Con MiniLM el percentil 95 sube NDCG@10 en 0,015 a 0,023, pero no se repite con los otros modelos. Las frases de reseña no mejoran el ranking con ningún modelo.
 
 ### [1.2.0] - 26-09-2026
 > Frases de reseña en el perfil y experimentos sobre los filtros.

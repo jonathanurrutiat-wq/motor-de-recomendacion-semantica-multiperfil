@@ -37,8 +37,10 @@ def calcular_ranking() -> pd.DataFrame:
         cliente.get_collection(name="perfiles"), nombre_perfil, estructura["terminos"]
     )
 
-    print("Agrupando embeddings de reseñas por película...")
-    embeddings_por_pelicula = cargar_embeddings_peliculas(cliente)
+    # Modelos guardados antes de que se pudiera elegir el pooling usaban el promedio.
+    pooling = guardado.get("pooling", "media")
+    print(f"Agrupando embeddings de reseñas por película ({pooling})...")
+    embeddings_por_pelicula = cargar_embeddings_peliculas(cliente, pooling)
     if not embeddings_por_pelicula:
         raise ValueError("No hay reseñas vectorizadas todavía. Ejecuta el módulo 4 primero.")
 
