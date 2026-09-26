@@ -1,0 +1,23 @@
+variable,peso
+afinidad · Resistencia Femenina,0.6990079450551449
+afinidad · Contemplación Inmersiva,0.5426020268508077
+filtro · Caos Asfixiante,-0.345512039108015
+filtro · Camaradería Masculina Rancia,-0.32831145996218125
+Contemplación Inmersiva × Control Emocional Artificial,0.23386248832407394
+Ternura y Empatía Radical × Insoportabilidad Prolongada,-0.22874458218021104
+afinidad · Humanismo Social,0.22853176472450476
+Resistencia Femenina × Camaradería Masculina Rancia,-0.21609542484248226
+Camaradería Masculina Rancia × excepción,0.1937689286596826
+filtro · Personajes Diorama,-0.1853661949283841
+Humanismo Social × Insoportabilidad Prolongada,0.15716595426532495
+afinidad · Vanguardia y Simbolismo,0.15473399602446208
+afinidad · Ternura y Empatía Radical,-0.1397769784666618
+Contemplación Inmersiva × Caos Asfixiante,-0.11166831176852181
+excepción · Camaradería Masculina Rancia,-0.10752358437280983
+filtro · Control Emocional Artificial,-0.0924227099803438
+Ternura y Empatía Radical × Personajes Diorama,-0.0889895551683813
+excepción · Insoportabilidad Prolongada,-0.08072941884795992
+Humanismo Social × Control Emocional Artificial,-0.04740103563211349
+Insoportabilidad Prolongada × excepción,-0.015030616483430608
+filtro · Insoportabilidad Prolongada,0.004907282866191021
+(sesgo),8.78604409709297
