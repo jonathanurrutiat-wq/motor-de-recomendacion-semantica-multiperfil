@@ -1,0 +1,1490 @@
+{
+ "manhattan": {
+  "Camaradería Masculina Rancia": {
+   "descripción del perfil": [
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13464::chunk_0",
+     "similitud": 0.541
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13293::chunk_2",
+     "similitud": 0.515
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13469::chunk_11",
+     "similitud": 0.499
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13294::chunk_7",
+     "similitud": 0.474
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13405::chunk_2",
+     "similitud": 0.472
+    }
+   ],
+   "sonda 1: sexist humor where women are only objects or jokes": [
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13351::chunk_0",
+     "similitud": 0.47
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13319::chunk_2",
+     "similitud": 0.463
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13293::chunk_2",
+     "similitud": 0.459
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13469::chunk_11",
+     "similitud": 0.451
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13469::chunk_17",
+     "similitud": 0.45
+    }
+   ],
+   "sonda 2: the women are just props for the men and their friendship": [
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13290::chunk_2",
+     "similitud": 0.431
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13293::chunk_1",
+     "similitud": 0.406
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13469::chunk_11",
+     "similitud": 0.397
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13369::chunk_0",
+     "similitud": 0.378
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13309::chunk_0",
+     "similitud": 0.378
+    }
+   ],
+   "sonda 3: humor machista y sexista, las mujeres son un chiste": [
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13351::chunk_0",
+     "similitud": 0.465
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13293::chunk_2",
+     "similitud": 0.452
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13469::chunk_11",
+     "similitud": 0.45
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13402::chunk_0",
+     "similitud": 0.448
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13319::chunk_2",
+     "similitud": 0.448
+    }
+   ]
+  },
+  "Insoportabilidad Prolongada": {
+   "descripción del perfil": [
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13405::chunk_1",
+     "similitud": 0.618
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13391::chunk_12",
+     "similitud": 0.605
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13431::chunk_1",
+     "similitud": 0.595
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13281::chunk_0",
+     "similitud": 0.569
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13391::chunk_0",
+     "similitud": 0.562
+    }
+   ],
+   "sonda 1: the main character is insufferable, arrogant and smug": [
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13399::chunk_1",
+     "similitud": 0.619
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13405::chunk_1",
+     "similitud": 0.568
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13287::chunk_7",
+     "similitud": 0.539
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13294::chunk_7",
+     "similitud": 0.528
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13471::chunk_3",
+     "similitud": 0.516
+    }
+   ],
+   "sonda 2: I couldn't stand the protagonist, he is a pretentious narcissist and a creep": [
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13444::chunk_2",
+     "similitud": 0.646
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13405::chunk_1",
+     "similitud": 0.609
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13305::chunk_1",
+     "similitud": 0.593
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13345::chunk_0",
+     "similitud": 0.593
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13443::chunk_0",
+     "similitud": 0.588
+    }
+   ],
+   "sonda 3: an unlikable, annoying character you have to spend the whole movie with": [
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13384::chunk_1",
+     "similitud": 0.631
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13405::chunk_1",
+     "similitud": 0.631
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13444::chunk_2",
+     "similitud": 0.627
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13444::chunk_1",
+     "similitud": 0.611
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13294::chunk_7",
+     "similitud": 0.61
+    }
+   ],
+   "sonda 4: un protagonista insoportable, arrogante y pedante": [
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13448::chunk_4",
+     "similitud": 0.576
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13405::chunk_1",
+     "similitud": 0.572
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13469::chunk_7",
+     "similitud": 0.545
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13294::chunk_7",
+     "similitud": 0.534
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13431::chunk_1",
+     "similitud": 0.53
+    }
+   ]
+  },
+  "Control Emocional Artificial": {
+   "descripción del perfil": [
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13330::chunk_3",
+     "similitud": 0.613
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13391::chunk_29",
+     "similitud": 0.452
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13294::chunk_10",
+     "similitud": 0.431
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13293::chunk_3",
+     "similitud": 0.427
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13391::chunk_20",
+     "similitud": 0.424
+    }
+   ],
+   "sonda 1: emotionally manipulative, the music tells you exactly what to feel": [
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13330::chunk_3",
+     "similitud": 0.531
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13391::chunk_29",
+     "similitud": 0.525
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13390::chunk_5",
+     "similitud": 0.466
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13476::chunk_0",
+     "similitud": 0.459
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13469::chunk_12",
+     "similitud": 0.455
+    }
+   ],
+   "sonda 2: so sweet, whimsical and quirky that it becomes saccharine and twee": [
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13448::chunk_6",
+     "similitud": 0.466
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13391::chunk_12",
+     "similitud": 0.454
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13351::chunk_0",
+     "similitud": 0.441
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13287::chunk_2",
+     "similitud": 0.419
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13313::chunk_10",
+     "similitud": 0.403
+    }
+   ],
+   "sonda 3: technically perfect but cold, calculated and polished": [
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13391::chunk_21",
+     "similitud": 0.375
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13341::chunk_3",
+     "similitud": 0.36
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13378::chunk_0",
+     "similitud": 0.329
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13305::chunk_4",
+     "similitud": 0.328
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13448::chunk_9",
+     "similitud": 0.325
+    }
+   ],
+   "sonda 4: Oscar bait designed to make you cry": [
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13312::chunk_0",
+     "similitud": 0.418
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13293::chunk_3",
+     "similitud": 0.394
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13437::chunk_3",
+     "similitud": 0.37
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13339::chunk_0",
+     "similitud": 0.362
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13350::chunk_2",
+     "similitud": 0.361
+    }
+   ]
+  },
+  "Personajes Diorama": {
+   "descripción del perfil": [
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13454::chunk_0",
+     "similitud": 0.474
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13458::chunk_1",
+     "similitud": 0.469
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13330::chunk_7",
+     "similitud": 0.467
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13444::chunk_3",
+     "similitud": 0.455
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13364::chunk_0",
+     "similitud": 0.452
+    }
+   ],
+   "sonda 1: beautiful and symmetrical but emotionally hollow": [
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13332::chunk_2",
+     "similitud": 0.564
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13390::chunk_5",
+     "similitud": 0.563
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13469::chunk_12",
+     "similitud": 0.559
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13476::chunk_1",
+     "similitud": 0.55
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13431::chunk_2",
+     "similitud": 0.545
+    }
+   ],
+   "sonda 2: style over substance, the characters feel like dolls in a dollhouse": [
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13289::chunk_1",
+     "similitud": 0.478
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13294::chunk_7",
+     "similitud": 0.475
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13361::chunk_0",
+     "similitud": 0.467
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13454::chunk_0",
+     "similitud": 0.461
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13357::chunk_2",
+     "similitud": 0.454
+    }
+   ],
+   "sonda 3: the characters have no personality beyond their job or quirk": [
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13399::chunk_1",
+     "similitud": 0.549
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13294::chunk_2",
+     "similitud": 0.519
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13372::chunk_1",
+     "similitud": 0.515
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13330::chunk_4",
+     "similitud": 0.452
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13405::chunk_3",
+     "similitud": 0.44
+    }
+   ]
+  },
+  "Caos Asfixiante": {
+   "descripción del perfil": [
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13391::chunk_12",
+     "similitud": 0.594
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13391::chunk_11",
+     "similitud": 0.566
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13330::chunk_3",
+     "similitud": 0.542
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13378::chunk_2",
+     "similitud": 0.527
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13391::chunk_27",
+     "similitud": 0.512
+    }
+   ],
+   "sonda 1: chaotic, frantic and exhausting, it never lets you breathe": [
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13391::chunk_29",
+     "similitud": 0.455
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13294::chunk_10",
+     "similitud": 0.447
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13391::chunk_12",
+     "similitud": 0.439
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13330::chunk_3",
+     "similitud": 0.435
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13390::chunk_5",
+     "similitud": 0.427
+    }
+   ],
+   "sonda 2: overstimulating, loud and relentless, too much happening at once": [
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13391::chunk_12",
+     "similitud": 0.452
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13406::chunk_0",
+     "similitud": 0.43
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13429::chunk_0",
+     "similitud": 0.41
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13460::chunk_2",
+     "similitud": 0.398
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13330::chunk_3",
+     "similitud": 0.398
+    }
+   ],
+   "sonda 3: caótica y agotadora, no da respiro": [
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13294::chunk_10",
+     "similitud": 0.492
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13391::chunk_12",
+     "similitud": 0.489
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13391::chunk_29",
+     "similitud": 0.475
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13312::chunk_5",
+     "similitud": 0.473
+    },
+    {
+     "id": "manhattan::filtrado_reviews_2026-09-26_12-00-36::review_13330::chunk_3",
+     "similitud": 0.469
+    }
+   ]
+  }
+ },
+ "amelie": {
+  "Camaradería Masculina Rancia": {
+   "descripción del perfil": [
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2098::chunk_0",
+     "similitud": 0.448
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2187::chunk_2",
+     "similitud": 0.442
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2113::chunk_6",
+     "similitud": 0.441
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2155::chunk_0",
+     "similitud": 0.44
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2021::chunk_5",
+     "similitud": 0.437
+    }
+   ],
+   "sonda 1: sexist humor where women are only objects or jokes": [
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2021::chunk_5",
+     "similitud": 0.475
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2107::chunk_1",
+     "similitud": 0.443
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2187::chunk_2",
+     "similitud": 0.42
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2166::chunk_0",
+     "similitud": 0.403
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2198::chunk_6",
+     "similitud": 0.402
+    }
+   ],
+   "sonda 2: the women are just props for the men and their friendship": [
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2173::chunk_0",
+     "similitud": 0.382
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2024::chunk_0",
+     "similitud": 0.379
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2000::chunk_0",
+     "similitud": 0.374
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2151::chunk_5",
+     "similitud": 0.353
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2195::chunk_4",
+     "similitud": 0.351
+    }
+   ],
+   "sonda 3: humor machista y sexista, las mujeres son un chiste": [
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2107::chunk_1",
+     "similitud": 0.486
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2021::chunk_5",
+     "similitud": 0.454
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2151::chunk_5",
+     "similitud": 0.399
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2198::chunk_6",
+     "similitud": 0.388
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2195::chunk_4",
+     "similitud": 0.384
+    }
+   ]
+  },
+  "Insoportabilidad Prolongada": {
+   "descripción del perfil": [
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2025::chunk_1",
+     "similitud": 0.558
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2029::chunk_1",
+     "similitud": 0.552
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2144::chunk_3",
+     "similitud": 0.545
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2099::chunk_8",
+     "similitud": 0.539
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2119::chunk_2",
+     "similitud": 0.534
+    }
+   ],
+   "sonda 1: the main character is insufferable, arrogant and smug": [
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2185::chunk_1",
+     "similitud": 0.558
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2119::chunk_2",
+     "similitud": 0.541
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2029::chunk_1",
+     "similitud": 0.52
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2144::chunk_3",
+     "similitud": 0.509
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2068::chunk_2",
+     "similitud": 0.501
+    }
+   ],
+   "sonda 2: I couldn't stand the protagonist, he is a pretentious narcissist and a creep": [
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2185::chunk_1",
+     "similitud": 0.662
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2144::chunk_3",
+     "similitud": 0.637
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2153::chunk_0",
+     "similitud": 0.599
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2068::chunk_2",
+     "similitud": 0.554
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2099::chunk_12",
+     "similitud": 0.526
+    }
+   ],
+   "sonda 3: an unlikable, annoying character you have to spend the whole movie with": [
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2185::chunk_1",
+     "similitud": 0.728
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2068::chunk_2",
+     "similitud": 0.629
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2153::chunk_0",
+     "similitud": 0.614
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2144::chunk_3",
+     "similitud": 0.604
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2029::chunk_1",
+     "similitud": 0.6
+    }
+   ],
+   "sonda 4: un protagonista insoportable, arrogante y pedante": [
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2029::chunk_1",
+     "similitud": 0.523
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2144::chunk_3",
+     "similitud": 0.523
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2021::chunk_4",
+     "similitud": 0.521
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2185::chunk_1",
+     "similitud": 0.518
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2025::chunk_1",
+     "similitud": 0.504
+    }
+   ]
+  },
+  "Control Emocional Artificial": {
+   "descripción del perfil": [
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2144::chunk_1",
+     "similitud": 0.491
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2120::chunk_0",
+     "similitud": 0.485
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2168::chunk_0",
+     "similitud": 0.464
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2137::chunk_2",
+     "similitud": 0.448
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2064::chunk_4",
+     "similitud": 0.44
+    }
+   ],
+   "sonda 1: emotionally manipulative, the music tells you exactly what to feel": [
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2063::chunk_2",
+     "similitud": 0.576
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2009::chunk_2",
+     "similitud": 0.525
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2143::chunk_1",
+     "similitud": 0.514
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2188::chunk_0",
+     "similitud": 0.51
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2167::chunk_7",
+     "similitud": 0.505
+    }
+   ],
+   "sonda 2: so sweet, whimsical and quirky that it becomes saccharine and twee": [
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2009::chunk_0",
+     "similitud": 0.606
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2195::chunk_1",
+     "similitud": 0.493
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2053::chunk_0",
+     "similitud": 0.486
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2018::chunk_0",
+     "similitud": 0.484
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2126::chunk_2",
+     "similitud": 0.479
+    }
+   ],
+   "sonda 3: technically perfect but cold, calculated and polished": [
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2154::chunk_5",
+     "similitud": 0.377
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2015::chunk_0",
+     "similitud": 0.355
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2130::chunk_0",
+     "similitud": 0.349
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2172::chunk_1",
+     "similitud": 0.349
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2152::chunk_8",
+     "similitud": 0.343
+    }
+   ],
+   "sonda 4: Oscar bait designed to make you cry": [
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2188::chunk_0",
+     "similitud": 0.453
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2064::chunk_0",
+     "similitud": 0.414
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2012::chunk_0",
+     "similitud": 0.413
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2095::chunk_2",
+     "similitud": 0.412
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2191::chunk_1",
+     "similitud": 0.41
+    }
+   ]
+  },
+  "Personajes Diorama": {
+   "descripción del perfil": [
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2064::chunk_5",
+     "similitud": 0.571
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2112::chunk_2",
+     "similitud": 0.548
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2198::chunk_7",
+     "similitud": 0.517
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2082::chunk_2",
+     "similitud": 0.512
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2171::chunk_1",
+     "similitud": 0.511
+    }
+   ],
+   "sonda 1: beautiful and symmetrical but emotionally hollow": [
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2172::chunk_1",
+     "similitud": 0.594
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2054::chunk_0",
+     "similitud": 0.525
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2064::chunk_3",
+     "similitud": 0.521
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2167::chunk_2",
+     "similitud": 0.516
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2147::chunk_0",
+     "similitud": 0.514
+    }
+   ],
+   "sonda 2: style over substance, the characters feel like dolls in a dollhouse": [
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2053::chunk_0",
+     "similitud": 0.531
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2112::chunk_2",
+     "similitud": 0.525
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2099::chunk_9",
+     "similitud": 0.461
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2028::chunk_6",
+     "similitud": 0.435
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2127::chunk_0",
+     "similitud": 0.433
+    }
+   ],
+   "sonda 3: the characters have no personality beyond their job or quirk": [
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2187::chunk_1",
+     "similitud": 0.436
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2021::chunk_6",
+     "similitud": 0.431
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2099::chunk_3",
+     "similitud": 0.426
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2151::chunk_6",
+     "similitud": 0.423
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2144::chunk_3",
+     "similitud": 0.417
+    }
+   ]
+  },
+  "Caos Asfixiante": {
+   "descripción del perfil": [
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2195::chunk_1",
+     "similitud": 0.549
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2029::chunk_1",
+     "similitud": 0.529
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2068::chunk_2",
+     "similitud": 0.516
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2025::chunk_3",
+     "similitud": 0.507
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2121::chunk_2",
+     "similitud": 0.491
+    }
+   ],
+   "sonda 1: chaotic, frantic and exhausting, it never lets you breathe": [
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2103::chunk_0",
+     "similitud": 0.404
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2195::chunk_1",
+     "similitud": 0.401
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2075::chunk_0",
+     "similitud": 0.397
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2028::chunk_10",
+     "similitud": 0.392
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2143::chunk_7",
+     "similitud": 0.39
+    }
+   ],
+   "sonda 2: overstimulating, loud and relentless, too much happening at once": [
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2195::chunk_1",
+     "similitud": 0.42
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2110::chunk_1",
+     "similitud": 0.402
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2029::chunk_1",
+     "similitud": 0.386
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2195::chunk_4",
+     "similitud": 0.364
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2107::chunk_2",
+     "similitud": 0.362
+    }
+   ],
+   "sonda 3: caótica y agotadora, no da respiro": [
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2195::chunk_1",
+     "similitud": 0.496
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2143::chunk_7",
+     "similitud": 0.464
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2068::chunk_0",
+     "similitud": 0.458
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2075::chunk_0",
+     "similitud": 0.457
+    },
+    {
+     "id": "amelie::filtrado_reviews_2026-09-26_12-00-36::review_2028::chunk_10",
+     "similitud": 0.451
+    }
+   ]
+  }
+ },
+ "la-la-land": {
+  "Camaradería Masculina Rancia": {
+   "descripción del perfil": [
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12052::chunk_3",
+     "similitud": 0.484
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12039::chunk_0",
+     "similitud": 0.41
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12117::chunk_12",
+     "similitud": 0.395
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_11999::chunk_0",
+     "similitud": 0.382
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12137::chunk_0",
+     "similitud": 0.378
+    }
+   ],
+   "sonda 1: sexist humor where women are only objects or jokes": [
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12039::chunk_0",
+     "similitud": 0.432
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12052::chunk_3",
+     "similitud": 0.426
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12023::chunk_8",
+     "similitud": 0.354
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12117::chunk_12",
+     "similitud": 0.341
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12001::chunk_0",
+     "similitud": 0.335
+    }
+   ],
+   "sonda 2: the women are just props for the men and their friendship": [
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12085::chunk_13",
+     "similitud": 0.41
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12117::chunk_5",
+     "similitud": 0.378
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12000::chunk_10",
+     "similitud": 0.363
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12117::chunk_7",
+     "similitud": 0.353
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12001::chunk_0",
+     "similitud": 0.347
+    }
+   ],
+   "sonda 3: humor machista y sexista, las mujeres son un chiste": [
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12039::chunk_0",
+     "similitud": 0.443
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12052::chunk_3",
+     "similitud": 0.428
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12085::chunk_13",
+     "similitud": 0.38
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12023::chunk_8",
+     "similitud": 0.356
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12137::chunk_0",
+     "similitud": 0.355
+    }
+   ]
+  },
+  "Insoportabilidad Prolongada": {
+   "descripción del perfil": [
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12024::chunk_4",
+     "similitud": 0.572
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12028::chunk_0",
+     "similitud": 0.551
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12041::chunk_0",
+     "similitud": 0.535
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12106::chunk_12",
+     "similitud": 0.501
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12106::chunk_7",
+     "similitud": 0.495
+    }
+   ],
+   "sonda 1: the main character is insufferable, arrogant and smug": [
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12052::chunk_7",
+     "similitud": 0.486
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12052::chunk_21",
+     "similitud": 0.485
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12007::chunk_5",
+     "similitud": 0.466
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12106::chunk_7",
+     "similitud": 0.458
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12159::chunk_1",
+     "similitud": 0.457
+    }
+   ],
+   "sonda 2: I couldn't stand the protagonist, he is a pretentious narcissist and a creep": [
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12117::chunk_2",
+     "similitud": 0.586
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12038::chunk_1",
+     "similitud": 0.556
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12106::chunk_7",
+     "similitud": 0.548
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12052::chunk_22",
+     "similitud": 0.528
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12028::chunk_0",
+     "similitud": 0.524
+    }
+   ],
+   "sonda 3: an unlikable, annoying character you have to spend the whole movie with": [
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12161::chunk_0",
+     "similitud": 0.607
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12117::chunk_2",
+     "similitud": 0.601
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12028::chunk_0",
+     "similitud": 0.565
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12137::chunk_0",
+     "similitud": 0.544
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_11991::chunk_9",
+     "similitud": 0.535
+    }
+   ],
+   "sonda 4: un protagonista insoportable, arrogante y pedante": [
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12117::chunk_5",
+     "similitud": 0.639
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12052::chunk_21",
+     "similitud": 0.498
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12040::chunk_0",
+     "similitud": 0.493
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12052::chunk_22",
+     "similitud": 0.483
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12106::chunk_12",
+     "similitud": 0.469
+    }
+   ]
+  },
+  "Control Emocional Artificial": {
+   "descripción del perfil": [
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12034::chunk_5",
+     "similitud": 0.483
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12117::chunk_12",
+     "similitud": 0.444
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12106::chunk_6",
+     "similitud": 0.432
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12085::chunk_23",
+     "similitud": 0.429
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12062::chunk_5",
+     "similitud": 0.428
+    }
+   ],
+   "sonda 1: emotionally manipulative, the music tells you exactly what to feel": [
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12026::chunk_5",
+     "similitud": 0.626
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12117::chunk_1",
+     "similitud": 0.589
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12046::chunk_1",
+     "similitud": 0.567
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12103::chunk_0",
+     "similitud": 0.556
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12115::chunk_4",
+     "similitud": 0.531
+    }
+   ],
+   "sonda 2: so sweet, whimsical and quirky that it becomes saccharine and twee": [
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12000::chunk_21",
+     "similitud": 0.442
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12039::chunk_0",
+     "similitud": 0.427
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12115::chunk_4",
+     "similitud": 0.422
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12020::chunk_10",
+     "similitud": 0.416
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12115::chunk_6",
+     "similitud": 0.403
+    }
+   ],
+   "sonda 3: technically perfect but cold, calculated and polished": [
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12016::chunk_2",
+     "similitud": 0.365
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12096::chunk_10",
+     "similitud": 0.316
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12023::chunk_0",
+     "similitud": 0.297
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12002::chunk_0",
+     "similitud": 0.297
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12012::chunk_3",
+     "similitud": 0.296
+    }
+   ],
+   "sonda 4: Oscar bait designed to make you cry": [
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12049::chunk_4",
+     "similitud": 0.455
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12085::chunk_29",
+     "similitud": 0.44
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_11990::chunk_0",
+     "similitud": 0.43
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12047::chunk_0",
+     "similitud": 0.43
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12016::chunk_1",
+     "similitud": 0.427
+    }
+   ]
+  },
+  "Personajes Diorama": {
+   "descripción del perfil": [
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12024::chunk_3",
+     "similitud": 0.526
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12117::chunk_12",
+     "similitud": 0.524
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12117::chunk_0",
+     "similitud": 0.487
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12085::chunk_10",
+     "similitud": 0.474
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12061::chunk_2",
+     "similitud": 0.473
+    }
+   ],
+   "sonda 1: beautiful and symmetrical but emotionally hollow": [
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12117::chunk_12",
+     "similitud": 0.618
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12115::chunk_1",
+     "similitud": 0.533
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12034::chunk_6",
+     "similitud": 0.532
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12058::chunk_1",
+     "similitud": 0.524
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12085::chunk_5",
+     "similitud": 0.511
+    }
+   ],
+   "sonda 2: style over substance, the characters feel like dolls in a dollhouse": [
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12137::chunk_0",
+     "similitud": 0.507
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12000::chunk_27",
+     "similitud": 0.45
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12000::chunk_40",
+     "similitud": 0.45
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12062::chunk_7",
+     "similitud": 0.445
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12085::chunk_10",
+     "similitud": 0.439
+    }
+   ],
+   "sonda 3: the characters have no personality beyond their job or quirk": [
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12040::chunk_0",
+     "similitud": 0.52
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12052::chunk_8",
+     "similitud": 0.466
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12052::chunk_22",
+     "similitud": 0.413
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12007::chunk_5",
+     "similitud": 0.411
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12085::chunk_30",
+     "similitud": 0.407
+    }
+   ]
+  },
+  "Caos Asfixiante": {
+   "descripción del perfil": [
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12062::chunk_5",
+     "similitud": 0.53
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12115::chunk_4",
+     "similitud": 0.525
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_11990::chunk_0",
+     "similitud": 0.504
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12006::chunk_2",
+     "similitud": 0.478
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12115::chunk_2",
+     "similitud": 0.477
+    }
+   ],
+   "sonda 1: chaotic, frantic and exhausting, it never lets you breathe": [
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12000::chunk_43",
+     "similitud": 0.435
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_11990::chunk_0",
+     "similitud": 0.426
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_11988::chunk_0",
+     "similitud": 0.411
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12085::chunk_0",
+     "similitud": 0.407
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12090::chunk_0",
+     "similitud": 0.397
+    }
+   ],
+   "sonda 2: overstimulating, loud and relentless, too much happening at once": [
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12099::chunk_8",
+     "similitud": 0.561
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12000::chunk_43",
+     "similitud": 0.431
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12085::chunk_23",
+     "similitud": 0.426
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12106::chunk_8",
+     "similitud": 0.41
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12041::chunk_0",
+     "similitud": 0.397
+    }
+   ],
+   "sonda 3: caótica y agotadora, no da respiro": [
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_11988::chunk_0",
+     "similitud": 0.485
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12085::chunk_28",
+     "similitud": 0.453
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_12090::chunk_0",
+     "similitud": 0.45
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_11988::chunk_4",
+     "similitud": 0.443
+    },
+    {
+     "id": "la-la-land::filtrado_reviews_2026-09-26_12-00-36::review_11990::chunk_0",
+     "similitud": 0.44
+    }
+   ]
+  }
+ }
+}
