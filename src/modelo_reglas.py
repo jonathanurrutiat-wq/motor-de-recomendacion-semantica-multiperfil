@@ -325,8 +325,8 @@ def comparar_representaciones(perfil: dict, df_gt, film_ids, representaciones: d
     # o tupla (matriz, rasgos de frases, modo_frases)). La columna r2_por_criterio
     # trae el R² de la etapa 1 de cada criterio.
     # Todas usan las mismas particiones, y la etapa 2 (que no depende de las
-    # reseñas) se entrena una sola vez por partición. Se ordenan por NDCG: para
-    # recomendar importa sobre todo qué películas quedan arriba.
+    # reseñas) se entrena una sola vez por partición. Se ordenan por ρ de Spearman:
+    # para recomendar importa más el orden que el error de la nota.
     from sklearn.metrics import r2_score
     from sklearn.model_selection import KFold
 
@@ -381,9 +381,9 @@ def comparar_representaciones(perfil: dict, df_gt, film_ids, representaciones: d
                            "R² etapa 1 afinidades": r2_medio(columnas_a), "R² etapa 1 filtros": r2_medio(columnas_f),
                            "r2_por_criterio": r2_por_criterio})
         fila = resultados[-1]
-        print(f"  {nombre:45} MAE {fila['MAE']:.3f} | ρ {fila['ρ Spearman']:.3f} | NDCG@{K_RANKING} {fila[f'NDCG@{K_RANKING}']:.3f} "
+        print(f"  {nombre:45} ρ {fila['ρ Spearman']:.3f} | MAE {fila['MAE']:.3f} | NDCG@{K_RANKING} {fila[f'NDCG@{K_RANKING}']:.3f} "
               f"| etapa 1: afinidades {fila['R² etapa 1 afinidades']:.3f}, filtros {fila['R² etapa 1 filtros']:.3f}")
-    return pd.DataFrame(resultados).sort_values(f"NDCG@{K_RANKING}", ascending=False, ignore_index=True)
+    return pd.DataFrame(resultados).sort_values("ρ Spearman", ascending=False, ignore_index=True)
 
 
 def columnas_metricas(m: dict) -> dict:
