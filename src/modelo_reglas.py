@@ -22,7 +22,7 @@ import pandas as pd
 from scipy.optimize import minimize
 from sklearn.linear_model import RidgeCV
 from sklearn.pipeline import make_pipeline
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import FunctionTransformer, StandardScaler
 
 from src.normalizacion import nombre_columna_excepcion, nombre_columna_gt
 
@@ -32,8 +32,11 @@ PENALIZACION = 1e-3      # evita penalizaciones y pisos grandes que no mejoran e
 ALFAS_ETAPA_1 = np.logspace(-1, 4, 30)
 MINIMO_EJEMPLOS_ETAPA_1 = 5
 INICIOS_UMBRALES = [(8.0, 5.0), (9.0, 3.0), (6.5, 7.0)]  # (umbral afinidades, umbral filtros)
-# Cómo usa la etapa 1 los rasgos de frases de reseña de un criterio.
-MODOS_FRASES = ("concatenar", "solo_frases")
+# Cómo usa la etapa 1 los rasgos de frases de reseña de un criterio:
+# "concatenar" los agrega al embedding, "ponderar" también pero con la misma
+# varianza total que el embedding (si no, Ridge los penaliza como a una
+# dimensión más entre cientos) y "solo_frases" usa solo esos rasgos.
+MODOS_FRASES = ("concatenar", "ponderar", "solo_frases")
 
 
 def sigmoide(x):
@@ -161,6 +164,10 @@ class ReglaGlobal:
         }
 
 
+def escalar_columnas(X, pesos):
+    return X * pesos
+
+
 def subconjunto_rasgos(rasgos: dict | None, indices) -> dict | None:
     # Subconjunto de películas de los rasgos de frases (columna -> matriz).
     return None if rasgos is None else {columna: matriz[indices] for columna, matriz in rasgos.items()}
@@ -170,8 +177,7 @@ class ModeloDosEtapas:
     """Etapa 1 (embedding -> puntaje de cada criterio) + etapa 2 (ReglaGlobal)."""
 
     def __init__(self, afinidades, filtros, corrupciones, modo_frases: str = "concatenar"):
-        # modo_frases: para los criterios con rasgos de frases, "concatenar" los
-        # agrega al embedding y "solo_frases" usa solo esos rasgos.
+        # modo_frases: ver MODOS_FRASES.
         if modo_frases not in MODOS_FRASES:
             raise ValueError(f"modo_frases debe ser uno de {MODOS_FRASES}")
         self.modo_frases = modo_frases
@@ -205,7 +211,13 @@ class ModeloDosEtapas:
             con_dato = ~np.isnan(valores)
             if con_dato.sum() >= MINIMO_EJEMPLOS_ETAPA_1:
                 entrada = self._entrada(columna, embeddings, rasgos)
-                self.predictores[columna] = make_pipeline(StandardScaler(), RidgeCV(alphas=ALFAS_ETAPA_1)).fit(
+                pasos = [StandardScaler()]
+                if self.modo_frases == "ponderar" and rasgos and columna in rasgos:
+                    n_rasgos = rasgos[columna].shape[1]
+                    pesos = np.ones(entrada.shape[1])
+                    pesos[-n_rasgos:] = np.sqrt(embeddings.shape[1] / n_rasgos)
+                    pasos.append(FunctionTransformer(escalar_columnas, kw_args={"pesos": pesos}))
+                self.predictores[columna] = make_pipeline(*pasos, RidgeCV(alphas=ALFAS_ETAPA_1)).fit(
                     entrada[con_dato], valores[con_dato])
             else:
                 self.constantes[columna] = float(np.nanmean(valores)) if con_dato.any() else 0.0

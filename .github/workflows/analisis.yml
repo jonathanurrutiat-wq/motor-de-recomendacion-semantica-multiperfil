@@ -9,8 +9,15 @@ on:
   workflow_dispatch:
   push:
     branches: [feature/program-refinement]
-    # También al cambiar el perfil: sus embeddings se recalculan en cada corrida.
-    paths: [.github/workflows/analisis.yml, src/db/profiles/perfiles.ejemplo.json]
+    # También al cambiar el perfil (sus embeddings se recalculan en cada corrida)
+    # o el código que solo afecta el análisis; con los embeddings de reseñas en
+    # caché, esas corridas tardan unos minutos.
+    paths:
+      - .github/workflows/analisis.yml
+      - src/db/profiles/perfiles.ejemplo.json
+      - src/analisis.py
+      - src/modelo_reglas.py
+      - src/pooling.py
 
 permissions:
   contents: write
