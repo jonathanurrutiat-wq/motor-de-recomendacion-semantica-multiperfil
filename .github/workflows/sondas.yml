@@ -1,0 +1,81 @@
+name: Experimento de frases sonda para filtros
+
+# Reutiliza los embeddings de reseñas de MiniLM guardados en el caché por el
+# workflow de análisis y publica los resultados en la rama resultados-analisis.
+# Solo guarda números e identificadores de chunks, nunca texto de reseñas.
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/program-refinement]
+    paths:
+      - .github/workflows/sondas.yml
+      - src/experimentos/sondas_filtros.py
+
+permissions:
+  contents: write
+
+jobs:
+  sondas:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias (torch para CPU)
+        run: |
+          pip install --index-url https://download.pytorch.org/whl/cpu torch
+          pip install -r requirements.txt
+
+      - name: Quitar la base de embeddings del repositorio
+        run: rm -rf src/db/embeddings/chroma*
+
+      - name: Restaurar embeddings de MiniLM del caché
+        id: cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            src/db/embeddings
+            src/db/filtered/result
+          key: embeddings-v1-sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2-200-sin-coincidencia-exacta
+          restore-keys: embeddings-v1-sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2-200-
+
+      - name: Verificar que se restauraron los embeddings
+        run: |
+          if [ -z "${{ steps.cache.outputs.cache-matched-key }}" ]; then
+            echo "::error title=Sin embeddings en el caché::Corre primero el workflow de análisis con MiniLM para generar el caché."
+            exit 1
+          fi
+          echo "Caché restaurado: ${{ steps.cache.outputs.cache-matched-key }}"
+
+      - name: Ejecutar el experimento
+        run: |
+          set -o pipefail
+          if ! python -m src.experimentos.sondas_filtros 2>&1 | tee salida_sondas.txt; then
+            echo "::error title=Falló el experimento::$(tail -n 25 salida_sondas.txt | sed ':a;N;$!ba;s/%/%25/g;s/\n/%0A/g')"
+            exit 1
+          fi
+
+      - name: Publicar resultados en la rama resultados-analisis
+        run: |
+          carpeta=$(ls -d analisis/*_sondas/ | tail -1)
+          cp salida_sondas.txt "$carpeta"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch --depth=10 origin resultados-analisis
+          git worktree add /tmp/resultados FETCH_HEAD
+          git -C /tmp/resultados checkout -B resultados-analisis
+          mkdir -p /tmp/resultados/analisis
+          cp -r "$carpeta" /tmp/resultados/analisis/
+          cd /tmp/resultados
+          git add analisis
+          git commit -q -m "Experimento de sondas $(basename "$carpeta") (commit ${GITHUB_SHA::7})"
+          for intento in 1 2 3 4 5; do
+            git push origin resultados-analisis && exit 0
+            git fetch --depth=10 origin resultados-analisis && git rebase FETCH_HEAD
+            sleep $((intento * 5))
+          done
+          exit 1
