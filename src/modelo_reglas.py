@@ -24,6 +24,7 @@ from sklearn.linear_model import RidgeCV
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import FunctionTransformer, StandardScaler
 
+from src.metricas import K_RANKING, metricas, metricas_linea_base
 from src.normalizacion import nombre_columna_excepcion, nombre_columna_gt
 
 PENDIENTE = 1.5          # qué tan abrupto es cada umbral, por punto de la escala 0-10
@@ -248,12 +249,8 @@ def evaluar(perfil: dict, df_gt, film_ids, embeddings, n_particiones: int, semil
     # y modelo final entrenado con todos los datos. film_ids y embeddings son las
     # películas con reseñas y nota global; df_gt debe tener la columna canon_id.
     from sklearn.linear_model import LinearRegression
-    from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+    from sklearn.metrics import mean_absolute_error
     from sklearn.model_selection import KFold
-
-    def metricas(y_real, y_pred):
-        return {"mse": float(mean_squared_error(y_real, y_pred)), "mae": float(mean_absolute_error(y_real, y_pred)),
-                "r2": float(r2_score(y_real, y_pred))}
 
     afinidades, filtros, corrupciones, faltantes = criterios_del_perfil(perfil, df_gt.columns)
     if faltantes:
@@ -315,7 +312,7 @@ def evaluar(perfil: dict, df_gt, film_ids, embeddings, n_particiones: int, semil
             "completo": metricas(y, pred_completo),
             "etapa_2_regla": metricas(y2, pred_regla),
             "etapa_2_lineal": metricas(y2, pred_lineal),
-            "etapa_2_linea_base": metricas(y2, pred_base),
+            "etapa_2_linea_base": metricas_linea_base(y2, pred_base),
             "etapa_1_por_criterio": etapa_1,
         },
     }
@@ -328,8 +325,9 @@ def comparar_representaciones(perfil: dict, df_gt, film_ids, representaciones: d
     # o tupla (matriz, rasgos de frases, modo_frases)). La columna r2_por_criterio
     # trae el R² de la etapa 1 de cada criterio.
     # Todas usan las mismas particiones, y la etapa 2 (que no depende de las
-    # reseñas) se entrena una sola vez por partición.
-    from sklearn.metrics import mean_absolute_error, r2_score
+    # reseñas) se entrena una sola vez por partición. Se ordenan por NDCG: para
+    # recomendar importa sobre todo qué películas quedan arriba.
+    from sklearn.metrics import r2_score
     from sklearn.model_selection import KFold
 
     afinidades, filtros, corrupciones, _ = criterios_del_perfil(perfil, df_gt.columns)
@@ -379,9 +377,16 @@ def comparar_representaciones(perfil: dict, df_gt, film_ids, representaciones: d
         anchos = sorted({modelo._entrada(c, X[:1], subconjunto_rasgos(rasgos, [0])).shape[1] for c in columnas_a + columnas_f})
         resultados.append({"representacion": nombre,
                            "dimensiones": str(anchos[0]) if len(anchos) == 1 else f"{anchos[0]}-{anchos[-1]}",
-                           "MAE": float(mean_absolute_error(y, pred)), "R²": float(r2_score(y, pred)),
+                           **columnas_metricas(metricas(y, pred)),
                            "R² etapa 1 afinidades": r2_medio(columnas_a), "R² etapa 1 filtros": r2_medio(columnas_f),
                            "r2_por_criterio": r2_por_criterio})
-        print(f"  {nombre:45} MAE {resultados[-1]['MAE']:.3f} | R² {resultados[-1]['R²']:.3f} "
-              f"| etapa 1: afinidades {resultados[-1]['R² etapa 1 afinidades']:.3f}, filtros {resultados[-1]['R² etapa 1 filtros']:.3f}")
-    return pd.DataFrame(resultados).sort_values("MAE", ignore_index=True)
+        fila = resultados[-1]
+        print(f"  {nombre:45} MAE {fila['MAE']:.3f} | ρ {fila['ρ Spearman']:.3f} | NDCG@{K_RANKING} {fila[f'NDCG@{K_RANKING}']:.3f} "
+              f"| etapa 1: afinidades {fila['R² etapa 1 afinidades']:.3f}, filtros {fila['R² etapa 1 filtros']:.3f}")
+    return pd.DataFrame(resultados).sort_values(f"NDCG@{K_RANKING}", ascending=False, ignore_index=True)
+
+
+def columnas_metricas(m: dict) -> dict:
+    # Nombres de columna para las tablas de comparación.
+    return {"MAE": m["mae"], "R²": m["r2"], "ρ Spearman": m["spearman"],
+            f"NDCG@{K_RANKING}": m[f"ndcg@{K_RANKING}"], f"Precisión@{K_RANKING}": m[f"precision@{K_RANKING}"]}

@@ -14,7 +14,7 @@ import chromadb
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import LinearRegression, RidgeCV
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.metrics import mean_absolute_error
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.model_selection import KFold
 
@@ -24,6 +24,7 @@ from src.config import DIR_ANALISIS, DIR_CHROMA, EMBEDDING_MODEL_NAME, RUTA_GT, 
 from src.db.filtered import filter as filtro
 from src.loss.gt_matrix_pipeline import main as revisar_pendientes
 from src.loss.ingest_maestro import main as cargar_verdad_base
+from src.metricas import K_RANKING, metricas, metricas_linea_base
 from src.modelo_reglas import comparar_representaciones
 from src.modelo_reglas import evaluar as evaluar_reglas
 from src import pooling
@@ -48,14 +49,6 @@ def encabezado(numero: int, total: int, titulo: str):
     print("\n" + "=" * 72)
     print(f"[{numero}/{total}] {titulo}")
     print("=" * 72)
-
-
-def metricas(y_real, y_pred) -> dict:
-    return {
-        "mse": float(mean_squared_error(y_real, y_pred)),
-        "mae": float(mean_absolute_error(y_real, y_pred)),
-        "r2": float(r2_score(y_real, y_pred)),
-    }
 
 
 def validacion_cruzada(similitudes, y, estructura):
@@ -92,21 +85,28 @@ def tabla_markdown(df: pd.DataFrame, decimales: int = 2) -> str:
 
 
 def comparar_con_repeticiones(perfil, df_gt, film_ids, variantes: dict, referencia: str):
-    # Promedia comparar_representaciones sobre SEMILLAS_REPETICIONES. Δ MAE es la
-    # diferencia con la variante de referencia en las mismas particiones, que
-    # varía mucho menos que el MAE mismo. Devuelve también las filas de cada
+    # Promedia comparar_representaciones sobre SEMILLAS_REPETICIONES. Los Δ son
+    # la diferencia con la variante de referencia en las mismas particiones, que
+    # varía mucho menos que la métrica misma. Devuelve también las filas de cada
     # repetición (con el R² de la etapa 1 de cada criterio).
     corridas = []
     for semilla in SEMILLAS_REPETICIONES:
         print(f"\nParticiones con semilla {semilla}:")
         corridas.append(comparar_representaciones(perfil, df_gt, film_ids, variantes, N_PARTICIONES, semilla))
+    ndcg = f"NDCG@{K_RANKING}"
     for corrida in corridas:
-        corrida["Δ MAE"] = corrida["MAE"] - corrida.set_index("representacion").loc[referencia, "MAE"]
+        fila_referencia = corrida.set_index("representacion").loc[referencia]
+        corrida[f"Δ {ndcg}"] = corrida[ndcg] - fila_referencia[ndcg]
+        corrida["Δ MAE"] = corrida["MAE"] - fila_referencia["MAE"]
     todas = pd.concat(corridas, ignore_index=True)
-    numericas = ["MAE", "R²", "R² etapa 1 afinidades", "R² etapa 1 filtros", "Δ MAE"]
+    numericas = [ndcg, f"Precisión@{K_RANKING}", "ρ Spearman", "MAE", "R²",
+                 "R² etapa 1 afinidades", "R² etapa 1 filtros", f"Δ {ndcg}", "Δ MAE"]
     comparacion = todas.groupby("representacion", sort=False).agg(
         dimensiones=("dimensiones", "first"), **{c: (c, "mean") for c in numericas},
-        **{"desv. Δ MAE": ("Δ MAE", "std")}).reset_index().sort_values("MAE", ignore_index=True)
+        **{f"desv. Δ {ndcg}": (f"Δ {ndcg}", "std"), "desv. Δ MAE": ("Δ MAE", "std")}).reset_index()
+    orden = ["representacion", "dimensiones", ndcg, f"Δ {ndcg}", f"desv. Δ {ndcg}", f"Precisión@{K_RANKING}",
+             "ρ Spearman", "MAE", "Δ MAE", "desv. Δ MAE", "R²", "R² etapa 1 afinidades", "R² etapa 1 filtros"]
+    comparacion = comparacion[orden].sort_values(ndcg, ascending=False, ignore_index=True)
     return comparacion, todas
 
 
@@ -225,7 +225,7 @@ def guardar_analisis(nombre_perfil, resultado, pred_cv, pred_ridge, pred_base, n
             "entrenamiento": metricas(y, resultado["predicciones"]),
             f"validacion_cruzada_{n_particiones}_particiones": metricas(y, pred_cv),
             f"validacion_cruzada_ridge_{n_particiones}_particiones": metricas(y, pred_ridge),
-            "linea_base_promedio": metricas(y, pred_base),
+            "linea_base_promedio": metricas_linea_base(y, pred_base),
             f"reglas_dos_etapas_{n_particiones}_particiones": reglas["metricas"]["completo"],
         },
         "tiempos_segundos": {paso: round(segundos, 1) for paso, segundos in tiempos.items()},
@@ -237,7 +237,10 @@ def guardar_analisis(nombre_perfil, resultado, pred_cv, pred_ridge, pred_base, n
     ridge = m[f"validacion_cruzada_ridge_{n_particiones}_particiones"]
     mr = reglas["metricas"]
     completo = mr["completo"]
-    fila = lambda nombre, x: f"| {nombre} | {x['mse']:.3f} | {x['mae']:.3f} | {x['r2']:.3f} |"
+    fila = lambda nombre, x: (f"| {nombre} | {x[f'ndcg@{K_RANKING}']:.3f} | {x[f'precision@{K_RANKING}']:.3f} | "
+                              f"{x['spearman']:.3f} | {x['mae']:.3f} | {x['mse']:.3f} | {x['r2']:.3f} |")
+    encabezado_tabla = [f"| Evaluación | NDCG@{K_RANKING} | Precisión@{K_RANKING} | ρ Spearman | MAE | MSE | R² |",
+                        "|---|---|---|---|---|---|---|"]
     etapa_1 = pd.DataFrame([{"criterio": c, "MAE": v["mae"], "R²": v["r2"]} for c, v in mr["etapa_1_por_criterio"].items()])
     peores = entrenamiento.reindex(entrenamiento["error_cv"].abs().sort_values(ascending=False).index).head(10)
     candidatas = ranking[~ranking["evaluada"]].head(10)
@@ -260,13 +263,18 @@ def guardar_analisis(nombre_perfil, resultado, pred_cv, pred_ridge, pred_base, n
         "La línea base predice siempre el promedio: un modelo útil debe tener menos error que ella. "
         "Ridge es la misma regresión lineal con regularización; se incluye para comparar, el modelo guardado no la usa.",
         "",
-        "| Evaluación | MSE | MAE | R² |",
-        "|---|---|---|---|",
-        f"| Entrenamiento (optimista) | {m['entrenamiento']['mse']:.3f} | {m['entrenamiento']['mae']:.3f} | {m['entrenamiento']['r2']:.3f} |",
-        f"| Validación cruzada ({n_particiones} particiones) | {cv['mse']:.3f} | {cv['mae']:.3f} | {cv['r2']:.3f} |",
-        f"| Validación cruzada con Ridge (comparación) | {ridge['mse']:.3f} | {ridge['mae']:.3f} | {ridge['r2']:.3f} |",
+        f"Métricas de ranking (lo que más importa para recomendar): NDCG@{K_RANKING} vale 1 si las {K_RANKING} primeras "
+        f"según el modelo son las {K_RANKING} mejores según Gemini y en ese orden, y pesa más acertar arriba; "
+        f"Precisión@{K_RANKING} es la fracción de las {K_RANKING} primeras que están entre las {K_RANKING} mejores "
+        "(con empates en el corte entran todas las empatadas); ρ de Spearman compara el orden completo. "
+        "La línea base no ordena: sus valores son los esperados con un orden al azar.",
+        "",
+        *encabezado_tabla,
+        fila("Entrenamiento (optimista)", m["entrenamiento"]),
+        fila(f"Validación cruzada ({n_particiones} particiones)", cv),
+        fila("Validación cruzada con Ridge (comparación)", ridge),
         fila("Validación cruzada, modelo de reglas en dos etapas", completo),
-        f"| Línea base (promedio) | {m['linea_base_promedio']['mse']:.3f} | {m['linea_base_promedio']['mae']:.3f} | {m['linea_base_promedio']['r2']:.3f} |",
+        fila("Línea base (promedio)", m["linea_base_promedio"]),
         "",
         "## Modelo de reglas en dos etapas",
         "",
@@ -283,8 +291,7 @@ def guardar_analisis(nombre_perfil, resultado, pred_cv, pred_ridge, pred_base, n
         "",
         "### Etapa 2 por separado: ¿cuánto de la nota global explican los puntajes de Gemini?",
         "",
-        "| Modelo | MSE | MAE | R² |",
-        "|---|---|---|---|",
+        *encabezado_tabla,
         fila("Regla con condiciones", mr["etapa_2_regla"]),
         fila("Regresión lineal sobre los puntajes", mr["etapa_2_lineal"]),
         fila("Línea base (promedio)", mr["etapa_2_linea_base"]),
@@ -298,8 +305,8 @@ def guardar_analisis(nombre_perfil, resultado, pred_cv, pred_ridge, pred_base, n
         "Cómo se resumen los chunks de reseñas de cada película antes de la etapa 1: promedio (el actual), "
         "percentil de cada dimensión del embedding, o promedio más los percentiles 50/75/90/máximo de la "
         "similitud de los chunks con cada término del perfil. Las reseñas se toman en orden de likes. "
-        f"Promedios de {len(SEMILLAS_REPETICIONES)} repeticiones con particiones distintas; Δ MAE es la diferencia con "
-        f"«{pooling.nombre('media', None)}» en las mismas particiones (negativa = mejor).",
+        f"Promedios de {len(SEMILLAS_REPETICIONES)} repeticiones con particiones distintas; los Δ son la diferencia con "
+        f"«{pooling.nombre('media', None)}» en las mismas particiones (NDCG@{K_RANKING}: positiva = mejor; MAE: negativa = mejor).",
         "",
         tabla_markdown(comparacion, 3),
         "",
@@ -309,8 +316,9 @@ def guardar_analisis(nombre_perfil, resultado, pred_cv, pred_ridge, pred_base, n
             "Para los criterios con frases_resenia, la etapa 1 recibe además (o en vez del embedding promedio) "
             "la fracción de chunks de cada película muy similares a cada frase (sobre el percentil 95 de todos los chunks) "
             "y el percentil 90 de esa similitud. Los controles usan lo mismo pero solo con la descripción del perfil. "
-            f"Promedios de {len(SEMILLAS_REPETICIONES)} repeticiones con particiones distintas; Δ MAE es la diferencia con el modelo "
-            "sin frases en las mismas particiones (negativa = mejor) y su desviación indica cuánto varía entre repeticiones.",
+            f"Promedios de {len(SEMILLAS_REPETICIONES)} repeticiones con particiones distintas; los Δ son la diferencia con el "
+            f"modelo sin frases en las mismas particiones (NDCG@{K_RANKING}: positiva = mejor; MAE: negativa = mejor) y su "
+            "desviación indica cuánto varían entre repeticiones.",
             "",
             tabla_markdown(frases_comparacion, 3),
             "",
@@ -430,12 +438,16 @@ def main():
     ridge = m[f"validacion_cruzada_ridge_{n_particiones}_particiones"]
     print(f"R² validación cruzada: {cv['r2']:.3f} | con Ridge: {ridge['r2']:.3f} (MAE {ridge['mae']:.3f})")
     completo = m[f"reglas_dos_etapas_{n_particiones}_particiones"]
-    print(f"Modelo de reglas en dos etapas: MAE {completo['mae']:.3f} | R² {completo['r2']:.3f}")
+    print(f"Modelo de reglas en dos etapas: MAE {completo['mae']:.3f} | R² {completo['r2']:.3f} "
+          f"| NDCG@{K_RANKING} {completo[f'ndcg@{K_RANKING}']:.3f} | Precisión@{K_RANKING} {completo[f'precision@{K_RANKING}']:.3f} "
+          f"| ρ {completo['spearman']:.3f}")
+    ndcg = f"NDCG@{K_RANKING}"
     mejor = comparacion.iloc[0]
-    print(f"Mejor pooling: {mejor['representacion']} (MAE {mejor['MAE']:.3f} | R² {mejor['R²']:.3f})")
+    print(f"Mejor pooling según {ndcg}: {mejor['representacion']} ({ndcg} {mejor[ndcg]:.3f} | MAE {mejor['MAE']:.3f})")
     if frases[0] is not None:
         mejor = frases[0].iloc[0]
-        print(f"Mejor variante con frases de reseña: {mejor['representacion']} (MAE {mejor['MAE']:.3f} | R² {mejor['R²']:.3f})")
+        print(f"Mejor variante con frases de reseña según {ndcg}: {mejor['representacion']} "
+              f"({ndcg} {mejor[ndcg]:.3f} | MAE {mejor['MAE']:.3f})")
     print(f"Tiempo total: {time.time() - inicio_total:.1f} s")
     print(f"\nDatos de análisis guardados en: {carpeta}")
     for archivo in sorted(carpeta.iterdir()):
