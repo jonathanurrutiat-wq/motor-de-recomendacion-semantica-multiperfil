@@ -178,6 +178,12 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
     * La opción 9 compara el modelo de reglas con la regresión lineal anterior (`nota_modelo` y `nota_lineal` en `ranking.csv` y `peliculas.csv`) y lista las películas peor predichas por el modelo de reglas.
 
+    * Las métricas del modelo de reglas son el promedio de 10 repeticiones de la validación cruzada, con su desviación: el ρ de una sola partición varía ~±0,05 con ~100 películas.
+
+* Resultados (validación cruzada, promedio de 10 repeticiones)
+
+    * Con e5, el modelo de las opciones 7 y 8 ordena las películas con ρ 0,674 ± 0,026 (0,667 sin frases de reseña; la regresión lineal anterior, 0,55) y se equivoca en la nota en 0,58 puntos (MAE; 0,82 prediciendo siempre el promedio). Con MiniLM, ρ 0,605; con mpnet-base, 0,651.
+
 ### [1.3.0] - 26-09-2026
 > e5 como modelo de embeddings por defecto y métricas de ranking.
 
