@@ -231,3 +231,6 @@ src/db/filtered/result/filtrado_reviews_*.csv
 
 # Datos de análisis generados por la opción 9
 analisis/
+
+# Embeddings de modelos alternativos (MODELO_EMBEDDINGS)
+src/db/embeddings/chroma_*/

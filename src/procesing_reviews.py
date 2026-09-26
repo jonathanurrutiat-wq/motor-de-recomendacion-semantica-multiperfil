@@ -7,7 +7,7 @@ import semchunk
 import torch
 from sentence_transformers import SentenceTransformer
 
-from config import DIR_CHROMA, DIR_FILTRADOS, EMBEDDING_MODEL_NAME
+from config import DIR_CHROMA, DIR_FILTRADOS, EMBEDDING_MODEL_NAME, PREFIJO_EMBEDDINGS
 
 NOMBRE_COLECCION = "resenias"
 TAMANO_TANDA_CHROMA = 5000
@@ -97,7 +97,7 @@ def crear_embeddings_resenias(resenias_chunkeadas: list[dict], model: SentenceTr
     if not todos_los_chunks:
         return []
     print(f"Codificando {len(todos_los_chunks)} chunks de {len(entradas)} reseñas...")
-    vectores = np.asarray(model.encode(todos_los_chunks, batch_size=64, show_progress_bar=True), dtype="float32")
+    vectores = np.asarray(model.encode([PREFIJO_EMBEDDINGS + chunk for chunk in todos_los_chunks], batch_size=64, show_progress_bar=True), dtype="float32")
 
     resultado, inicio = [], 0
     for entrada in entradas:

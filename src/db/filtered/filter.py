@@ -1,3 +1,4 @@
+import os
 import sqlite3
 from contextlib import closing
 from datetime import datetime
@@ -8,7 +9,8 @@ import pandas as pd
 DEFAULT_VALUE = float(0.0)
 
 MIN_CARACTERES_RESENIA = 100
-MAX_RESENIAS_POR_PELICULA = 200
+# Se puede cambiar con la variable de entorno MAX_RESENIAS_POR_PELICULA (ej. para modelos lentos).
+MAX_RESENIAS_POR_PELICULA = int(os.environ.get("MAX_RESENIAS_POR_PELICULA", 200))
 # Con pocas reseñas, el embedding promedio de la película es demasiado ruidoso.
 MIN_RESENIAS_POR_PELICULA = 20
 

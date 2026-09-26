@@ -20,7 +20,7 @@ from sklearn.model_selection import KFold
 
 import src.procesing_profiles as procesamiento_perfiles
 import src.procesing_reviews as procesamiento_resenias
-from src.config import DIR_ANALISIS, DIR_CHROMA, RUTA_GT
+from src.config import DIR_ANALISIS, DIR_CHROMA, EMBEDDING_MODEL_NAME, RUTA_GT, SLUG_MODELO
 from src.db.filtered import filter as filtro
 from src.loss.gt_matrix_pipeline import main as revisar_pendientes
 from src.loss.ingest_maestro import main as cargar_verdad_base
@@ -88,7 +88,7 @@ def tabla_markdown(df: pd.DataFrame, decimales: int = 2) -> str:
 
 
 def guardar_analisis(nombre_perfil, resultado, pred_cv, pred_ridge, pred_base, n_particiones, ranking, reglas, comparacion, tiempos):
-    carpeta = DIR_ANALISIS / datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    carpeta = DIR_ANALISIS / f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}_{SLUG_MODELO}"
     carpeta.mkdir(parents=True, exist_ok=True)
 
     estructura, modelo = resultado["estructura"], resultado["modelo"]
@@ -143,6 +143,7 @@ def guardar_analisis(nombre_perfil, resultado, pred_cv, pred_ridge, pred_base, n
     resumen = {
         "fecha": datetime.now().isoformat(timespec="seconds"),
         "perfil": nombre_perfil,
+        "modelo_embeddings": EMBEDDING_MODEL_NAME,
         "parametros_filtrado": {
             "min_caracteres_resenia": filtro.MIN_CARACTERES_RESENIA,
             "max_resenias_por_pelicula": filtro.MAX_RESENIAS_POR_PELICULA,
@@ -185,7 +186,7 @@ def guardar_analisis(nombre_perfil, resultado, pred_cv, pred_ridge, pred_base, n
     lineas = [
         f"# Análisis del modelo — perfil {nombre_perfil}",
         "",
-        f"Generado el {resumen['fecha']}.",
+        f"Generado el {resumen['fecha']} con el modelo de embeddings `{EMBEDDING_MODEL_NAME}`.",
         "",
         "## Datos",
         "",

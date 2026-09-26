@@ -1,9 +1,10 @@
 name: Análisis completo (opción 9)
 
-# Corre el pipeline completo con embeddings reales y publica los datos de
-# análisis en la rama resultados-analisis. Las reseñas se toman del release
-# en borrador "datos-resenas" (solo visible para quienes tienen permiso de
-# escritura) y nunca se suben al repositorio.
+# Corre el pipeline completo con embeddings reales, una vez por cada modelo de
+# embeddings de la matriz (en paralelo), y publica los datos de análisis en la
+# rama resultados-analisis. Las reseñas se toman del release en borrador
+# "datos-resenas" (solo visible para quienes tienen permiso de escritura) y
+# nunca se suben al repositorio.
 on:
   workflow_dispatch:
   push:
@@ -13,14 +14,32 @@ on:
 permissions:
   contents: write
 
-concurrency:
-  group: analisis
-  cancel-in-progress: false
-
 jobs:
   analisis:
+    name: analisis (${{ matrix.modelo }})
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 330
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Modelo actual; recupera el caché de la versión anterior del workflow.
+          - modelo: sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+            max_resenias: 200
+            cache_anterior: embeddings-
+          # Modelos ~3 veces más lentos: hasta 100 reseñas por película (con MiniLM rinde igual que 200).
+          - modelo: sentence-transformers/paraphrase-multilingual-mpnet-base-v2
+            max_resenias: 100
+            cache_anterior: ""
+          - modelo: intfloat/multilingual-e5-base
+            max_resenias: 100
+            cache_anterior: ""
+    concurrency:
+      group: analisis-${{ matrix.modelo }}
+      cancel-in-progress: false
+    env:
+      MODELO_EMBEDDINGS: ${{ matrix.modelo }}
+      MAX_RESENIAS_POR_PELICULA: ${{ matrix.max_resenias }}
     steps:
       - uses: actions/checkout@v4
 
@@ -60,18 +79,20 @@ jobs:
         run: |
           mkdir -p src/db/profiles
           cp src/db/profiles/perfiles.ejemplo.json src/db/profiles/perfiles.json
-          rm -rf src/db/embeddings/chroma
+          rm -rf src/db/embeddings/chroma*
 
       # Reutiliza los embeddings de corridas anteriores si no cambiaron las
-      # reseñas ni el código que las filtra y vectoriza (evita ~1 hora de cómputo).
-      # El caché es privado del repositorio: no se puede descargar desde fuera.
+      # reseñas, el modelo ni la cantidad de reseñas por película (evita horas de
+      # cómputo). Si se cambia cómo se filtran o se chunkean las reseñas, subir
+      # la versión (v1) de la clave. El caché es privado del repositorio.
       - name: Restaurar embeddings de corridas anteriores
         uses: actions/cache@v4
         with:
           path: |
-            src/db/embeddings/chroma
+            src/db/embeddings
             src/db/filtered/result
-          key: embeddings-${{ steps.datos.outputs.huella }}-${{ hashFiles('src/db/filtered/filter.py', 'src/procesing_reviews.py', 'src/config.py') }}
+          key: embeddings-v1-${{ matrix.modelo }}-${{ matrix.max_resenias }}-${{ steps.datos.outputs.huella }}
+          restore-keys: ${{ matrix.cache_anterior && format('{0}{1}-', matrix.cache_anterior, steps.datos.outputs.huella) || '' }}
 
       - name: Verificar la integridad de la base de reseñas
         run: |
@@ -120,4 +141,10 @@ jobs:
           cd /tmp/resultados
           git add analisis
           git commit -q -m "Análisis de $(basename "$carpeta") (commit ${GITHUB_SHA::7})"
-          git push origin resultados-analisis
+          # Los modelos corren en paralelo: si otro publicó antes, se integra y se reintenta.
+          for intento in 1 2 3 4 5; do
+            git push origin resultados-analisis && exit 0
+            git fetch --depth=10 origin resultados-analisis && git rebase FETCH_HEAD
+            sleep $((intento * 5))
+          done
+          exit 1

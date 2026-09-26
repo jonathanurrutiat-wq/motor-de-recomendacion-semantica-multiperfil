@@ -6,7 +6,7 @@ import torch
 from langchain_core.documents import Document
 from sentence_transformers import SentenceTransformer
 
-from config import DIR_CHROMA, EMBEDDING_MODEL_NAME
+from config import DIR_CHROMA, EMBEDDING_MODEL_NAME, PREFIJO_EMBEDDINGS
 from config import RUTA_PERFILES as ARCHIVO_PERFILES
 from profiles import buscar_perfil
 
@@ -98,7 +98,7 @@ def extraer_textos(documentos: list[Document]) -> list[str]:
 
 
 def crear_embeddings(textos: list[str], model: SentenceTransformer) -> np.ndarray:
-    embeddings = model.encode(textos)
+    embeddings = model.encode([PREFIJO_EMBEDDINGS + texto for texto in textos])
     return np.asarray(embeddings, dtype="float32")
 
 
