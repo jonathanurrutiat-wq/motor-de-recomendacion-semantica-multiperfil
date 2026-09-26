@@ -54,7 +54,7 @@ def distribucion_verdad_base():
     der.barh(np.array(nombres)[orden], np.array(cantidad)[orden], color=NARANJA, height=0.6)
     for i, v in enumerate(np.array(cantidad)[orden]):
         der.text(v + 0.4, i, str(v), va="center", fontsize=8, color=TINTA)
-    der.set(xlabel="Películas con puntaje ≥ 6", title="Filtros que aplican con fuerza")
+    der.set(xlabel="Películas con puntaje de Gemini ≥ 6", ylabel="Filtro del perfil", title="Filtros que aplican con fuerza")
     der.grid(axis="y", visible=False)
     figura.tight_layout()
     guardar(figura, "distribucion_verdad_base")
@@ -78,13 +78,13 @@ def modelos():
         eje.text(f[1] + f[2] + 0.01, i + 0.18, f"{f[1]:.3f}", va="center", fontsize=8, color=TINTA)
         eje.text(f[3] + 0.01, i - 0.18, f"{f[3]:.3f}", va="center", fontsize=8, color=TINTA)
     eje.set_yticks(y, [f[0] for f in filas])
-    eje.set(xlim=(0, 0.8), xlabel="ρ de Spearman (validación cruzada)")
+    eje.set(xlim=(0, 0.8), xlabel="ρ de Spearman con el orden de Gemini (validación cruzada)", ylabel="Modelo de embeddings")
     eje.grid(axis="y", visible=False)
     eje.legend(loc="lower center", bbox_to_anchor=(0.45, 1.0), ncol=1, fontsize=8)
     guardar(figura, "modelos")
 
 
-def deltas(clave_archivo, referencia, titulo, nombre, etiquetas=None, limite=None):
+def deltas(clave_archivo, referencia, titulo, nombre, etiquetas=None, limite=None, eje_y=""):
     # Misma escala en los tres paneles para poder compararlos.
     figura, ejes = plt.subplots(1, 3, figsize=(6.6, 2.9 if limite is None else 2.3), sharey=True, sharex=True)
     signos = set()
@@ -107,7 +107,10 @@ def deltas(clave_archivo, referencia, titulo, nombre, etiquetas=None, limite=Non
         eje.invert_yaxis()
         if limite:
             eje.set_xlim(*limite)
-    ejes[1].set_xlabel(f"Δ ρ de Spearman contra «{titulo}» (media ± desv. de 10 repeticiones)")
+    # Eje x compartido por los tres paneles.
+    figura.supxlabel(f"Δ ρ de Spearman contra «{titulo}» (media ± desv. de 10 repeticiones)", fontsize=9,
+                     y=0.02 if limite is None else 0.06)
+    ejes[0].set_ylabel(eje_y)
     from matplotlib.lines import Line2D
     from matplotlib.patches import Patch
     # Solo los colores que aparecen en el gráfico.
@@ -129,7 +132,8 @@ def pooling():
         for cantidad, sufijo in [("todas las reseñas", "todas"), ("hasta 100 reseñas", "100"), ("hasta 50 reseñas", "50")]:
             etiquetas[f"{estrategia}, {cantidad}"] = f"{corto}, {sufijo}"
     etiquetas.pop("promedio, todas las reseñas")
-    deltas("pooling", "promedio, todas las reseñas", "promedio, todas", "pooling", etiquetas)
+    deltas("pooling", "promedio, todas las reseñas", "promedio, todas", "pooling", etiquetas,
+           eje_y="Pooling, reseñas por película")
 
 
 def frases():
@@ -138,7 +142,8 @@ def frases():
                  "solo frases de reseña": "solo frases",
                  "promedio + descripción (control)": "descripción concatenada",
                  "solo descripción (control)": "solo descripción"}
-    deltas("frases_resenia", "promedio (sin frases)", "sin frases", "frases", etiquetas, limite=(-0.025, 0.03))
+    deltas("frases_resenia", "promedio (sin frases)", "sin frases", "frases", etiquetas, limite=(-0.025, 0.03),
+           eje_y="Uso de las frases")
 
 
 def etapa_1():
@@ -161,7 +166,8 @@ def etapa_1():
         eje.text(max(f[2], 0) + 0.012, i, f"{f[2]:.2f}", va="center", fontsize=7.5, color=TINTA)
     eje.set_yticks(y, [f[0] for f in filas])
     eje.axvline(0, color=REFERENCIA, linewidth=0.8)
-    eje.set(xlabel="R² de la etapa 1 (validación cruzada, e5)", xlim=(-0.05, 0.7))
+    eje.set(xlabel="R² de la etapa 1: puntaje predicho desde reseñas vs. Gemini (validación cruzada, e5)",
+            ylabel="Criterio del perfil", xlim=(-0.05, 0.7))
     eje.grid(axis="y", visible=False)
     from matplotlib.lines import Line2D
     from matplotlib.patches import Patch
@@ -227,7 +233,7 @@ def sondas():
     eje.set_yticks(y, [f[0] for f in filas])
     eje.invert_yaxis()
     eje.axvline(0, color=REFERENCIA, linewidth=0.8)
-    eje.set(xlabel="ρ de Spearman con el puntaje de Gemini del filtro", xlim=(-0.1, 0.65))
+    eje.set(xlabel="ρ de Spearman con el puntaje de Gemini del filtro", ylabel="Filtro del perfil", xlim=(-0.1, 0.65))
     eje.grid(axis="y", visible=False)
     eje.legend(loc="lower center", bbox_to_anchor=(0.5, 1.0), ncol=2, fontsize=7.5)
     guardar(figura, "sondas")
