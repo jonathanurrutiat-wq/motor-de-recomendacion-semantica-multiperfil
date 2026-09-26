@@ -1,0 +1,134 @@
+{
+ "sesgo": 3.736198855358136,
+ "afinidades": [
+  {
+   "criterio": "Resistencia Femenina",
+   "gemini": 2.0,
+   "predicho": 7.049411296844482,
+   "peso": 0.09741922720884036,
+   "aporte": 0.6867482008158586
+  },
+  {
+   "criterio": "Contemplación Inmersiva",
+   "gemini": 6.0,
+   "predicho": 6.993649005889893,
+   "peso": 0.1064639063012309,
+   "aporte": 0.7445711924667582
+  },
+  {
+   "criterio": "Ternura y Empatía Radical",
+   "gemini": 2.0,
+   "predicho": 7.17710542678833,
+   "peso": 0.15191808195667605,
+   "aporte": 1.090332090438534
+  },
+  {
+   "criterio": "Humanismo Social",
+   "gemini": 3.0,
+   "predicho": 6.211766242980957,
+   "peso": 0.12725912365041378,
+   "aporte": 0.7905039284029799
+  },
+  {
+   "criterio": "Vanguardia y Simbolismo",
+   "gemini": 6.0,
+   "predicho": 6.297427654266357,
+   "peso": 0.19994632169153922,
+   "aporte": 1.2591474955891364
+  }
+ ],
+ "filtros": [
+  {
+   "criterio": "Camaradería Masculina Rancia",
+   "gemini": 9.0,
+   "gemini_excepcion": 1.0,
+   "predicho": 0.2658237688189346,
+   "excepcion_predicha": 0.10696451365947723,
+   "umbral": 4.919625090539898,
+   "desplome": 0.05405858174313049,
+   "activacion": 0.0008294396864955025,
+   "descuento": 4.483833309341365e-05
+  },
+  {
+   "criterio": "Insoportabilidad Prolongada",
+   "gemini": 8.0,
+   "gemini_excepcion": 0.0,
+   "predicho": 2.9969001290442376,
+   "excepcion_predicha": 0.3623230755329132,
+   "umbral": 5.634867233841605,
+   "desplome": 1.6795423632101039,
+   "activacion": 0.011964456451450866,
+   "descuento": 0.02009481146299416
+  },
+  {
+   "criterio": "Control Emocional Artificial",
+   "gemini": 3.0,
+   "gemini_excepcion": 0.0,
+   "predicho": 2.9331881094882544,
+   "excepcion_predicha": 0.0,
+   "umbral": 8.775399258230088,
+   "desplome": 2.1584842977207517,
+   "activacion": 0.00015634068151183252,
+   "descuento": 0.0003374589061382515
+  },
+  {
+   "criterio": "Personajes Diorama",
+   "gemini": 4.0,
+   "gemini_excepcion": 0.0,
+   "predicho": 3.2882326302971006,
+   "excepcion_predicha": 0.006618215702474117,
+   "umbral": 7.071865352896566,
+   "desplome": 0.6545705434714182,
+   "activacion": 0.003394792769623196,
+   "descuento": 0.0022221313481850962
+  },
+  {
+   "criterio": "Caos Asfixiante",
+   "gemini": 0.0,
+   "gemini_excepcion": 0.0,
+   "predicho": 0.0,
+   "excepcion_predicha": 0.0024120211601257324,
+   "umbral": 2.204833351681845,
+   "desplome": 0.24039894336957088,
+   "activacion": 0.03523810587501305,
+   "descuento": 0.008471203418698205
+  }
+ ],
+ "nota_modelo": 8.276331481488516,
+ "nota_gemini": 5.0,
+ "n_chunks": 287,
+ "n_resenias": 100,
+ "frases_insoportabilidad": [
+  {
+   "texto": "descripción",
+   "fraccion_manhattan": 0.020905923344947737,
+   "fraccion_mediana": 0.03829787234042553,
+   "percentil_manhattan": 25.742574257425744
+  },
+  {
+   "texto": "the main character is insufferable, arrogant and smug",
+   "fraccion_manhattan": 0.07317073170731707,
+   "fraccion_mediana": 0.045576407506702415,
+   "percentil_manhattan": 85.14851485148515
+  },
+  {
+   "texto": "I couldn't stand the protagonist, he is a pretentious narcissist and a creep",
+   "fraccion_manhattan": 0.11498257839721254,
+   "fraccion_mediana": 0.04185022026431718,
+   "percentil_manhattan": 95.04950495049505
+  },
+  {
+   "texto": "an unlikable, annoying character you have to spend the whole movie with",
+   "fraccion_manhattan": 0.05574912891986063,
+   "fraccion_mediana": 0.046511627906976744,
+   "percentil_manhattan": 65.34653465346535
+  },
+  {
+   "texto": "un protagonista insoportable, arrogante y pedante",
+   "fraccion_manhattan": 0.0627177700348432,
+   "fraccion_mediana": 0.04105571847507331,
+   "percentil_manhattan": 67.32673267326733
+  }
+ ],
+ "cv_nota": 8.320223407011591
+}
