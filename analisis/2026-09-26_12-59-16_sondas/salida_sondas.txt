@@ -1,0 +1,10 @@
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Cargando chunks de /home/runner/work/motor-de-recomendacion-semantica-multiperfil/motor-de-recomendacion-semantica-multiperfil/src/db/embeddings/chroma...
+106021 chunks; 101 películas evaluadas con reseñas.
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 3597.22it/s]
+Camaradería Masculina Rancia: mejor ρ = 0.08 (sonda 3: humor machista y sexista, las mujeres son, percentil 90)
+Insoportabilidad Prolongada: mejor ρ = 0.53 (sonda 2: I couldn't stand the protagonist, he is a, fracción sobre p95)
+Control Emocional Artificial: mejor ρ = 0.40 (sonda 4: Oscar bait designed to make you cry, percentil 90)
+Personajes Diorama: mejor ρ = 0.28 (sonda 2: style over substance, the characters feel, fracción sobre p95)
+Caos Asfixiante: mejor ρ = 0.30 (descripción del perfil, fracción sobre p95)
+Resultados en /home/runner/work/motor-de-recomendacion-semantica-multiperfil/motor-de-recomendacion-semantica-multiperfil/analisis/2026-09-26_12-59-16_sondas
