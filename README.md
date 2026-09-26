@@ -81,7 +81,7 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
     * `similitud_perfil.csv`: similitud entre los términos del perfil.
     * `ranking.csv`: ranking completo de recomendaciones, con la nota de la regresión lineal y la del modelo de reglas.
     * `reglas.json`: reglas y parámetros aprendidos por el modelo de reglas, con sus métricas por etapa y por criterio.
-    * `pooling.csv`: comparación, con el modelo de reglas y validación cruzada, de formas de resumir los chunks de reseñas de cada película (`src/pooling.py`): promedio, percentil 50, 75, 90 o 95 de cada dimensión del embedding, o promedio más los percentiles 50/75/90/máximo de la similitud de los chunks con cada término del perfil; cada una con las 50, 100 o todas las reseñas con más likes, con 5 repeticiones de la validación cruzada. No requiere recalcular embeddings. La opción 9 informa, además del error de la nota (MAE), métricas de ranking: NDCG@10 y precisión@10 (si las 10 primeras según el modelo son las mejores según Gemini) y ρ de Spearman (orden completo).
+    * `pooling.csv`: comparación, con el modelo de reglas y validación cruzada, de formas de resumir los chunks de reseñas de cada película (`src/pooling.py`): promedio, percentil 50, 75, 90 o 95 de cada dimensión del embedding, o promedio más los percentiles 50/75/90/máximo de la similitud de los chunks con cada término del perfil; cada una con las 50, 100 o todas las reseñas con más likes, con 10 repeticiones de la validación cruzada. No requiere recalcular embeddings. La opción 9 usa como métrica principal ρ de Spearman (qué tan parecido es el orden de las películas al de Gemini), e informa además NDCG@10, precisión@10 y el error de la nota (MAE).
 
     La opción 9 también se puede ejecutar en GitHub Actions con el workflow `.github/workflows/analisis.yml`, útil cuando no se tiene GPU o no se puede descargar el modelo de embeddings. Toma las reseñas del `.zip` adjunto al release en borrador `datos-resenas` (un borrador solo lo ven quienes tienen permiso de escritura en el repositorio), usa `perfiles.ejemplo.json` como perfil, parte de una base de embeddings vacía y publica la carpeta `analisis/` y el log completo en la rama `resultados-analisis`. Se lanza desde la pestaña *Actions* ("Run workflow", una vez que el archivo esté en la rama principal), al modificar el propio archivo del workflow, el perfil de ejemplo o el código de análisis (`analisis.py`, `modelo_reglas.py`, `pooling.py`). Corre en paralelo con tres modelos de embeddings (MiniLM, mpnet-base y e5-base). La primera vez tarda cerca de una hora (casi todo en generar los embeddings); los embeddings quedan en el caché de Actions, así que las siguientes corridas tardan unos minutos mientras no cambien las reseñas ni `filter.py`, `procesing_reviews.py` o `config.py`.
 
@@ -175,15 +175,23 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
     * Variable de entorno `POOLING_RESENIAS` para elegir cómo se resumen las reseñas de cada película (`media` por defecto, o `pXX`). El modelo guardado por la opción 7 recuerda con cuál se entrenó y la opción 8 usa el mismo.
 
-    * Métricas de ranking en la opción 9 (`src/metricas.py`): NDCG@10, precisión@10 y ρ de Spearman, además del MAE. Las comparaciones de pooling y de frases se ordenan por NDCG@10.
+    * Métricas de ranking en la opción 9 (`src/metricas.py`): ρ de Spearman como métrica principal, más NDCG@10 y precisión@10, además del MAE. Las comparaciones de pooling y de frases se ordenan por ρ, con su diferencia contra la referencia en las mismas particiones y en cuántas de 10 repeticiones la superan.
 
     * El workflow de análisis publica la base de embeddings de e5 en el release en borrador, una vez por cada versión de las reseñas.
 
-* Resultados (modelo de reglas, promedio de 5 repeticiones; con un orden al azar NDCG@10 0,78, precisión@10 0,13 y ρ 0)
+* Resultados con ρ de Spearman como métrica principal (modelo de reglas, promedio de 10 repeticiones de la validación cruzada; con un orden al azar ρ = 0)
 
-    * MiniLM: NDCG@10 0,929, precisión@10 0,28, ρ 0,60. mpnet-base: 0,938, 0,28, 0,64. e5-base: 0,937, 0,30, 0,66. e5 ordena mejor el conjunto completo (ρ) y es el que menos se equivoca en la nota.
+    * Modelos de embeddings: MiniLM ρ 0,60 (0,62 con 100 reseñas por película, que ordena mejor que 200 en las 10 repeticiones), mpnet-base 0,64 y e5-base 0,67.
 
-    * Con e5, ningún pooling ordena mejor que el promedio (el mejor percentil queda en −0,000 de NDCG@10). Con MiniLM el percentil 95 sube NDCG@10 en 0,015 a 0,023, pero no se repite con los otros modelos. Las frases de reseña no mejoran el ranking con ningún modelo.
+    * Con e5 ningún pooling ordena mejor que el promedio: los percentiles 50 y 90 empatan (Δ ρ ±0,001) y el 75 y el 95 empeoran.
+
+    * Con e5, las frases de reseña mejoran el orden en las 10 repeticiones: ρ 0,665 → 0,678 usando solo los rasgos de frases para los filtros, y 0,674 ponderadas junto al embedding (que además baja el MAE de 0,586 a 0,581). El control con solo la descripción sube menos (0,672). Con MiniLM y mpnet las frases no superan al control. Las frases se eligieron después de leer reseñas, así que la ganancia puede ser algo optimista.
+
+    * El modelo de reglas ordena mucho mejor que la regresión lineal de las opciones 7 y 8 (con e5, ρ 0,66 contra 0,55; con MiniLM, 0,64 contra 0,46).
+
+* Corregido
+
+    * El workflow de análisis tomaba el primer `.zip` del release: al agregarse la base de embeddings de e5, una corrida descargó esa en vez de `reviews.zip`, quedó sin reseñas y reemplazó la base publicada por una incompleta. Ahora descarga solo el zip de reseñas y no reemplaza una base publicada por otra de menos de la mitad del tamaño.
 
 ### [1.2.0] - 26-09-2026
 > Frases de reseña en el perfil y experimentos sobre los filtros.
