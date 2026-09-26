@@ -169,6 +169,8 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
     * Repetir la validación cruzada con varias particiones muestra que el MAE del modelo de reglas es ~0,63; el 0,608 de una sola partición era optimista.
 
+    * Modelos de embeddings (modelo de reglas, promedio de 5 repeticiones, sin frases): MiniLM (384 dimensiones, 200 reseñas por película) MAE 0,629 y R² 0,29; `paraphrase-multilingual-mpnet-base-v2` (768, 100 reseñas) MAE 0,602 y R² 0,36; `intfloat/multilingual-e5-base` (768, 100 reseñas) MAE 0,592 y R² 0,38, el mejor sobre todo en filtros (R² etapa 1 0,19 contra 0,12). Los modelos grandes tardan unas 3 veces más por chunk en generar embeddings. Se eligen con la variable de entorno `MODELO_EMBEDDINGS`.
+
 ### [1.1.0] - 25-09-2026
 > Ejecución completa del pipeline en un paso y datos para analizar el modelo.
 
