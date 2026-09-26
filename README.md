@@ -152,6 +152,23 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 ## **Changelog (historial de cambios)**
 <small>*Nota: Este changelog está en orden cronológico inverso.*</small>
 
+### [1.2.0] - 26-09-2026
+> Frases de reseña en el perfil y experimentos sobre los filtros.
+
+* Añadido
+
+    * Campo opcional `frases_resenia` en cada filtro y afinidad del perfil: frases como las escribiría alguien en Letterboxd (ej. "Oscar bait designed to make you cry"). Se editan en la opción 1, la opción 3 las vectoriza y la opción 9 compara el modelo de reglas con y sin ellas (`frases_resenia.csv`), repitiendo con 5 particiones distintas. El perfil de ejemplo trae frases para sus 5 filtros.
+
+    * `src/experimentos/sondas_filtros.py` (workflow `sondas.yml`): mide qué tan bien detecta cada filtro su descripción y distintas frases sonda, con la correlación de Spearman entre la fracción de chunks muy similares y el puntaje de Gemini. Solo publica números e ids de chunks.
+
+* Resultados (MiniLM, 101 películas)
+
+    * Las frases detectan mejor los filtros que la descripción, escrita en otro registro: Insoportabilidad ρ 0,53 contra 0,39; Control Emocional 0,40 contra −0,04; Diorama 0,28 contra 0,03. En Caos gana la descripción (0,30) y Camaradería no se puede aprender (una sola película con nota ≥ 6).
+
+    * Agregadas al embedding en la etapa 1, suben el R² de los filtros de 0,119 a 0,135 (Insoportabilidad de 0,14 a 0,18), pero la nota global casi no cambia: MAE −0,003 ± 0,002 en 5 repeticiones. Usar solo las frases o darles más peso empeora el resultado. El modelo de reglas principal sigue sin frases.
+
+    * Repetir la validación cruzada con varias particiones muestra que el MAE del modelo de reglas es ~0,63; el 0,608 de una sola partición era optimista.
+
 ### [1.1.0] - 25-09-2026
 > Ejecución completa del pipeline en un paso y datos para analizar el modelo.
 
