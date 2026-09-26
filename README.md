@@ -11,6 +11,10 @@
 Este proyecto consiste en el desarrollo de un sistema híbrido de recomendación cinematográfica diseñado para superar las limitaciones de los algoritmos de filtrado colaborativo tradicionales. En lugar de basarse en metadatos genéricos o calificaciones numéricas masivas, el sistema evalúa obras cinematográficas analizando semánticamente cientos de reseñas críticas (texto libre) y contrastándolas contra un perfil de usuario dinámico y estructurado en lenguaje natural.
 La arquitectura es genérica: el modelo no está rígidamente programado para un solo usuario, sino que recibe el "Perfil Cinéfilo" como una entrada de datos (input), permitiendo procesar las preferencias de múltiples usuarios (Multiperfil).
 
+## **Documentación**
+
+* [`docs/informe/informe.pdf`](docs/informe/informe.pdf): informe del pipeline completo, con la estrategia elegida y la descartada en cada paso, un ejemplo guiado (*Manhattan*), cómo ejecutarlo, resultados con tablas y gráficos, observaciones y pasos propuestos. Se regenera con `python docs/informe/figuras.py`, `python docs/informe/tablas.py` y `latexmk -pdf informe.tex` desde `docs/informe/`.
+
 ## **¿Cómo ejecutar el programa?**
 
 * Instalar las dependencias (idealmente dentro de un entorno virtual):
@@ -166,6 +170,19 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
 ## **Changelog (historial de cambios)**
 <small>*Nota: Este changelog está en orden cronológico inverso.*</small>
+
+### [1.4.1] - 26-09-2026
+> Informe del pipeline y pruebas automáticas.
+
+* Añadido
+
+    * Informe en LaTeX/PDF (`docs/informe/`), con sus datos agregados y los scripts que generan figuras y tablas.
+
+    * 30 pruebas unitarias con datos sintéticos (`tests/`, se corren con `python -m pytest tests`) y el workflow `tests.yml`, que las ejecuta junto con `pyflakes` en cada push y pull request.
+
+* Resultados
+
+    * Curva de aprendizaje con e5 y frases (validación cruzada, 10 repeticiones): ρ 0,45 con 20 películas de entrenamiento, 0,60 con 40, 0,65 con 61 y 0,675 con 81. Todavía sube, pero cada vez menos.
 
 ### [1.4.0] - 26-09-2026
 > Las opciones 7 y 8 usan el modelo de reglas con frases de reseña.

@@ -1,0 +1,26 @@
+\begin{tabular}{lrcrcrc}
+\toprule
+Variante & \multicolumn{2}{c}{MiniLM} & \multicolumn{2}{c}{mpnet-base} & \multicolumn{2}{c}{e5-base} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}
+ & $\Delta\rho$ & mejora & $\Delta\rho$ & mejora & $\Delta\rho$ & mejora \\
+\midrule
+promedio, todas (elegida) & \multicolumn{2}{c}{$\rho$ = 0.596 (ref.)} & \multicolumn{2}{c}{$\rho$ = 0.644 (ref.)} & \multicolumn{2}{c}{$\rho$ = 0.667 (ref.)} \\
+promedio, 100 & \textbf{+0.021} $\pm$ 0.011 & 10/10 & -0.001 $\pm$ 0.004 & 3/10 & -0.000 $\pm$ 0.002 & 4/10 \\
+promedio, 50 & -0.006 $\pm$ 0.023 & 5/10 & -0.017 $\pm$ 0.012 & 1/10 & -0.008 $\pm$ 0.007 & 1/10 \\
+percentil 50, todas & -0.002 $\pm$ 0.004 & 3/10 & -0.000 $\pm$ 0.006 & 5/10 & +0.000 $\pm$ 0.004 & 5/10 \\
+percentil 50, 100 & \textbf{+0.015} $\pm$ 0.010 & 9/10 & -0.002 $\pm$ 0.006 & 4/10 & +0.000 $\pm$ 0.004 & 6/10 \\
+percentil 50, 50 & -0.013 $\pm$ 0.011 & 1/10 & -0.011 $\pm$ 0.015 & 3/10 & -0.007 $\pm$ 0.006 & 1/10 \\
+percentil 75, todas & -0.005 $\pm$ 0.010 & 4/10 & \textbf{+0.006} $\pm$ 0.005 & 9/10 & -0.020 $\pm$ 0.007 & 0/10 \\
+percentil 75, 100 & +0.008 $\pm$ 0.016 & 6/10 & \textbf{+0.006} $\pm$ 0.005 & 9/10 & -0.020 $\pm$ 0.009 & 0/10 \\
+percentil 75, 50 & -0.003 $\pm$ 0.022 & 5/10 & -0.005 $\pm$ 0.011 & 3/10 & -0.028 $\pm$ 0.013 & 0/10 \\
+percentil 90, todas & +0.001 $\pm$ 0.016 & 5/10 & -0.006 $\pm$ 0.011 & 4/10 & -0.000 $\pm$ 0.013 & 5/10 \\
+percentil 90, 100 & +0.008 $\pm$ 0.024 & 7/10 & -0.005 $\pm$ 0.010 & 5/10 & -0.000 $\pm$ 0.014 & 5/10 \\
+percentil 90, 50 & \textbf{+0.019} $\pm$ 0.016 & 9/10 & -0.020 $\pm$ 0.021 & 2/10 & -0.006 $\pm$ 0.017 & 4/10 \\
+percentil 95, todas & -0.003 $\pm$ 0.020 & 5/10 & -0.008 $\pm$ 0.010 & 3/10 & -0.007 $\pm$ 0.010 & 3/10 \\
+percentil 95, 100 & +0.020 $\pm$ 0.023 & 8/10 & -0.008 $\pm$ 0.009 & 2/10 & -0.007 $\pm$ 0.010 & 3/10 \\
+percentil 95, 50 & \textbf{+0.040} $\pm$ 0.024 & 9/10 & -0.026 $\pm$ 0.025 & 2/10 & -0.028 $\pm$ 0.026 & 2/10 \\
+promedio + sim., todas & +0.003 $\pm$ 0.004 & 7/10 & \textbf{+0.008} $\pm$ 0.003 & 10/10 & -0.007 $\pm$ 0.005 & 0/10 \\
+promedio + sim., 100 & \textbf{+0.021} $\pm$ 0.014 & 10/10 & \textbf{+0.008} $\pm$ 0.003 & 10/10 & -0.007 $\pm$ 0.006 & 1/10 \\
+promedio + sim., 50 & -0.005 $\pm$ 0.016 & 3/10 & -0.010 $\pm$ 0.016 & 2/10 & -0.010 $\pm$ 0.008 & 1/10 \\
+\bottomrule
+\end{tabular}

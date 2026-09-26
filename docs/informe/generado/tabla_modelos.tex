@@ -1,0 +1,16 @@
+\begin{tabular}{llcccc}
+\toprule
+Embeddings & Modelo & $\rho$ Spearman & NDCG@10 & Precisión@10 & MAE \\
+\midrule
+\multirow{3}{*}{MiniLM} & \textbf{Reglas + frases (op.~7 y 8)} & \textbf{0.605} $\pm$ 0.024 & 0.929 & 0.280 & 0.632 \\
+ & Regresión lineal anterior & 0.464 & 0.909 & 0.200 & 0.828 \\
+ & Regresión lineal con Ridge & 0.400 & 0.886 & 0.300 & 0.809 \\ \midrule
+\multirow{3}{*}{mpnet-base} & \textbf{Reglas + frases (op.~7 y 8)} & \textbf{0.651} $\pm$ 0.024 & 0.934 & 0.260 & 0.601 \\
+ & Regresión lineal anterior & 0.598 & 0.906 & 0.200 & 0.891 \\
+ & Regresión lineal con Ridge & 0.605 & 0.906 & 0.300 & 0.745 \\ \midrule
+\multirow{3}{*}{e5-base} & \textbf{Reglas + frases (op.~7 y 8)} & \textbf{0.674} $\pm$ 0.026 & 0.938 & 0.280 & 0.580 \\
+ & Regresión lineal anterior & 0.546 & 0.897 & 0.300 & 0.735 \\
+ & Regresión lineal con Ridge & 0.597 & 0.944 & 0.500 & 0.659 \\ \midrule
+\multicolumn{2}{l}{Orden al azar / predecir el promedio} & 0 & 0.780 & 0.129 & 0.812 \\
+\bottomrule
+\end{tabular}
