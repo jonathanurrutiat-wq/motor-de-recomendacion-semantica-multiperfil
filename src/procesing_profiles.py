@@ -85,6 +85,14 @@ def construir_chunk(perfiles: dict) -> list[Document]:
                         metadata={"persona": perfil, "tipo": "excepcion", "filtro": nombre_filtro},
                     ))
 
+                # Frases en el vocabulario de las reseñas (opcionales), una por documento.
+                for indice, frase in enumerate(datos.get("frases_resenia") or []):
+                    documentos.append(Document(
+                        page_content=frase,
+                        metadata={"persona": perfil, "tipo": "frase_resenia", "filtro": nombre_filtro,
+                                  "categoria": tipo_categoria, "indice": indice},
+                    ))
+
     return documentos
 
 
@@ -119,7 +127,8 @@ def sanitizar_metadata(metadata: dict) -> dict:
 
 def construir_id(documento: Document) -> str:
     meta = documento.metadata
-    return f"{meta['persona']}::{meta['tipo']}::{meta['filtro']}"
+    sufijo = f"::{meta['indice']}" if "indice" in meta else ""
+    return f"{meta['persona']}::{meta['tipo']}::{meta['filtro']}{sufijo}"
 
 
 def obtener_coleccion():

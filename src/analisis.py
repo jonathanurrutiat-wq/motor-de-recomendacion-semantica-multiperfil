@@ -87,7 +87,35 @@ def tabla_markdown(df: pd.DataFrame, decimales: int = 2) -> str:
     return "\n".join(filas)
 
 
-def guardar_analisis(nombre_perfil, resultado, pred_cv, pred_ridge, pred_base, n_particiones, ranking, reglas, comparacion, tiempos):
+def comparar_frases(nombre_perfil, perfil, df_gt, film_ids, chunks):
+    # Modelo de reglas con y sin los rasgos de frases_resenia del perfil. Como
+    # control se usan los mismos rasgos calculados solo con la descripción, para
+    # separar el aporte de las frases del de medir "cuántas reseñas hablan de".
+    coleccion = chromadb.PersistentClient(path=str(DIR_CHROMA)).get_collection("perfiles")
+    textos = pooling.textos_de_criterios(coleccion, nombre_perfil, perfil)
+    if not textos:
+        print("El perfil no tiene frases_resenia; se omite la comparación.")
+        return None, None
+    print(f"Criterios con frases de reseña: {len(textos)} "
+          f"({sum(len(nombres) - 1 for nombres, _ in textos.values())} frases).")
+    promedio = pooling.representar(chunks, film_ids, "media")
+    con_frases = pooling.rasgos_frases(chunks, film_ids, textos)
+    con_descripcion = pooling.rasgos_frases(chunks, film_ids, textos, solo_descripcion=True)
+    variantes = {
+        "promedio (sin frases)": promedio,
+        "promedio + frases de reseña": (promedio, con_frases, "concatenar"),
+        "solo frases de reseña": (promedio, con_frases, "solo_frases"),
+        "promedio + descripción (control)": (promedio, con_descripcion, "concatenar"),
+        "solo descripción (control)": (promedio, con_descripcion, "solo_frases"),
+    }
+    comparacion = comparar_representaciones(perfil, df_gt, film_ids, variantes, N_PARTICIONES)
+    por_criterio = pd.DataFrame({fila.representacion: fila.r2_por_criterio for fila in comparacion.itertuples()})
+    por_criterio = por_criterio.loc[[c for c in textos if c in por_criterio.index]]
+    por_criterio.index = [c.replace("gt_cols_", "").replace("gt_afinidad_", "") for c in por_criterio.index]
+    return comparacion.drop(columns="r2_por_criterio"), por_criterio.rename_axis("criterio").reset_index()
+
+
+def guardar_analisis(nombre_perfil, resultado, pred_cv, pred_ridge, pred_base, n_particiones, ranking, reglas, comparacion, frases, tiempos):
     carpeta = DIR_ANALISIS / f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}_{SLUG_MODELO}"
     carpeta.mkdir(parents=True, exist_ok=True)
 
@@ -133,6 +161,10 @@ def guardar_analisis(nombre_perfil, resultado, pred_cv, pred_ridge, pred_base, n
 
     ranking.to_csv(carpeta / "ranking.csv", index=False, encoding="utf-8")
     comparacion.to_csv(carpeta / "pooling.csv", index=False, encoding="utf-8")
+    frases_comparacion, frases_por_criterio = frases
+    if frases_comparacion is not None:
+        frases_comparacion.to_csv(carpeta / "frases_resenia.csv", index=False, encoding="utf-8")
+        frases_por_criterio.to_csv(carpeta / "frases_resenia_por_criterio.csv", index=False, encoding="utf-8")
     (carpeta / "reglas.json").write_text(json.dumps({
         "reglas": modelo_reglas.regla.describir(), "parametros": modelo_reglas.regla.parametros(),
         "metricas": reglas["metricas"],
@@ -243,6 +275,20 @@ def guardar_analisis(nombre_perfil, resultado, pred_cv, pred_ridge, pred_base, n
         "",
         tabla_markdown(comparacion, 3),
         "",
+        "## Frases de reseña (modelo de reglas, validación cruzada)",
+        "",
+        *(["El perfil no tiene frases_resenia."] if frases_comparacion is None else [
+            "Para los criterios con frases_resenia, la etapa 1 recibe además (o en vez del embedding promedio) "
+            "la fracción de chunks de cada película muy similares a cada frase (sobre el percentil 95 de todos los chunks) "
+            "y el percentil 90 de esa similitud. Los controles usan lo mismo pero solo con la descripción del perfil.",
+            "",
+            tabla_markdown(frases_comparacion, 3),
+            "",
+            "R² de la etapa 1 de cada criterio con frases:",
+            "",
+            tabla_markdown(frases_por_criterio, 3),
+        ]),
+        "",
         "## Variables con más peso (regresión lineal)",
         "",
         tabla_markdown(pesos.head(10), 3),
@@ -261,6 +307,7 @@ def guardar_analisis(nombre_perfil, resultado, pred_cv, pred_ridge, pred_base, n
         "- `pesos.csv`: peso de cada variable de la regresión lineal.",
         "- `reglas.json`: reglas y parámetros aprendidos por el modelo de reglas, con sus métricas.",
         "- `pooling.csv`: comparación de formas de resumir las reseñas y de cuántas usar.",
+        "- `frases_resenia.csv` y `frases_resenia_por_criterio.csv`: comparación con y sin las frases de reseña del perfil.",
         "- `similitud_perfil.csv`: similitud entre los términos del perfil (valores altos entre un filtro y una afinidad indican que el modelo los confunde).",
         "- `ranking.csv`: ranking completo de recomendaciones.",
         "- `resumen.json`: estos datos en formato legible por programas.",
@@ -288,7 +335,7 @@ def main():
         ("Películas pendientes de evaluar (opción 6)", lambda: revisar_pendientes(nombre_perfil)),
         ("Entrenamiento del modelo (opción 7)", lambda: entrenar_y_guardar(nombre_perfil)),
     ]
-    total = len(pasos) + 4
+    total = len(pasos) + 5
     tiempos, inicio_total, resultado = {}, time.time(), None
 
     for numero, (titulo, paso) in enumerate(pasos, 1):
@@ -302,12 +349,12 @@ def main():
         print("\n[!] El entrenamiento no se completó; revisa los mensajes anteriores. No se generó el análisis.")
         return
 
-    encabezado(total - 3, total, f"Validación cruzada de la regresión lineal ({N_PARTICIONES} particiones)")
+    encabezado(total - 4, total, f"Validación cruzada de la regresión lineal ({N_PARTICIONES} particiones)")
     inicio = time.time()
     pred_cv, pred_ridge, pred_base, n_particiones = validacion_cruzada(resultado["similitudes"], resultado["y"], resultado["estructura"])
     tiempos["Validación cruzada"] = time.time() - inicio
 
-    encabezado(total - 2, total, "Modelo de reglas en dos etapas")
+    encabezado(total - 3, total, "Modelo de reglas en dos etapas")
     inicio = time.time()
     df_gt = pd.read_csv(RUTA_GT)
     df_gt["canon_id"] = df_gt["film_id"].apply(canonicalizar_film_id)
@@ -315,7 +362,7 @@ def main():
     reglas = evaluar_reglas(perfil, df_gt, resultado["film_ids"], embeddings, N_PARTICIONES)
     tiempos["Modelo de reglas"] = time.time() - inicio
 
-    encabezado(total - 1, total, "Comparación de pooling y número de reseñas")
+    encabezado(total - 2, total, "Comparación de pooling y número de reseñas")
     inicio = time.time()
     chunks = pooling.cargar_chunks(chromadb.PersistentClient(path=str(DIR_CHROMA)))
     representaciones = {
@@ -324,7 +371,13 @@ def main():
         for estrategia in ESTRATEGIAS_POOLING for maximo in MAXIMOS_RESENIAS
     }
     comparacion = comparar_representaciones(perfil, df_gt, resultado["film_ids"], representaciones, N_PARTICIONES)
+    comparacion = comparacion.drop(columns="r2_por_criterio")
     tiempos["Comparación de pooling"] = time.time() - inicio
+
+    encabezado(total - 1, total, "Frases de reseña del perfil")
+    inicio = time.time()
+    frases = comparar_frases(nombre_perfil, perfil, df_gt, resultado["film_ids"], chunks)
+    tiempos["Frases de reseña"] = time.time() - inicio
 
     encabezado(total, total, "Ranking (opción 8) y datos de análisis")
     inicio = time.time()
@@ -334,7 +387,7 @@ def main():
         print(f"[!] Error: {error}")
         return
     carpeta, resumen, ranking = guardar_analisis(
-        nombre_perfil, resultado, pred_cv, pred_ridge, pred_base, n_particiones, ranking, reglas, comparacion, tiempos)
+        nombre_perfil, resultado, pred_cv, pred_ridge, pred_base, n_particiones, ranking, reglas, comparacion, frases, tiempos)
     tiempos["Ranking y análisis"] = time.time() - inicio
 
     m = resumen["metricas"]
@@ -350,6 +403,9 @@ def main():
     print(f"Modelo de reglas en dos etapas: MAE {completo['mae']:.3f} | R² {completo['r2']:.3f}")
     mejor = comparacion.iloc[0]
     print(f"Mejor pooling: {mejor['representacion']} (MAE {mejor['MAE']:.3f} | R² {mejor['R²']:.3f})")
+    if frases[0] is not None:
+        mejor = frases[0].iloc[0]
+        print(f"Mejor variante con frases de reseña: {mejor['representacion']} (MAE {mejor['MAE']:.3f} | R² {mejor['R²']:.3f})")
     print(f"Tiempo total: {time.time() - inicio_total:.1f} s")
     print(f"\nDatos de análisis guardados en: {carpeta}")
     for archivo in sorted(carpeta.iterdir()):

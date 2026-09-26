@@ -24,6 +24,24 @@ def pedir_encabezado(previo):
     return input(f"Ingrese su encabezado en la planilla de evaluación, si es distinto del nombre (opcional){actual}: ").strip() or previo
 
 
+def pedir_frases_resenia(previas):
+    # Frases con las que un reseñador de Letterboxd describiría el criterio
+    # (ej. "Oscar bait designed to make you cry"). La opción 9 las compara con
+    # los chunks de reseñas: suelen encontrar el criterio mejor que la
+    # descripción, que está escrita en otro registro.
+    previas = previas or []
+    if previas:
+        print("Frases de reseña actuales:")
+        for frase in previas:
+            print(f"  - {frase}")
+    print("Ingrese frases como las escribiría alguien en una reseña (opcional), una por línea. "
+          "Línea en blanco para terminar (si no escribe nada, se mantienen las actuales).")
+    frases = []
+    while linea := input("- ").strip():
+        frases.append(linea)
+    return frases or previas
+
+
 def editar_regla_global(datos, nombre_perfil):
     # Instrucciones para calcular la nota global (se incluyen en las
     # instrucciones de evaluación que genera la opción 6).
@@ -98,8 +116,9 @@ def gestionar_afinidades(datos, nombre_perfil, es_nuevo):
                 except ValueError:
                     print("Por favor, ingrese un número válido entre 1 y 10.")
 
-            previo = datos[nombre_perfil]["afinidad"].get(afinidad_antigua, {}).get("encabezado")
-            encabezado = pedir_encabezado(previo)
+            anterior = datos[nombre_perfil]["afinidad"].get(afinidad_antigua, {})
+            encabezado = pedir_encabezado(anterior.get("encabezado"))
+            frases_resenia = pedir_frases_resenia(anterior.get("frases_resenia"))
 
             if afinidad_antigua:
                 del datos[nombre_perfil]["afinidad"][afinidad_antigua]
@@ -107,7 +126,8 @@ def gestionar_afinidades(datos, nombre_perfil, es_nuevo):
             datos[nombre_perfil]["afinidad"][afinidad] = {
                 "encabezado": encabezado,
                 "descripcion": descripcion_afinidad,
-                "importancia_base": float(importancia_base)
+                "importancia_base": float(importancia_base),
+                "frases_resenia": frases_resenia,
             }
             print("Afinidad agregada/modificada exitosamente.")
 
@@ -216,8 +236,9 @@ def gestionar_restrictivos(datos, nombre_perfil):
 
             excepcion = input("Ingrese la excepcion del filtro (si no hay, deje en blanco): ").strip() or None
 
-            previo = datos[nombre_perfil]["restrictivos"].get(filtro_antiguo, {}).get("encabezado")
-            encabezado = pedir_encabezado(previo)
+            anterior = datos[nombre_perfil]["restrictivos"].get(filtro_antiguo, {})
+            encabezado = pedir_encabezado(anterior.get("encabezado"))
+            frases_resenia = pedir_frases_resenia(anterior.get("frases_resenia"))
 
             if filtro_antiguo:
                 del datos[nombre_perfil]["restrictivos"][filtro_antiguo]
@@ -228,7 +249,8 @@ def gestionar_restrictivos(datos, nombre_perfil):
                 "nivel": nivel,
                 "severidad": severidad,
                 "corrupcion_directa": corrupcion_directa,
-                "excepcion": excepcion
+                "excepcion": excepcion,
+                "frases_resenia": frases_resenia,
             }
             print("Filtro agregado/modificado exitosamente.")
 

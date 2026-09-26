@@ -7,7 +7,12 @@
                 "nivel": 3.0,
                 "severidad": "Veto Absoluto",
                 "corrupcion_directa": ["Resistencia Femenina"],
-                "excepcion": "La protección masculina o la nostalgia, cuando la mirada de la película hacia el personaje femenino está construida desde la reverencia, el amor o la inocencia."
+                "excepcion": "La protección masculina o la nostalgia, cuando la mirada de la película hacia el personaje femenino está construida desde la reverencia, el amor o la inocencia.",
+                "frases_resenia": [
+                    "sexist humor where women are only objects or jokes",
+                    "the women are just props for the men and their friendship",
+                    "humor machista y sexista, las mujeres son un chiste"
+                ]
             },
             "Insoportabilidad Prolongada": {
                 "encabezado": "Insoport.",
@@ -15,7 +20,13 @@
                 "nivel": 3.0,
                 "severidad": "Veto Absoluto",
                 "corrupcion_directa": ["Ternura y Empatía Radical", "Humanismo Social"],
-                "excepcion": "El personaje sufre un desarme temprano y su ego es bajado a tierra rápidamente. La película combina alta contemplación inmersiva y empatía radical para hacernos entender que la toxicidad nace de un trauma o abuso sistémico."
+                "excepcion": "El personaje sufre un desarme temprano y su ego es bajado a tierra rápidamente. La película combina alta contemplación inmersiva y empatía radical para hacernos entender que la toxicidad nace de un trauma o abuso sistémico.",
+                "frases_resenia": [
+                    "the main character is insufferable, arrogant and smug",
+                    "I couldn't stand the protagonist, he is a pretentious narcissist and a creep",
+                    "an unlikable, annoying character you have to spend the whole movie with",
+                    "un protagonista insoportable, arrogante y pedante"
+                ]
             },
             "Control Emocional Artificial": {
                 "encabezado": "Control",
@@ -23,7 +34,13 @@
                 "nivel": 2.5,
                 "severidad": "Intermedio",
                 "corrupcion_directa": ["Humanismo Social", "Contemplación Inmersiva"],
-                "excepcion": null
+                "excepcion": null,
+                "frases_resenia": [
+                    "emotionally manipulative, the music tells you exactly what to feel",
+                    "so sweet, whimsical and quirky that it becomes saccharine and twee",
+                    "technically perfect but cold, calculated and polished",
+                    "Oscar bait designed to make you cry"
+                ]
             },
             "Personajes Diorama": {
                 "encabezado": "Diorama",
@@ -31,7 +48,12 @@
                 "nivel": 2.5,
                 "severidad": "Intermedio",
                 "corrupcion_directa": ["Ternura y Empatía Radical"],
-                "excepcion": null
+                "excepcion": null,
+                "frases_resenia": [
+                    "beautiful and symmetrical but emotionally hollow",
+                    "style over substance, the characters feel like dolls in a dollhouse",
+                    "the characters have no personality beyond their job or quirk"
+                ]
             },
             "Caos Asfixiante": {
                 "encabezado": "Caos",
@@ -39,7 +61,12 @@
                 "nivel": 2.0,
                 "severidad": "Moderada",
                 "corrupcion_directa": ["Contemplación Inmersiva"],
-                "excepcion": null
+                "excepcion": null,
+                "frases_resenia": [
+                    "chaotic, frantic and exhausting, it never lets you breathe",
+                    "overstimulating, loud and relentless, too much happening at once",
+                    "caótica y agotadora, no da respiro"
+                ]
             }
         },
         "afinidad": {

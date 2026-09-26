@@ -5,6 +5,8 @@ afinidades tenga.
 
 Etapa 1: predice el puntaje 0-10 de cada filtro y afinidad, y si aplica la
 excepción de cada filtro, a partir del embedding promedio de las reseñas.
+Los criterios con frases_resenia en el perfil pueden usar además (o en vez
+del embedding) rasgos de cuántas reseñas se parecen a esas frases.
 
 Etapa 2: calcula la nota global con una regla simple cuyos pesos y umbrales
 se aprenden de la Verdad Base:
@@ -30,6 +32,8 @@ PENALIZACION = 1e-3      # evita penalizaciones y pisos grandes que no mejoran e
 ALFAS_ETAPA_1 = np.logspace(-1, 4, 30)
 MINIMO_EJEMPLOS_ETAPA_1 = 5
 INICIOS_UMBRALES = [(8.0, 5.0), (9.0, 3.0), (6.5, 7.0)]  # (umbral afinidades, umbral filtros)
+# Cómo usa la etapa 1 los rasgos de frases de reseña de un criterio.
+MODOS_FRASES = ("concatenar", "solo_frases")
 
 
 def sigmoide(x):
@@ -157,10 +161,20 @@ class ReglaGlobal:
         }
 
 
+def subconjunto_rasgos(rasgos: dict | None, indices) -> dict | None:
+    # Subconjunto de películas de los rasgos de frases (columna -> matriz).
+    return None if rasgos is None else {columna: matriz[indices] for columna, matriz in rasgos.items()}
+
+
 class ModeloDosEtapas:
     """Etapa 1 (embedding -> puntaje de cada criterio) + etapa 2 (ReglaGlobal)."""
 
-    def __init__(self, afinidades, filtros, corrupciones):
+    def __init__(self, afinidades, filtros, corrupciones, modo_frases: str = "concatenar"):
+        # modo_frases: para los criterios con rasgos de frases, "concatenar" los
+        # agrega al embedding y "solo_frases" usa solo esos rasgos.
+        if modo_frases not in MODOS_FRASES:
+            raise ValueError(f"modo_frases debe ser uno de {MODOS_FRASES}")
+        self.modo_frases = modo_frases
         self.afinidades, self.filtros = afinidades, filtros
         self.regla = ReglaGlobal(afinidades, filtros, corrupciones)
         self.columnas = ([nombre_columna_gt("afinidad", n) for n in afinidades]
@@ -168,14 +182,21 @@ class ModeloDosEtapas:
                          + [nombre_columna_excepcion(n) for n in filtros])
         self.predictores, self.constantes = {}, {}
 
-    def fit(self, embeddings, puntajes, puntajes_etapa_2, y_etapa_2):
+    def _entrada(self, columna, embeddings, rasgos):
+        if not rasgos or columna not in rasgos:
+            return embeddings
+        if self.modo_frases == "solo_frases":
+            return rasgos[columna]
+        return np.hstack([embeddings, rasgos[columna]])
+
+    def fit(self, embeddings, puntajes, puntajes_etapa_2, y_etapa_2, rasgos=None):
         # Etapa 1 con las películas que tienen embedding; etapa 2 con todas las
         # que tienen puntajes completos en la Verdad Base (no necesita reseñas).
-        self.fit_etapa_1(embeddings, puntajes)
+        self.fit_etapa_1(embeddings, puntajes, rasgos)
         self.regla.fit(*matrices_puntajes(puntajes_etapa_2, self.afinidades, self.filtros), y_etapa_2)
         return self
 
-    def fit_etapa_1(self, embeddings, puntajes):
+    def fit_etapa_1(self, embeddings, puntajes, rasgos=None):
         for columna in self.columnas:
             if columna not in puntajes:
                 self.constantes[columna] = 0.0
@@ -183,29 +204,31 @@ class ModeloDosEtapas:
             valores = puntajes[columna].to_numpy(float)
             con_dato = ~np.isnan(valores)
             if con_dato.sum() >= MINIMO_EJEMPLOS_ETAPA_1:
+                entrada = self._entrada(columna, embeddings, rasgos)
                 self.predictores[columna] = make_pipeline(StandardScaler(), RidgeCV(alphas=ALFAS_ETAPA_1)).fit(
-                    embeddings[con_dato], valores[con_dato])
+                    entrada[con_dato], valores[con_dato])
             else:
                 self.constantes[columna] = float(np.nanmean(valores)) if con_dato.any() else 0.0
         return self
 
     def n_parametros_etapa_1(self) -> int:
-        # Un coeficiente por dimensión del embedding más el sesgo, por cada criterio predicho (regularizados con Ridge).
+        # Un coeficiente por variable de entrada (dimensiones del embedding y
+        # rasgos de frases) más el sesgo, por cada criterio predicho (regularizados con Ridge).
         return sum(len(p[-1].coef_) + 1 for p in self.predictores.values())
 
-    def predecir_puntajes(self, embeddings):
+    def predecir_puntajes(self, embeddings, rasgos=None):
         puntajes = {}
         for columna in self.columnas:
             if columna in self.predictores:
-                valores = self.predictores[columna].predict(embeddings)
+                valores = self.predictores[columna].predict(self._entrada(columna, embeddings, rasgos))
             else:
                 valores = np.full(len(embeddings), self.constantes[columna])
             limite = 1.0 if columna.startswith("gt_excepcion_") else 10.0
             puntajes[columna] = np.clip(valores, 0.0, limite)
         return pd.DataFrame(puntajes)
 
-    def predict(self, embeddings):
-        return self.regla.predict(*matrices_puntajes(self.predecir_puntajes(embeddings), self.afinidades, self.filtros))
+    def predict(self, embeddings, rasgos=None):
+        return self.regla.predict(*matrices_puntajes(self.predecir_puntajes(embeddings, rasgos), self.afinidades, self.filtros))
 
 
 def evaluar(perfil: dict, df_gt, film_ids, embeddings, n_particiones: int, semilla: int = 0) -> dict:
@@ -289,7 +312,9 @@ def evaluar(perfil: dict, df_gt, film_ids, embeddings, n_particiones: int, semil
 def comparar_representaciones(perfil: dict, df_gt, film_ids, representaciones: dict, n_particiones: int,
                               semilla: int = 0) -> pd.DataFrame:
     # Evalúa el modelo en dos etapas con distintas formas de resumir las reseñas
-    # de cada película (representaciones: nombre -> matriz alineada con film_ids).
+    # de cada película (representaciones: nombre -> matriz alineada con film_ids,
+    # o tupla (matriz, rasgos de frases, modo_frases)). La columna r2_por_criterio
+    # trae el R² de la etapa 1 de cada criterio.
     # Todas usan las mismas particiones, y la etapa 2 (que no depende de las
     # reseñas) se entrena una sola vez por partición.
     from sklearn.metrics import mean_absolute_error, r2_score
@@ -315,28 +340,36 @@ def comparar_representaciones(perfil: dict, df_gt, film_ids, representaciones: d
 
     columnas_a = [nombre_columna_gt("afinidad", n) for n in afinidades]
     columnas_f = [nombre_columna_gt("restrictivos", n) for n in filtros]
-    filas = []
-    for nombre, X in representaciones.items():
+    resultados = []
+    for nombre, representacion in representaciones.items():
+        X, rasgos, modo = representacion if isinstance(representacion, tuple) else (representacion, None, "concatenar")
         pred = np.empty(len(y))
         pred_puntajes = pd.DataFrame(index=range(len(y)), columns=columnas_a + columnas_f, dtype=float)
         for (tr, te), regla in zip(particiones, reglas):
-            modelo = ModeloDosEtapas(afinidades, filtros, corrupciones).fit_etapa_1(X[tr], puntajes.iloc[tr])
+            modelo = ModeloDosEtapas(afinidades, filtros, corrupciones, modo).fit_etapa_1(
+                X[tr], puntajes.iloc[tr], subconjunto_rasgos(rasgos, tr))
             modelo.regla = regla
-            pred[te] = modelo.predict(X[te])
-            pred_puntajes.iloc[te] = modelo.predecir_puntajes(X[te])[columnas_a + columnas_f].to_numpy()
+            pred[te] = modelo.predict(X[te], subconjunto_rasgos(rasgos, te))
+            pred_puntajes.iloc[te] = modelo.predecir_puntajes(X[te], subconjunto_rasgos(rasgos, te))[columnas_a + columnas_f].to_numpy()
+
+        r2_por_criterio = {}
+        for c in columnas_a + columnas_f:
+            reales = puntajes[c].to_numpy(float)
+            ok = ~np.isnan(reales)
+            if ok.sum() >= 2 and np.std(reales[ok]) > 0:
+                r2_por_criterio[c] = float(r2_score(reales[ok], pred_puntajes[c].to_numpy(float)[ok]))
 
         def r2_medio(columnas):
-            valores = []
-            for c in columnas:
-                reales = puntajes[c].to_numpy(float)
-                ok = ~np.isnan(reales)
-                if ok.sum() >= 2 and np.std(reales[ok]) > 0:
-                    valores.append(r2_score(reales[ok], pred_puntajes[c].to_numpy(float)[ok]))
+            valores = [r2_por_criterio[c] for c in columnas if c in r2_por_criterio]
             return float(np.mean(valores)) if valores else float("nan")
 
-        filas.append({"representacion": nombre, "dimensiones": X.shape[1],
-                      "MAE": float(mean_absolute_error(y, pred)), "R²": float(r2_score(y, pred)),
-                      "R² etapa 1 afinidades": r2_medio(columnas_a), "R² etapa 1 filtros": r2_medio(columnas_f)})
-        print(f"  {nombre:45} MAE {filas[-1]['MAE']:.3f} | R² {filas[-1]['R²']:.3f} "
-              f"| etapa 1: afinidades {filas[-1]['R² etapa 1 afinidades']:.3f}, filtros {filas[-1]['R² etapa 1 filtros']:.3f}")
-    return pd.DataFrame(filas).sort_values("MAE", ignore_index=True)
+        # Variables de entrada por criterio: el embedding y/o los rasgos de frases de ese criterio.
+        anchos = sorted({modelo._entrada(c, X[:1], subconjunto_rasgos(rasgos, [0])).shape[1] for c in columnas_a + columnas_f})
+        resultados.append({"representacion": nombre,
+                           "dimensiones": str(anchos[0]) if len(anchos) == 1 else f"{anchos[0]}-{anchos[-1]}",
+                           "MAE": float(mean_absolute_error(y, pred)), "R²": float(r2_score(y, pred)),
+                           "R² etapa 1 afinidades": r2_medio(columnas_a), "R² etapa 1 filtros": r2_medio(columnas_f),
+                           "r2_por_criterio": r2_por_criterio})
+        print(f"  {nombre:45} MAE {resultados[-1]['MAE']:.3f} | R² {resultados[-1]['R²']:.3f} "
+              f"| etapa 1: afinidades {resultados[-1]['R² etapa 1 afinidades']:.3f}, filtros {resultados[-1]['R² etapa 1 filtros']:.3f}")
+    return pd.DataFrame(resultados).sort_values("MAE", ignore_index=True)

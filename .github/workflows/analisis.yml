@@ -9,7 +9,8 @@ on:
   workflow_dispatch:
   push:
     branches: [feature/program-refinement]
-    paths: [.github/workflows/analisis.yml]
+    # También al cambiar el perfil: sus embeddings se recalculan en cada corrida.
+    paths: [.github/workflows/analisis.yml, src/db/profiles/perfiles.ejemplo.json]
 
 permissions:
   contents: write
