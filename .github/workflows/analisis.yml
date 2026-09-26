@@ -78,7 +78,11 @@ jobs:
           with urllib.request.urlopen(urllib.request.Request(f"{api}/releases?per_page=100", headers=cabeceras)) as r:
               releases = json.load(r)
           release = next(r for r in releases if r["tag_name"] == os.environ["RELEASE_TAG"])
-          archivo = next(a for a in release["assets"] if a["name"].endswith(".zip"))
+          # El release también guarda las bases de embeddings publicadas (embeddings-*.zip).
+          zips = [a for a in release["assets"] if a["name"].endswith(".zip") and not a["name"].startswith("embeddings-")]
+          if len(zips) != 1:
+              raise SystemExit(f"Se esperaba un solo zip de reseñas en el release, hay {len(zips)}: {[a['name'] for a in zips]}")
+          archivo = zips[0]
           pedido = urllib.request.Request(archivo["url"], headers={**cabeceras, "Accept": "application/octet-stream"})
           with urllib.request.urlopen(pedido) as r, open("/tmp/resenias.zip", "wb") as salida:
               salida.write(r.read())
@@ -175,6 +179,13 @@ jobs:
               for archivo in archivos:
                   salida.write(archivo, archivo.relative_to(raiz))
           datos = Path("/tmp/embeddings.zip").read_bytes()
+          # Resguardo: una base mucho más chica que la publicada indica que algo
+          # falló antes (ej. faltó la base de reseñas); no se reemplaza.
+          mayor_anterior = max((a["size"] for a in anteriores), default=0)
+          if len(datos) < 0.5 * mayor_anterior:
+              print(f"::warning title=Base de embeddings no publicada::{nombre} pesa {len(datos) / 1e6:.0f} MB, "
+                    f"menos de la mitad de la ya publicada ({mayor_anterior / 1e6:.0f} MB). Se mantiene la anterior.")
+              sys.exit(0)
           subida = release["upload_url"].split("{")[0] + f"?name={nombre}"
           pedir(subida, "POST", datos, "application/zip")
           print(f"Publicado {nombre} ({len(datos) / 1e6:.0f} MB, {len(archivos)} archivos).")
