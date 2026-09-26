@@ -71,7 +71,8 @@ def modelos():
     figura, eje = plt.subplots(figsize=(4.6, 2.3))
     y = np.arange(len(filas))
     eje.barh(y + 0.18, [f[1] for f in filas], height=0.34, color=AZUL, xerr=[f[2] for f in filas],
-             error_kw={"ecolor": TINTA_2, "elinewidth": 0.8, "capsize": 2}, label="Modelo de reglas + frases (opciones 7 y 8)")
+             error_kw={"ecolor": TINTA_2, "elinewidth": 0.8, "capsize": 2},
+             label="Modelo de reglas + frases (opciones 7 y 8), ± desv. de 10 repeticiones")
     eje.barh(y - 0.18, [f[3] for f in filas], height=0.34, color=NARANJA, label="Regresión lineal anterior")
     for i, f in enumerate(filas):
         eje.text(f[1] + f[2] + 0.01, i + 0.18, f"{f[1]:.3f}", va="center", fontsize=8, color=TINTA)
@@ -86,6 +87,7 @@ def modelos():
 def deltas(clave_archivo, referencia, titulo, nombre, etiquetas=None, limite=None):
     # Misma escala en los tres paneles para poder compararlos.
     figura, ejes = plt.subplots(1, 3, figsize=(6.6, 2.9 if limite is None else 2.3), sharey=True, sharex=True)
+    signos = set()
     for eje, (clave, modelo) in zip(ejes, MODELOS):
         tabla = pd.read_csv(DATOS / f"{clave}_{clave_archivo}.csv")
         tabla = tabla[tabla["representacion"] != referencia]
@@ -94,6 +96,7 @@ def deltas(clave_archivo, referencia, titulo, nombre, etiquetas=None, limite=Non
             tabla = tabla.set_index("representacion").loc[list(etiquetas)].reset_index()
         y = np.arange(len(tabla))
         colores = [AZUL if d > 0 else NARANJA for d in tabla["Δ ρ"]]
+        signos.update(tabla["Δ ρ"] > 0)
         eje.barh(y, tabla["Δ ρ"], xerr=tabla["desv. Δ ρ"], color=colores, height=0.6,
                  error_kw={"ecolor": TINTA_2, "elinewidth": 0.7, "capsize": 1.5})
         eje.axvline(0, color=REFERENCIA, linewidth=0.8)
@@ -105,6 +108,15 @@ def deltas(clave_archivo, referencia, titulo, nombre, etiquetas=None, limite=Non
         if limite:
             eje.set_xlim(*limite)
     ejes[1].set_xlabel(f"Δ ρ de Spearman contra «{titulo}» (media ± desv. de 10 repeticiones)")
+    from matplotlib.lines import Line2D
+    from matplotlib.patches import Patch
+    # Solo los colores que aparecen en el gráfico.
+    entradas = [Patch(color=AZUL, label=f"ordena mejor que «{titulo}»")] if True in signos else []
+    entradas += [Patch(color=NARANJA, label=f"ordena peor que «{titulo}»")] if False in signos else []
+    entradas.append(Line2D([], [], color=TINTA_2, linewidth=0.8, marker="|", markersize=6,
+                           label="± desviación entre repeticiones"))
+    figura.legend(handles=entradas, loc="lower center", bbox_to_anchor=(0.5, 1.0), ncol=len(entradas),
+                  fontsize=7.5, frameon=False)
     figura.tight_layout()
     guardar(figura, nombre)
 
@@ -162,18 +174,21 @@ def etapa_1():
 def dispersion():
     cv = pd.read_csv(DATOS / "cv_e5.csv")
     figura, eje = plt.subplots(figsize=(3.6, 3.2))
-    eje.plot([3, 10], [3, 10], color=REFERENCIA, linewidth=0.8, linestyle="--")
-    eje.scatter(cv["nota_gemini"], cv["nota_cv"], s=18, color=AZUL, edgecolor="white", linewidth=0.6, zorder=3)
+    eje.plot([3, 10], [3, 10], color=REFERENCIA, linewidth=0.8, linestyle="--", label="predicción = nota de Gemini")
+    eje.scatter(cv["nota_gemini"], cv["nota_cv"], s=18, color=AZUL, edgecolor="white", linewidth=0.6, zorder=3,
+                label="película evaluada")
     # Películas comentadas en el ejemplo guiado, con la etiqueta en una posición fija.
     for film, tx, ty in [("manhattan", 5.3, 8.95), ("amelie", 4.1, 9.4), ("marty-supreme", 5.8, 6.35)]:
         fila = cv[cv["film_id"] == film]
         if len(fila):
             x, y = fila.iloc[0]["nota_gemini"], fila.iloc[0]["nota_cv"]
-            eje.scatter([x], [y], s=26, color=NARANJA, edgecolor="white", linewidth=0.6, zorder=4)
+            eje.scatter([x], [y], s=26, color=NARANJA, edgecolor="white", linewidth=0.6, zorder=4,
+                        label="comentada en el ejemplo guiado" if film == "manhattan" else None)
             eje.annotate(film, (x, y), xytext=(tx, ty), fontsize=7.5, color=TINTA,
                          arrowprops={"arrowstyle": "-", "color": TINTA_2, "linewidth": 0.6})
     eje.set(xlabel="Nota de Gemini", ylabel="Nota predicha (validación cruzada)", xlim=(4, 10.3), ylim=(4, 10.3),
             title="e5 + frases, predicción promedio de 10 repeticiones")
+    eje.legend(loc="lower right", fontsize=7, handletextpad=0.4, borderaxespad=0.3)
     guardar(figura, "dispersion")
 
 
@@ -182,12 +197,14 @@ def curva():
     resumen = tabla.groupby("n_entrenamiento")["rho"].agg(["mean", "std"]).reset_index()
     figura, eje = plt.subplots(figsize=(3.8, 2.5))
     eje.fill_between(resumen["n_entrenamiento"], resumen["mean"] - resumen["std"], resumen["mean"] + resumen["std"],
-                     color=AZUL, alpha=0.15, linewidth=0)
-    eje.plot(resumen["n_entrenamiento"], resumen["mean"], color=AZUL, linewidth=2, marker="o", markersize=5)
+                     color=AZUL, alpha=0.15, linewidth=0, label="± 1 desviación (10 repeticiones)")
+    eje.plot(resumen["n_entrenamiento"], resumen["mean"], color=AZUL, linewidth=2, marker="o", markersize=5,
+             label="ρ medio")
     for _, f in resumen.iterrows():
         eje.text(f["n_entrenamiento"], f["mean"] + 0.035, f"{f['mean']:.2f}", ha="center", fontsize=8, color=TINTA)
     eje.set(xlabel="Películas de entrenamiento", ylabel="ρ de Spearman", ylim=(0, 0.85),
             title="Curva de aprendizaje (e5 + frases)")
+    eje.legend(loc="lower right", fontsize=7.5)
     guardar(figura, "curva_aprendizaje")
 
 
