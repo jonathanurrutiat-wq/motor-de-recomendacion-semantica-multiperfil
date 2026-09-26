@@ -61,11 +61,16 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
     Si la plantilla tiene evaluaciones aún sin importar, no la sobrescribe. En `docs/instrucciones_evaluacion.md` hay una versión de estas instrucciones para el perfil de ejemplo.
 
-* **7) Entrenar modelo predictivo (Regresión Lineal).**
-    Entrena una regresión lineal que aprende a aproximar la nota de Gemini a partir de la similitud de coseno entre los embeddings de las reseñas (promediados por película) y los del perfil. Además de la similitud con cada filtro, afinidad y excepción, el modelo recibe un término por cada relación del perfil, siguiendo la cadena **afinidad ← filtro ← excepción**: afinidad × filtro (el filtro corrompe la afinidad, según `corrupcion_directa`) y filtro × excepción (la excepción neutraliza el filtro). El perfil define qué relaciones existen y la regresión aprende cuánto pesa cada una. La severidad, el nivel y la importancia base no se usan en el modelo. Informa el error del modelo (MSE), la varianza explicada (R²) y el peso aprendido para cada filtro/afinidad, y guarda el modelo en `src/loss/modelo_regresion.joblib`.
+* **7) Entrenar modelo predictivo (modelo de reglas).**
+    Entrena el modelo de reglas en dos etapas (`src/modelo_reglas.py`), que funciona con cualquier perfil sin importar cuántos filtros y afinidades tenga:
+
+    * Etapa 1: a partir de las reseñas de cada película (el promedio de sus embeddings, o el percentil que indique `POOLING_RESENIAS`), predice con una regresión Ridge el puntaje 0-10 de cada filtro y afinidad y si aplica la excepción de cada filtro. Los criterios con `frases_resenia` en el perfil reciben además cuántas reseñas se parecen mucho a su descripción y a cada una de sus frases.
+    * Etapa 2: calcula la nota global con la forma de la regla global, siguiendo la cadena **afinidad ← filtro ← excepción**: nota base con un peso por afinidad, menos un descuento por cada filtro que supera su umbral cuando su excepción no aplica. Pesos, umbrales y descuentos se aprenden de la Verdad Base.
+
+    Informa el desempeño con validación cruzada (películas que el modelo no vio al entrenar): ρ de Spearman (qué tan parecido es el orden de las películas al de Gemini, la métrica principal), NDCG@10, precisión@10 y el error de la nota (MAE). Muestra las reglas aprendidas y guarda el modelo en `src/loss/modelo_reglas_<modelo>.joblib`. Con e5 ordena bastante mejor que la regresión lineal que usaban las versiones anteriores (ρ 0,67 contra 0,55), que la opción 9 sigue calculando como comparación.
 
 * **8) Recomendar películas según el perfil.**
-    Carga el modelo guardado en la opción 7 (y el perfil con el que se entrenó) para estimar una nota a todas las películas con reseña procesada (tanto a las que ya evaluó Gemini, para comparar, como a las nuevas que todavía no tienen nota). Muestra todo en un único ranking ordenado de mayor a menor nota estimada.
+    Carga el modelo guardado en la opción 7 (con el perfil, el pooling, las frases de reseña y los umbrales con que se entrenó) para estimar una nota a todas las películas con reseña procesada (tanto a las que ya evaluó Gemini, para comparar, como a las nuevas que todavía no tienen nota). Muestra todo en un único ranking ordenado de mayor a menor nota estimada.
 
 * **9) Ejecutar todo y generar datos de análisis.**
     Pregunta el perfil una sola vez y ejecuta las opciones 2 a 8 en orden, sin más preguntas, mostrando cada paso con su duración (`src/analisis.py`). No borra datos: si hay chunks con formato antiguo o embeddings de perfiles huérfanos, solo lo informa (se limpian desde las opciones 3 y 4). Además evalúa el modelo con validación cruzada de 5 particiones (error sobre películas que el modelo no vio al entrenar) y lo compara con una línea base que predice siempre el promedio, con una regresión Ridge y con el **modelo de reglas en dos etapas** (`src/modelo_reglas.py`), que se arma desde el perfil para cualquier cantidad de filtros y afinidades:
@@ -151,7 +156,7 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
     * <code><b><span style="color: #009dff;">config.py</span></b></code>: Archivo de configuración centralizada del proyecto: nombre del modelo de embeddings y todas las rutas del proyecto.
 
-    * <code><b><span style="color: #009dff;">scoring.py</span></b></code>: Entrena la regresión lineal (perfil vs. reseñas) contra la Verdad Base y la guarda en `src/loss/modelo_regresion.joblib`.
+    * <code><b><span style="color: #009dff;">scoring.py</span></b></code>: Entrena el modelo de reglas contra la Verdad Base y lo guarda en `src/loss/modelo_reglas_<modelo>.joblib` (opción 7). Conserva la regresión lineal anterior, que la opción 9 usa como comparación.
 
     * <code><b><span style="color: #009dff;">recommend.py</span></b></code>: Carga el modelo entrenado y genera el ranking de recomendaciones.
 
@@ -161,6 +166,17 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
 ## **Changelog (historial de cambios)**
 <small>*Nota: Este changelog está en orden cronológico inverso.*</small>
+
+### [1.4.0] - 26-09-2026
+> Las opciones 7 y 8 usan el modelo de reglas con frases de reseña.
+
+* Cambios
+
+    * La opción 7 entrena el modelo de reglas en dos etapas en vez de la regresión lineal, con las frases de reseña del perfil (modo `ponderar`: sus rasgos se agregan al embedding con la misma varianza total). Informa ρ de Spearman, NDCG@10, precisión@10 y MAE con validación cruzada y muestra las reglas aprendidas. El modelo se guarda en `modelo_reglas_<modelo>.joblib` junto con el pooling, las frases y sus umbrales de similitud; hay que volver a ejecutar la opción 7 antes de la 8.
+
+    * La opción 8 aplica ese modelo, preparando las películas igual que al entrenar.
+
+    * La opción 9 compara el modelo de reglas con la regresión lineal anterior (`nota_modelo` y `nota_lineal` en `ranking.csv` y `peliculas.csv`) y lista las películas peor predichas por el modelo de reglas.
 
 ### [1.3.0] - 26-09-2026
 > e5 como modelo de embeddings por defecto y métricas de ranking.

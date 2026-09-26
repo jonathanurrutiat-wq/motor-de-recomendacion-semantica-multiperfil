@@ -100,27 +100,46 @@ def textos_de_criterios(coleccion_perfiles, nombre_perfil: str, perfil: dict) ->
     return textos
 
 
+def _textos_normalizados(textos: dict, solo_descripcion: bool):
+    columnas = list(textos)
+    bloques = [textos[c][1][:1] if solo_descripcion else textos[c][1] for c in columnas]
+    todos = np.vstack(bloques)
+    return columnas, bloques, todos / np.maximum(np.linalg.norm(todos, axis=1, keepdims=True), 1e-12)
+
+
+def _similitudes(matriz, textos_normalizados):
+    normalizada = matriz / np.maximum(np.linalg.norm(matriz, axis=1, keepdims=True), 1e-12)
+    return normalizada @ textos_normalizados.T
+
+
+def umbrales_frases(chunks: dict, textos: dict, solo_descripcion: bool = False) -> np.ndarray:
+    # Umbral de similitud por texto, con una muestra de chunks de todas las
+    # películas (no usa notas). El modelo guardado conserva los suyos para
+    # medir igual a las películas que se recomiendan después.
+    _, _, todos = _textos_normalizados(textos, solo_descripcion)
+    rng = np.random.default_rng(0)
+    peliculas = list(chunks)
+    tamanos = np.array([len(chunks[f][1]) for f in peliculas])
+    elegidos = np.sort(rng.choice(tamanos.sum(), min(MUESTRA_UMBRAL_FRASES, tamanos.sum()), replace=False))
+    # Sin juntar todos los chunks en una sola matriz (con e5 pesaría cientos de MB).
+    inicios = np.concatenate([[0], np.cumsum(tamanos)])
+    muestra = np.vstack([chunks[f][1][elegidos[(elegidos >= a) & (elegidos < b)] - a]
+                         for f, a, b in zip(peliculas, inicios[:-1], inicios[1:])])
+    return np.percentile(_similitudes(muestra, todos), PERCENTIL_UMBRAL_FRASES, axis=0)
+
+
 def rasgos_frases(chunks: dict, film_ids, textos: dict, max_resenias: int | None = None,
-                  solo_descripcion: bool = False) -> dict:
+                  solo_descripcion: bool = False, umbrales=None) -> dict:
     # Para cada criterio de textos: matriz (películas x 2 por texto) con la
     # fracción de chunks de la película que superan el umbral de similitud con
     # el texto y el percentil 90 de esa similitud. Resume cuántas reseñas
     # hablan del rasgo, en vez de diluirlo en el promedio de todas.
     if not textos:
         return {}
-    columnas = list(textos)
-    bloques = [textos[c][1][:1] if solo_descripcion else textos[c][1] for c in columnas]
-    todos = np.vstack(bloques)
-    todos = todos / np.maximum(np.linalg.norm(todos, axis=1, keepdims=True), 1e-12)
-
-    def similitudes(matriz):
-        normalizada = matriz / np.maximum(np.linalg.norm(matriz, axis=1, keepdims=True), 1e-12)
-        return normalizada @ todos.T
-
-    # Umbral por texto con una muestra de chunks de todas las películas (no usa notas).
-    todas = np.vstack([matriz for _, matriz in chunks.values()])
-    muestra = todas[np.random.default_rng(0).choice(len(todas), min(MUESTRA_UMBRAL_FRASES, len(todas)), replace=False)]
-    umbrales = np.percentile(similitudes(muestra), PERCENTIL_UMBRAL_FRASES, axis=0)
+    columnas, bloques, todos = _textos_normalizados(textos, solo_descripcion)
+    if umbrales is None:
+        umbrales = umbrales_frases(chunks, textos, solo_descripcion)
+    similitudes = lambda matriz: _similitudes(matriz, todos)
 
     filas = []
     for film_id in film_ids:

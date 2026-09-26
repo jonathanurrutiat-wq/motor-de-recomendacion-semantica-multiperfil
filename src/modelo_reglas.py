@@ -38,6 +38,9 @@ INICIOS_UMBRALES = [(8.0, 5.0), (9.0, 3.0), (6.5, 7.0)]  # (umbral afinidades, u
 # varianza total que el embedding (si no, Ridge los penaliza como a una
 # dimensión más entre cientos) y "solo_frases" usa solo esos rasgos.
 MODOS_FRASES = ("concatenar", "ponderar", "solo_frases")
+# El que usan las opciones 7 y 8: con e5, mejoró el orden (ρ de Spearman) en las
+# 10 repeticiones de la validación cruzada y además bajó el MAE.
+MODO_FRASES_POR_DEFECTO = "ponderar"
 
 
 def sigmoide(x):
@@ -244,10 +247,12 @@ class ModeloDosEtapas:
         return self.regla.predict(*matrices_puntajes(self.predecir_puntajes(embeddings, rasgos), self.afinidades, self.filtros))
 
 
-def evaluar(perfil: dict, df_gt, film_ids, embeddings, n_particiones: int, semilla: int = 0) -> dict:
+def evaluar(perfil: dict, df_gt, film_ids, embeddings, n_particiones: int, semilla: int = 0,
+            rasgos: dict | None = None, modo_frases: str = MODO_FRASES_POR_DEFECTO) -> dict:
     # Validación cruzada del modelo en dos etapas y de la etapa 2 por separado,
     # y modelo final entrenado con todos los datos. film_ids y embeddings son las
     # películas con reseñas y nota global; df_gt debe tener la columna canon_id.
+    # rasgos: rasgos de frases de reseña alineados con film_ids (opcional).
     from sklearn.linear_model import LinearRegression
     from sklearn.metrics import mean_absolute_error
     from sklearn.model_selection import KFold
@@ -281,17 +286,18 @@ def evaluar(perfil: dict, df_gt, film_ids, embeddings, n_particiones: int, semil
     indice_gt = {canon: i for i, canon in enumerate(df_gt["canon_id"])}
     puntajes = df_gt.iloc[[indice_gt[f] for f in film_ids]].reset_index(drop=True)
     y = puntajes["gt_nota_global"].to_numpy(float)
-    modelo_vacio = ModeloDosEtapas(afinidades, filtros, corrupciones)
+    modelo_vacio = ModeloDosEtapas(afinidades, filtros, corrupciones, modo_frases)
     pred_completo = np.empty(len(y))
     pred_puntajes = pd.DataFrame(index=range(len(y)), columns=modelo_vacio.columnas, dtype=float)
     k = min(n_particiones, len(y))
     for numero, (tr, te) in enumerate(KFold(k, shuffle=True, random_state=semilla).split(embeddings), 1):
         prueba = set(np.asarray(film_ids)[te])
         entrenamiento_2 = ~gt_completa["canon_id"].isin(prueba).to_numpy()
-        modelo = ModeloDosEtapas(afinidades, filtros, corrupciones).fit(
-            embeddings[tr], puntajes.iloc[tr], gt_completa[entrenamiento_2], y2[entrenamiento_2])
-        pred_completo[te] = modelo.predict(embeddings[te])
-        pred_puntajes.iloc[te] = modelo.predecir_puntajes(embeddings[te]).to_numpy()
+        modelo = ModeloDosEtapas(afinidades, filtros, corrupciones, modo_frases).fit(
+            embeddings[tr], puntajes.iloc[tr], gt_completa[entrenamiento_2], y2[entrenamiento_2],
+            subconjunto_rasgos(rasgos, tr))
+        pred_completo[te] = modelo.predict(embeddings[te], subconjunto_rasgos(rasgos, te))
+        pred_puntajes.iloc[te] = modelo.predecir_puntajes(embeddings[te], subconjunto_rasgos(rasgos, te)).to_numpy()
         print(f"  Partición {numero}/{k}: MAE {mean_absolute_error(y[te], pred_completo[te]):.3f}")
 
     etapa_1 = {}
@@ -304,7 +310,7 @@ def evaluar(perfil: dict, df_gt, film_ids, embeddings, n_particiones: int, semil
                 etapa_1[columna] = metricas(reales[con_dato], pred_puntajes[columna].to_numpy(float)[con_dato])
 
     print("\nEntrenando el modelo de reglas final con todos los datos...")
-    final = ModeloDosEtapas(afinidades, filtros, corrupciones).fit(embeddings, puntajes, gt_completa, y2)
+    final = ModeloDosEtapas(afinidades, filtros, corrupciones, modo_frases).fit(embeddings, puntajes, gt_completa, y2, rasgos)
     return {
         "modelo": final,
         "pred_cv": pred_completo,

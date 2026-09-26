@@ -1,3 +1,11 @@
+"""
+Opción 7: entrena el modelo de reglas en dos etapas (src/modelo_reglas.py)
+con las reseñas vectorizadas y la Verdad Base, y lo guarda para la opción 8.
+
+También conserva la regresión lineal anterior (entrenar_lineal), que la
+opción 9 usa como comparación.
+"""
+
 from collections import defaultdict
 
 import chromadb
@@ -8,7 +16,10 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.metrics.pairwise import cosine_similarity
 
+from src import pooling as resumen_resenias
 from src.config import DIR_CHROMA, POOLING_RESENIAS, RUTA_GT, RUTA_MODELO
+from src.metricas import K_RANKING
+from src.modelo_reglas import MODO_FRASES_POR_DEFECTO, evaluar, subconjunto_rasgos
 from src.normalizacion import (
     canonicalizar_film_id,
     obtener_filtros_del_perfil,
@@ -16,6 +27,8 @@ from src.normalizacion import (
 )
 
 ETIQUETAS_TIPO = {"restrictivos": "filtro", "afinidad": "afinidad", "excepcion": "excepción"}
+N_PARTICIONES = 5
+MINIMO_PELICULAS = 10
 
 
 def agrupar_embeddings_por_pelicula(review_ids, review_embeddings, pooling: str = POOLING_RESENIAS):
@@ -106,9 +119,11 @@ def cargar_embeddings_peliculas(cliente, pooling: str = POOLING_RESENIAS):
     return agrupar_embeddings_por_pelicula(datos_resenias['ids'], datos_resenias['embeddings'], pooling)
 
 
-def entrenar(nombre_perfil: str, perfil: dict) -> dict:
-    # Cruza las películas con reseñas vectorizadas contra la Verdad Base y
-    # entrena la regresión. Lanza ValueError si faltan datos.
+def entrenar_lineal(nombre_perfil: str, perfil: dict) -> dict:
+    # Regresión lineal sobre la similitud con cada término del perfil (el
+    # modelo de las versiones anteriores; la opción 9 la usa como comparación).
+    # Cruza las películas con reseñas vectorizadas contra la Verdad Base.
+    # Lanza ValueError si faltan datos.
     if not RUTA_GT.exists():
         raise ValueError("No se encontró matriz_perdida.csv. Ejecuta el módulo 5 primero.")
 
@@ -157,35 +172,99 @@ def entrenar(nombre_perfil: str, perfil: dict) -> dict:
     }
 
 
+def textos_del_perfil(cliente, nombre_perfil: str, perfil: dict) -> dict:
+    # Descripción y frases de reseña de los criterios que tienen frases (vacío si no hay).
+    if not any(datos.get("frases_resenia") for tipo in ("restrictivos", "afinidad")
+               for datos in perfil.get(tipo, {}).values()):
+        return {}
+    try:
+        coleccion = cliente.get_collection(name="perfiles")
+    except Exception:
+        print("[!] Aviso: no hay embeddings del perfil; se entrena sin frases de reseña. Ejecuta el módulo 3.")
+        return {}
+    return resumen_resenias.textos_de_criterios(coleccion, nombre_perfil, perfil)
+
+
+def entradas_peliculas(cliente, textos: dict, pooling: str, umbrales=None) -> dict:
+    # Embedding resumido de cada película con reseñas vectorizadas y, si el
+    # perfil tiene frases de reseña, sus rasgos de frases. Con umbrales=None se
+    # calculan con los chunks actuales (al entrenar); al recomendar se usan los
+    # guardados con el modelo.
+    print("Cargando los chunks de reseñas vectorizadas...")
+    chunks = resumen_resenias.cargar_chunks(cliente)
+    if not chunks:
+        raise ValueError("No hay reseñas vectorizadas todavía. Ejecuta el módulo 4 primero.")
+    film_ids = sorted(chunks)
+    X = resumen_resenias.representar(chunks, film_ids, pooling)
+    rasgos = None
+    if textos:
+        if umbrales is None:
+            umbrales = resumen_resenias.umbrales_frases(chunks, textos)
+        rasgos = resumen_resenias.rasgos_frases(chunks, film_ids, textos, umbrales=umbrales)
+    return {"chunks": chunks, "film_ids": film_ids, "X": X, "rasgos": rasgos, "umbrales": umbrales}
+
+
+def entrenar_reglas(nombre_perfil: str, perfil: dict) -> dict:
+    # Valida con validación cruzada y entrena con todas las películas evaluadas
+    # el modelo de reglas. Lanza ValueError si faltan datos.
+    if not RUTA_GT.exists():
+        raise ValueError("No se encontró matriz_perdida.csv. Ejecuta el módulo 5 primero.")
+
+    print("Conectando con la base de datos vectorial ChromaDB...")
+    cliente = chromadb.PersistentClient(path=str(DIR_CHROMA))
+    textos = textos_del_perfil(cliente, nombre_perfil, perfil)
+    entradas = entradas_peliculas(cliente, textos, POOLING_RESENIAS)
+
+    df_gt = pd.read_csv(RUTA_GT)
+    df_gt["canon_id"] = df_gt["film_id"].apply(canonicalizar_film_id)
+    evaluadas = set(df_gt.loc[df_gt["gt_nota_global"].notna(), "canon_id"])
+    indices = [i for i, film_id in enumerate(entradas["film_ids"]) if film_id in evaluadas]
+    if len(indices) < MINIMO_PELICULAS:
+        raise ValueError(f"Solo {len(indices)} películas tienen reseñas vectorizadas y nota de Gemini; "
+                         f"se necesitan al menos {MINIMO_PELICULAS}. Evalúa más películas (módulo 6).")
+
+    film_ids = [entradas["film_ids"][i] for i in indices]
+    print(f"Entrenando el modelo de reglas con {len(film_ids)} películas "
+          f"({'con' if textos else 'sin'} frases de reseña, pooling {POOLING_RESENIAS})...")
+    evaluacion = evaluar(perfil, df_gt, film_ids, entradas["X"][indices], N_PARTICIONES,
+                         rasgos=subconjunto_rasgos(entradas["rasgos"], indices), modo_frases=MODO_FRASES_POR_DEFECTO)
+    return {"perfil": nombre_perfil, "film_ids": film_ids, "textos": textos, "entradas": entradas,
+            "evaluacion": evaluacion}
+
+
 def main(perfil_elegido: str | None = None):
     try:
         nombre_perfil, perfil = seleccionar_perfil(perfil_elegido)
-        resultado = entrenar(nombre_perfil, perfil)
+        resultado = entrenar_reglas(nombre_perfil, perfil)
     except (FileNotFoundError, ValueError) as error:
         print(f"[!] Error: {error}")
         return None
 
-    # Se guarda el pooling para que la opción 8 resuma las reseñas igual que al entrenar.
-    joblib.dump(
-        {**{key: resultado[key] for key in ("modelo", "perfil", "estructura", "escala")}, "pooling": POOLING_RESENIAS},
-        RUTA_MODELO,
-    )
+    evaluacion, textos = resultado["evaluacion"], resultado["textos"]
+    modelo = evaluacion["modelo"]
+    # Se guarda todo lo necesario para que la opción 8 prepare las películas
+    # igual que al entrenar: pooling, frases y sus umbrales de similitud.
+    joblib.dump({
+        "tipo": "reglas", "modelo": modelo, "perfil": nombre_perfil, "pooling": POOLING_RESENIAS,
+        "textos": textos, "umbrales": resultado["entradas"]["umbrales"],
+    }, RUTA_MODELO)
 
-    n_peliculas, columnas, modelo = len(resultado["y"]), resultado["columnas"], resultado["modelo"]
-    print("\n| -- Métricas Finales de Entrenamiento -- |")
-    print(f"Perfil: {nombre_perfil}")
-    print(f"Películas evaluadas con éxito (Cruce Vectorial): {n_peliculas}")
-    print(f"Error Cuadrático Medio (MSE): {resultado['mse']:.4f}")
-    print(f"Varianza Explicada (R^2): {resultado['r2']:.4f}")
-    if n_peliculas <= len(columnas):
-        print(f"[!] Aviso: hay {n_peliculas} películas para {len(columnas)} variables; el modelo está "
-              "sobreajustado y estas métricas no son confiables. Evalúa más películas (módulo 6).")
+    cv = evaluacion["metricas"]["completo"]
+    print("\n| -- Modelo de reglas: validación cruzada (películas que el modelo no vio) -- |")
+    print(f"Perfil: {nombre_perfil} | películas evaluadas: {len(resultado['film_ids'])}")
+    print(f"ρ de Spearman (orden de las películas contra el de Gemini): {cv['spearman']:.3f}")
+    print(f"NDCG@{K_RANKING}: {cv[f'ndcg@{K_RANKING}']:.3f} | Precisión@{K_RANKING}: {cv[f'precision@{K_RANKING}']:.3f}")
+    print(f"Error absoluto medio de la nota (MAE): {cv['mae']:.3f} | R²: {cv['r2']:.3f}")
+    if textos:
+        con_frases = [nombre for tipo in ("restrictivos", "afinidad")
+                      for nombre, datos in perfil.get(tipo, {}).items() if datos.get("frases_resenia")]
+        print(f"Frases de reseña usadas en: {', '.join(con_frases)}.")
 
-    print("\n| -- Pesos Sinápticos (Impacto semántico de cada término y relación) -- |")
-    for columna, peso in zip(columnas, modelo.coef_):
-        print(f" {columna}: {peso:.4f}")
-
-    print(f"\nSesgo Base (Bias): {modelo.intercept_:.4f}")
+    print("\n| -- Reglas aprendidas -- |")
+    for linea in modelo.regla.describir():
+        print(f" - {linea}")
+    print(f"\nParámetros: {modelo.regla.n_parametros()} en la regla (etapa 2) y "
+          f"{modelo.n_parametros_etapa_1()} en las regresiones Ridge de la etapa 1.")
     print(f"\nModelo guardado en: {RUTA_MODELO}")
     return resultado
 
