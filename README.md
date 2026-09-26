@@ -74,6 +74,8 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
     * `ranking.csv`: ranking completo de recomendaciones, con la nota de la regresión lineal y la del modelo de reglas.
     * `reglas.json`: reglas y parámetros aprendidos por el modelo de reglas, con sus métricas por etapa y por criterio.
 
+    La opción 9 también se puede ejecutar en GitHub Actions con el workflow `.github/workflows/analisis.yml`, útil cuando no se tiene GPU o no se puede descargar el modelo de embeddings. Toma las reseñas del `.zip` adjunto al release en borrador `datos-resenas` (un borrador solo lo ven quienes tienen permiso de escritura en el repositorio), usa `perfiles.ejemplo.json` como perfil, parte de una base de embeddings vacía y publica la carpeta `analisis/` y el log completo en la rama `resultados-analisis`. Se lanza desde la pestaña *Actions* ("Run workflow", una vez que el archivo esté en la rama principal) o al modificar el propio archivo del workflow. Tarda del orden de media hora.
+
 * **10) Salir.**
     Cierra el programa.
 

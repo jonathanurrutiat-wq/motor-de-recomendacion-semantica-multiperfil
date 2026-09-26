@@ -1,0 +1,88 @@
+name: Análisis completo (opción 9)
+
+# Corre el pipeline completo con embeddings reales y publica los datos de
+# análisis en la rama resultados-analisis. Las reseñas se toman del release
+# en borrador "datos-resenas" (solo visible para quienes tienen permiso de
+# escritura) y nunca se suben al repositorio.
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/program-refinement]
+    paths: [.github/workflows/analisis.yml]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: analisis
+  cancel-in-progress: false
+
+jobs:
+  analisis:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias (torch para CPU)
+        run: |
+          pip install --index-url https://download.pytorch.org/whl/cpu torch
+          pip install -r requirements.txt
+
+      - name: Descargar las reseñas del release en borrador
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: datos-resenas
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request
+          api = f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}"
+          cabeceras = {"Authorization": f"Bearer {os.environ['GH_TOKEN']}", "Accept": "application/vnd.github+json"}
+          with urllib.request.urlopen(urllib.request.Request(f"{api}/releases?per_page=100", headers=cabeceras)) as r:
+              releases = json.load(r)
+          release = next(r for r in releases if r["tag_name"] == os.environ["RELEASE_TAG"])
+          archivo = next(a for a in release["assets"] if a["name"].endswith(".zip"))
+          pedido = urllib.request.Request(archivo["url"], headers={**cabeceras, "Accept": "application/octet-stream"})
+          with urllib.request.urlopen(pedido) as r, open("/tmp/resenias.zip", "wb") as salida:
+              salida.write(r.read())
+          print(f"Descargado {archivo['name']} ({archivo['size'] / 1e6:.1f} MB)")
+          PY
+          unzip -o /tmp/resenias.zip -d src/db/raw/
+          ls -la src/db/raw/
+
+      - name: Preparar perfil y base de embeddings limpia
+        run: |
+          mkdir -p src/db/profiles
+          cp src/db/profiles/perfiles.ejemplo.json src/db/profiles/perfiles.json
+          rm -rf src/db/embeddings/chroma
+
+      - name: Ejecutar la opción 9 (todo el pipeline y análisis)
+        run: |
+          set -o pipefail
+          printf '9\n10\n' | python src/main.py 2>&1 | tee salida_opcion9.txt
+          test -n "$(ls -d analisis/*/ 2>/dev/null)"
+
+      - name: Publicar resultados en la rama resultados-analisis
+        run: |
+          carpeta=$(ls -d analisis/*/ | tail -1)
+          cp salida_opcion9.txt "$carpeta"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git fetch --depth=1 origin resultados-analisis; then
+            git worktree add /tmp/resultados FETCH_HEAD
+            git -C /tmp/resultados checkout -B resultados-analisis
+          else
+            git worktree add --detach /tmp/resultados
+            git -C /tmp/resultados checkout --orphan resultados-analisis
+            git -C /tmp/resultados rm -rfq .
+          fi
+          mkdir -p /tmp/resultados/analisis
+          cp -r "$carpeta" /tmp/resultados/analisis/
+          cd /tmp/resultados
+          git add analisis
+          git commit -q -m "Análisis de $(basename "$carpeta") (commit ${GITHUB_SHA::7})"
+          git push origin resultados-analisis
