@@ -1,0 +1,477 @@
+
+========================================
+MOTOR NEURO-SIMBÓLICO | PANEL CENTRAL
+
+----------------------------------------
+1) Gestionar perfiles cinéfilos.
+2) Ejecutar pipeline ETL (filtrar CSVs crudos).
+3) Generar embeddings de un perfil.
+4) Generar embeddings de los lotes de reseñas pendientes.
+5) Cargar Ground-truth (dataset_maestro.csv).
+6) Revisar películas pendientes de evaluar.
+7) Entrenar modelo predictivo (Regresión Lineal).
+8) Recomendar películas según el perfil.
+9) Ejecutar todo (opciones 2 a 8) y generar datos de análisis.
+10) Salir.
+
+----------------------------------------
+Seleccione su módulo a ejecutar
+< Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+
+[9] Ejecutando todo el pipeline y generando datos de análisis...
+
+Perfil: Ignacio Araya. El pipeline corre sin más preguntas y no borra datos: los chunks antiguos o perfiles huérfanos solo se informan.
+
+========================================================================
+[1/11] Filtrado de reseñas crudas (opción 2)
+========================================================================
+Procesando archivo: base_de_datos_inicial_100.csv
+
+| ---------------- Inspección inicial: base_de_datos_inicial_100.csv ---------------- |
+<class 'pandas.DataFrame'>
+RangeIndex: 110 entries, 0 to 109
+Data columns (total 7 columns):
+ #   Column       Non-Null Count  Dtype
+---  ------       --------------  -----
+ 0   user_name    110 non-null    str  
+ 1   date         110 non-null    str  
+ 2   rating       99 non-null     str  
+ 3   review_text  110 non-null    str  
+ 4   film_id      110 non-null    str  
+ 5   film_title   110 non-null    str  
+ 6   director     110 non-null    str  
+dtypes: str(7)
+memory usage: 6.1 KB
+
+|========================================================|
+
+
+| ---------------- Datos limpios: filtrado_base_de_datos_inicial_100_2026-09-26_14-03-07.csv ---------------- |
+<class 'pandas.DataFrame'>
+Index: 107 entries, 0 to 109
+Data columns (total 6 columns):
+ #   Column       Non-Null Count  Dtype  
+---  ------       --------------  -----  
+ 0   date         107 non-null    str    
+ 1   rating       107 non-null    float64
+ 2   review_text  107 non-null    str    
+ 3   film_id      107 non-null    str    
+ 4   film_title   107 non-null    str    
+ 5   director     107 non-null    str    
+dtypes: float64(1), str(5)
+memory usage: 5.9 KB
+
+|========================================================|
+
+
+Archivo filtrado_base_de_datos_inicial_100_2026-09-26_14-03-07.csv guardado exitosamente en:
+/home/runner/work/motor-de-recomendacion-semantica-multiperfil/motor-de-recomendacion-semantica-multiperfil/src/db/filtered/result/filtrado_base_de_datos_inicial_100_2026-09-26_14-03-07.csv.
+
+Omitiendo reviews.db: ya fue filtrado y no ha cambiado.
+
+
+--> Filtrado de reseñas crudas (opción 2): 0.0 s
+
+========================================================================
+[2/11] Embeddings del perfil (opción 3)
+========================================================================
+Cargando nuevo modelo neuronal en memoria (CPU). Por favor espere...
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 3888.05it/s]
+Construyendo chunks...
+Generando embeddings...
+Embeddings generados con éxito. Forma del tensor: (29, 768)
+Colección 'perfiles' actualizada en: /home/runner/work/motor-de-recomendacion-semantica-multiperfil/motor-de-recomendacion-semantica-multiperfil/src/db/embeddings/chroma_paraphrase-multilingual-mpnet-base-v2
+Documentos guardados/actualizados: 29
+
+--> Embeddings del perfil (opción 3): 13.7 s
+
+========================================================================
+[3/11] Embeddings de reseñas (opción 4)
+========================================================================
+Lotes pendientes de vectorizar: filtrado_base_de_datos_inicial_100_2026-09-26_14-03-07.csv
+Cargando nuevo modelo neuronal en memoria (CPU). Por favor espere...
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 3605.94it/s]
+
+Leyendo lote: filtrado_base_de_datos_inicial_100_2026-09-26_14-03-07.csv
+Chunkeando reseñas...
+Generando embeddings...
+Codificando 163 chunks de 107 reseñas...
+Batches:   0%|          | 0/3 [00:00<?, ?it/s]Batches:  33%|███▎      | 1/3 [00:08<00:16,  8.06s/it]Batches:  67%|██████▋   | 2/3 [00:14<00:06,  6.92s/it]Batches: 100%|██████████| 3/3 [00:15<00:00,  4.42s/it]Batches: 100%|██████████| 3/3 [00:15<00:00,  5.21s/it]
+Lote filtrado_base_de_datos_inicial_100_2026-09-26_14-03-07: 163 chunks guardados en la colección 'resenias'.
+
+--> Embeddings de reseñas (opción 4): 21.8 s
+
+========================================================================
+[4/11] Verdad Base (opción 5)
+========================================================================
+Leyendo el dataset maestro...
+Mapeando columnas según el perfil: Ignacio Araya
+Guardando Verdad Base en formato ligero: matriz_perdida.csv...
+Éxito. 110 películas ingestadas y normalizadas.
+
+| -- Verificación de integridad matemática -- |
+                  film_id  ...  gt_nota_global
+0    in-the-mood-for-love  ...             9.5
+1  kikis-delivery-service  ...             8.5
+2                 persona  ...             9.5
+3                close-up  ...             9.5
+4      memories-of-murder  ...             8.0
+
+[5 rows x 17 columns]
+
+--> Verdad Base (opción 5): 0.0 s
+
+========================================================================
+[5/11] Películas pendientes de evaluar (opción 6)
+========================================================================
+Recolectando películas con reseñas procesadas...
+Cruzando contra la Verdad Base actual...
+
+| -- Estado de evaluación -- |
+Películas con reseñas procesadas: 158
+Películas ya evaluadas (Verdad Base): 110
+Películas pendientes de evaluar: 57
+
+Películas pendientes:
+  - 2046
+  - 500-days-of-summer
+  - a-clockwork-orange
+  - alien
+  - another-round
+  - before-midnight
+  - before-sunrise
+  - bojack-horseman-christmas-special-sabrinas
+  - burning
+  - but-im-a-cheerleader
+  - chungking-express
+  - climax
+  - dawn-of-the-dead
+  - eternal-sunshine-of-the-spotless-mind
+  - fantastic-mr-fox
+  - flcl
+  - godzilla
+  - halloween
+  - hamnet
+  - happy-together
+  - inside-llewyn-davis
+  - it-was-just-an-accident
+  - lady-bird
+  - let-the-right-one-in
+  - neon-genesis-evangelion
+  - night-of-the-living-dead
+  - nosferatu
+  - one-battle-after-another
+  - parasite
+  - perfect-blue
+  - phantom-thread
+  - portrait-of-a-lady-on-fire
+  - pride-prejudice
+  - princess-mononoke
+  - pulp-fiction
+  - requiem-for-a-dream
+  - scott-pilgrim-vs-the-world
+  - sentimental-value
+  - seven-samurai
+  - shaun-of-the-dead
+  - sorry-baby
+  - spencer
+  - suspiria
+  - taipei-suicide-story
+  - the-handmaiden
+  - the-lighthouse
+  - the-nightmare-before-christmas
+  - the-passion-of-joan-of-arc
+  - the-secret-agent
+  - the-seventh-seal
+  - the-shining
+  - the-witch
+  - train-dreams
+  - twin-peaks
+  - under-the-skin
+  - weapons
+  - wristcutters-a-love-story
+
+Plantilla para evaluación guardada en: /home/runner/work/motor-de-recomendacion-semantica-multiperfil/motor-de-recomendacion-semantica-multiperfil/src/loss/pendientes_evaluar.csv
+Instrucciones para evaluar con Gemini guardadas en: /home/runner/work/motor-de-recomendacion-semantica-multiperfil/motor-de-recomendacion-semantica-multiperfil/src/loss/instrucciones_evaluacion.md
+Pega su respuesta en la plantilla (al menos gt_nota_global) y ejecuta el módulo 5 para sumarla a la Verdad Base.
+
+--> Películas pendientes de evaluar (opción 6): 0.2 s
+
+========================================================================
+[6/11] Entrenamiento del modelo (opción 7)
+========================================================================
+Conectando con la base de datos vectorial ChromaDB...
+Calculando distancias semánticas (Matriz X)...
+Entrenando Regresión Lineal...
+
+| -- Métricas Finales de Entrenamiento -- |
+Perfil: Ignacio Araya
+Películas evaluadas con éxito (Cruce Vectorial): 101
+Error Cuadrático Medio (MSE): 0.6463
+Varianza Explicada (R^2): 0.4812
+
+| -- Pesos Sinápticos (Impacto semántico de cada término y relación) -- |
+ filtro · Camaradería Masculina Rancia: 0.0195
+ filtro · Insoportabilidad Prolongada: -0.5130
+ filtro · Control Emocional Artificial: -0.3733
+ filtro · Personajes Diorama: 0.1745
+ filtro · Caos Asfixiante: 0.0286
+ afinidad · Resistencia Femenina: 0.3492
+ afinidad · Contemplación Inmersiva: 0.4541
+ afinidad · Ternura y Empatía Radical: 0.0284
+ afinidad · Humanismo Social: 0.1441
+ afinidad · Vanguardia y Simbolismo: 0.0790
+ excepción · Camaradería Masculina Rancia: -0.1807
+ excepción · Insoportabilidad Prolongada: 0.4244
+ Resistencia Femenina × Camaradería Masculina Rancia: 0.0694
+ Ternura y Empatía Radical × Insoportabilidad Prolongada: 0.0120
+ Humanismo Social × Insoportabilidad Prolongada: 0.0863
+ Humanismo Social × Control Emocional Artificial: 0.1180
+ Contemplación Inmersiva × Control Emocional Artificial: 0.2422
+ Ternura y Empatía Radical × Personajes Diorama: -0.2585
+ Contemplación Inmersiva × Caos Asfixiante: -0.1633
+ Camaradería Masculina Rancia × excepción: -0.0571
+ Insoportabilidad Prolongada × excepción: 0.0309
+
+Sesgo Base (Bias): 8.5722
+
+Modelo guardado en: /home/runner/work/motor-de-recomendacion-semantica-multiperfil/motor-de-recomendacion-semantica-multiperfil/src/loss/modelo_regresion_paraphrase-multilingual-mpnet-base-v2.joblib
+
+--> Entrenamiento del modelo (opción 7): 3.4 s
+
+========================================================================
+[7/11] Validación cruzada de la regresión lineal (5 particiones)
+========================================================================
+  Partición 1/5: entrena con 80, prueba con 21 | MAE modelo 1.035 | MAE Ridge 0.743 | MAE promedio 0.925
+  Partición 2/5: entrena con 81, prueba con 20 | MAE modelo 0.805 | MAE Ridge 0.766 | MAE promedio 1.063
+  Partición 3/5: entrena con 81, prueba con 20 | MAE modelo 0.768 | MAE Ridge 0.579 | MAE promedio 0.678
+  Partición 4/5: entrena con 81, prueba con 20 | MAE modelo 0.587 | MAE Ridge 0.573 | MAE promedio 0.590
+  Partición 5/5: entrena con 81, prueba con 20 | MAE modelo 1.254 | MAE Ridge 1.064 | MAE promedio 0.796
+
+========================================================================
+[8/11] Modelo de reglas en dos etapas
+========================================================================
+Criterios: 5 afinidades, 5 filtros, 7 relaciones de corrupción.
+Etapa 2 con 110 películas con todos sus puntajes en la Verdad Base.
+
+Etapa 2 por separado (puntajes reales de Gemini -> nota global):
+  Partición 1/5: MAE regla 0.282 | MAE lineal sobre puntajes 0.335
+  Partición 2/5: MAE regla 0.238 | MAE lineal sobre puntajes 0.264
+  Partición 3/5: MAE regla 0.350 | MAE lineal sobre puntajes 0.327
+  Partición 4/5: MAE regla 0.429 | MAE lineal sobre puntajes 0.375
+  Partición 5/5: MAE regla 0.295 | MAE lineal sobre puntajes 0.326
+
+Modelo completo (reseñas -> puntajes -> nota global):
+  Partición 1/5: MAE 0.694
+  Partición 2/5: MAE 0.700
+  Partición 3/5: MAE 0.366
+  Partición 4/5: MAE 0.465
+  Partición 5/5: MAE 0.751
+
+Entrenando el modelo de reglas final con todos los datos...
+
+========================================================================
+[9/11] Comparación de pooling y número de reseñas
+========================================================================
+
+Particiones con semilla 0:
+Entrenando la etapa 2 una vez por partición (5)...
+  promedio, hasta 50 reseñas                    MAE 0.616 | R² 0.376 | etapa 1: afinidades 0.417, filtros 0.097
+  promedio, hasta 100 reseñas                   MAE 0.596 | R² 0.408 | etapa 1: afinidades 0.417, filtros 0.126
+  promedio, todas las reseñas                   MAE 0.596 | R² 0.406 | etapa 1: afinidades 0.416, filtros 0.126
+  percentil 50 por dimensión, hasta 50 reseñas  MAE 0.619 | R² 0.372 | etapa 1: afinidades 0.403, filtros 0.128
+  percentil 50 por dimensión, hasta 100 reseñas MAE 0.600 | R² 0.404 | etapa 1: afinidades 0.411, filtros 0.130
+  percentil 50 por dimensión, todas las reseñas MAE 0.598 | R² 0.405 | etapa 1: afinidades 0.411, filtros 0.130
+  percentil 75 por dimensión, hasta 50 reseñas  MAE 0.607 | R² 0.395 | etapa 1: afinidades 0.423, filtros 0.136
+  percentil 75 por dimensión, hasta 100 reseñas MAE 0.594 | R² 0.420 | etapa 1: afinidades 0.425, filtros 0.139
+  percentil 75 por dimensión, todas las reseñas MAE 0.593 | R² 0.418 | etapa 1: afinidades 0.425, filtros 0.139
+  percentil 90 por dimensión, hasta 50 reseñas  MAE 0.607 | R² 0.381 | etapa 1: afinidades 0.416, filtros 0.152
+  percentil 90 por dimensión, hasta 100 reseñas MAE 0.590 | R² 0.402 | etapa 1: afinidades 0.421, filtros 0.143
+  percentil 90 por dimensión, todas las reseñas MAE 0.590 | R² 0.400 | etapa 1: afinidades 0.420, filtros 0.143
+  percentil 95 por dimensión, hasta 50 reseñas  MAE 0.622 | R² 0.332 | etapa 1: afinidades 0.404, filtros 0.129
+  percentil 95 por dimensión, hasta 100 reseñas MAE 0.590 | R² 0.378 | etapa 1: afinidades 0.408, filtros 0.141
+  percentil 95 por dimensión, todas las reseñas MAE 0.590 | R² 0.379 | etapa 1: afinidades 0.409, filtros 0.142
+  promedio + percentiles de similitud, hasta 50 reseñas MAE 0.615 | R² 0.379 | etapa 1: afinidades 0.423, filtros 0.133
+  promedio + percentiles de similitud, hasta 100 reseñas MAE 0.594 | R² 0.411 | etapa 1: afinidades 0.423, filtros 0.130
+  promedio + percentiles de similitud, todas las reseñas MAE 0.593 | R² 0.411 | etapa 1: afinidades 0.422, filtros 0.129
+
+Particiones con semilla 1:
+Entrenando la etapa 2 una vez por partición (5)...
+  promedio, hasta 50 reseñas                    MAE 0.623 | R² 0.312 | etapa 1: afinidades 0.363, filtros 0.095
+  promedio, hasta 100 reseñas                   MAE 0.619 | R² 0.322 | etapa 1: afinidades 0.362, filtros 0.125
+  promedio, todas las reseñas                   MAE 0.619 | R² 0.323 | etapa 1: afinidades 0.360, filtros 0.123
+  percentil 50 por dimensión, hasta 50 reseñas  MAE 0.607 | R² 0.324 | etapa 1: afinidades 0.363, filtros 0.100
+  percentil 50 por dimensión, hasta 100 reseñas MAE 0.610 | R² 0.332 | etapa 1: afinidades 0.371, filtros 0.129
+  percentil 50 por dimensión, todas las reseñas MAE 0.611 | R² 0.331 | etapa 1: afinidades 0.369, filtros 0.128
+  percentil 75 por dimensión, hasta 50 reseñas  MAE 0.614 | R² 0.325 | etapa 1: afinidades 0.369, filtros 0.119
+  percentil 75 por dimensión, hasta 100 reseñas MAE 0.607 | R² 0.338 | etapa 1: afinidades 0.380, filtros 0.138
+  percentil 75 por dimensión, todas las reseñas MAE 0.606 | R² 0.335 | etapa 1: afinidades 0.378, filtros 0.137
+  percentil 90 por dimensión, hasta 50 reseñas  MAE 0.629 | R² 0.300 | etapa 1: afinidades 0.373, filtros 0.119
+  percentil 90 por dimensión, hasta 100 reseñas MAE 0.618 | R² 0.319 | etapa 1: afinidades 0.379, filtros 0.141
+  percentil 90 por dimensión, todas las reseñas MAE 0.618 | R² 0.319 | etapa 1: afinidades 0.377, filtros 0.138
+  percentil 95 por dimensión, hasta 50 reseñas  MAE 0.638 | R² 0.280 | etapa 1: afinidades 0.365, filtros 0.114
+  percentil 95 por dimensión, hasta 100 reseñas MAE 0.616 | R² 0.299 | etapa 1: afinidades 0.370, filtros 0.146
+  percentil 95 por dimensión, todas las reseñas MAE 0.614 | R² 0.302 | etapa 1: afinidades 0.370, filtros 0.143
+  promedio + percentiles de similitud, hasta 50 reseñas MAE 0.621 | R² 0.308 | etapa 1: afinidades 0.365, filtros 0.099
+  promedio + percentiles de similitud, hasta 100 reseñas MAE 0.612 | R² 0.326 | etapa 1: afinidades 0.370, filtros 0.130
+  promedio + percentiles de similitud, todas las reseñas MAE 0.612 | R² 0.326 | etapa 1: afinidades 0.368, filtros 0.130
+
+Particiones con semilla 2:
+Entrenando la etapa 2 una vez por partición (5)...
+  promedio, hasta 50 reseñas                    MAE 0.614 | R² 0.350 | etapa 1: afinidades 0.398, filtros 0.107
+  promedio, hasta 100 reseñas                   MAE 0.620 | R² 0.344 | etapa 1: afinidades 0.385, filtros 0.123
+  promedio, todas las reseñas                   MAE 0.618 | R² 0.343 | etapa 1: afinidades 0.385, filtros 0.123
+  percentil 50 por dimensión, hasta 50 reseñas  MAE 0.608 | R² 0.354 | etapa 1: afinidades 0.396, filtros 0.105
+  percentil 50 por dimensión, hasta 100 reseñas MAE 0.618 | R² 0.353 | etapa 1: afinidades 0.379, filtros 0.122
+  percentil 50 por dimensión, todas las reseñas MAE 0.617 | R² 0.353 | etapa 1: afinidades 0.377, filtros 0.121
+  percentil 75 por dimensión, hasta 50 reseñas  MAE 0.606 | R² 0.364 | etapa 1: afinidades 0.402, filtros 0.113
+  percentil 75 por dimensión, hasta 100 reseñas MAE 0.613 | R² 0.360 | etapa 1: afinidades 0.388, filtros 0.133
+  percentil 75 por dimensión, todas las reseñas MAE 0.610 | R² 0.360 | etapa 1: afinidades 0.389, filtros 0.132
+  percentil 90 por dimensión, hasta 50 reseñas  MAE 0.618 | R² 0.333 | etapa 1: afinidades 0.387, filtros 0.119
+  percentil 90 por dimensión, hasta 100 reseñas MAE 0.630 | R² 0.319 | etapa 1: afinidades 0.389, filtros 0.117
+  percentil 90 por dimensión, todas las reseñas MAE 0.625 | R² 0.322 | etapa 1: afinidades 0.388, filtros 0.117
+  percentil 95 por dimensión, hasta 50 reseñas  MAE 0.627 | R² 0.286 | etapa 1: afinidades 0.369, filtros 0.109
+  percentil 95 por dimensión, hasta 100 reseñas MAE 0.610 | R² 0.315 | etapa 1: afinidades 0.382, filtros 0.135
+  percentil 95 por dimensión, todas las reseñas MAE 0.608 | R² 0.316 | etapa 1: afinidades 0.382, filtros 0.137
+  promedio + percentiles de similitud, hasta 50 reseñas MAE 0.609 | R² 0.355 | etapa 1: afinidades 0.407, filtros 0.112
+  promedio + percentiles de similitud, hasta 100 reseñas MAE 0.609 | R² 0.356 | etapa 1: afinidades 0.393, filtros 0.125
+  promedio + percentiles de similitud, todas las reseñas MAE 0.607 | R² 0.353 | etapa 1: afinidades 0.393, filtros 0.126
+
+Particiones con semilla 3:
+Entrenando la etapa 2 una vez por partición (5)...
+  promedio, hasta 50 reseñas                    MAE 0.614 | R² 0.305 | etapa 1: afinidades 0.392, filtros 0.082
+  promedio, hasta 100 reseñas                   MAE 0.602 | R² 0.332 | etapa 1: afinidades 0.398, filtros 0.087
+  promedio, todas las reseñas                   MAE 0.602 | R² 0.333 | etapa 1: afinidades 0.397, filtros 0.086
+  percentil 50 por dimensión, hasta 50 reseñas  MAE 0.607 | R² 0.321 | etapa 1: afinidades 0.398, filtros 0.089
+  percentil 50 por dimensión, hasta 100 reseñas MAE 0.601 | R² 0.335 | etapa 1: afinidades 0.401, filtros 0.098
+  percentil 50 por dimensión, todas las reseñas MAE 0.600 | R² 0.337 | etapa 1: afinidades 0.398, filtros 0.099
+  percentil 75 por dimensión, hasta 50 reseñas  MAE 0.611 | R² 0.310 | etapa 1: afinidades 0.391, filtros 0.084
+  percentil 75 por dimensión, hasta 100 reseñas MAE 0.592 | R² 0.353 | etapa 1: afinidades 0.409, filtros 0.089
+  percentil 75 por dimensión, todas las reseñas MAE 0.591 | R² 0.351 | etapa 1: afinidades 0.404, filtros 0.090
+  percentil 90 por dimensión, hasta 50 reseñas  MAE 0.624 | R² 0.280 | etapa 1: afinidades 0.373, filtros 0.096
+  percentil 90 por dimensión, hasta 100 reseñas MAE 0.611 | R² 0.312 | etapa 1: afinidades 0.397, filtros 0.080
+  percentil 90 por dimensión, todas las reseñas MAE 0.611 | R² 0.311 | etapa 1: afinidades 0.394, filtros 0.080
+  percentil 95 por dimensión, hasta 50 reseñas  MAE 0.640 | R² 0.241 | etapa 1: afinidades 0.352, filtros 0.085
+  percentil 95 por dimensión, hasta 100 reseñas MAE 0.609 | R² 0.300 | etapa 1: afinidades 0.383, filtros 0.089
+  percentil 95 por dimensión, todas las reseñas MAE 0.609 | R² 0.300 | etapa 1: afinidades 0.382, filtros 0.090
+  promedio + percentiles de similitud, hasta 50 reseñas MAE 0.613 | R² 0.307 | etapa 1: afinidades 0.405, filtros 0.092
+  promedio + percentiles de similitud, hasta 100 reseñas MAE 0.598 | R² 0.332 | etapa 1: afinidades 0.407, filtros 0.096
+  promedio + percentiles de similitud, todas las reseñas MAE 0.597 | R² 0.332 | etapa 1: afinidades 0.405, filtros 0.096
+
+Particiones con semilla 4:
+Entrenando la etapa 2 una vez por partición (5)...
+  promedio, hasta 50 reseñas                    MAE 0.587 | R² 0.394 | etapa 1: afinidades 0.413, filtros 0.138
+  promedio, hasta 100 reseñas                   MAE 0.577 | R² 0.405 | etapa 1: afinidades 0.429, filtros 0.140
+  promedio, todas las reseñas                   MAE 0.577 | R² 0.405 | etapa 1: afinidades 0.427, filtros 0.139
+  percentil 50 por dimensión, hasta 50 reseñas  MAE 0.582 | R² 0.394 | etapa 1: afinidades 0.418, filtros 0.139
+  percentil 50 por dimensión, hasta 100 reseñas MAE 0.575 | R² 0.408 | etapa 1: afinidades 0.426, filtros 0.143
+  percentil 50 por dimensión, todas las reseñas MAE 0.574 | R² 0.408 | etapa 1: afinidades 0.424, filtros 0.144
+  percentil 75 por dimensión, hasta 50 reseñas  MAE 0.577 | R² 0.404 | etapa 1: afinidades 0.416, filtros 0.144
+  percentil 75 por dimensión, hasta 100 reseñas MAE 0.583 | R² 0.408 | etapa 1: afinidades 0.432, filtros 0.150
+  percentil 75 por dimensión, todas las reseñas MAE 0.575 | R² 0.417 | etapa 1: afinidades 0.432, filtros 0.152
+  percentil 90 por dimensión, hasta 50 reseñas  MAE 0.603 | R² 0.374 | etapa 1: afinidades 0.402, filtros 0.153
+  percentil 90 por dimensión, hasta 100 reseñas MAE 0.586 | R² 0.394 | etapa 1: afinidades 0.422, filtros 0.148
+  percentil 90 por dimensión, todas las reseñas MAE 0.585 | R² 0.393 | etapa 1: afinidades 0.420, filtros 0.148
+  percentil 95 por dimensión, hasta 50 reseñas  MAE 0.612 | R² 0.344 | etapa 1: afinidades 0.383, filtros 0.134
+  percentil 95 por dimensión, hasta 100 reseñas MAE 0.590 | R² 0.370 | etapa 1: afinidades 0.401, filtros 0.143
+  percentil 95 por dimensión, todas las reseñas MAE 0.591 | R² 0.368 | etapa 1: afinidades 0.399, filtros 0.145
+  promedio + percentiles de similitud, hasta 50 reseñas MAE 0.583 | R² 0.396 | etapa 1: afinidades 0.421, filtros 0.144
+  promedio + percentiles de similitud, hasta 100 reseñas MAE 0.572 | R² 0.407 | etapa 1: afinidades 0.440, filtros 0.148
+  promedio + percentiles de similitud, todas las reseñas MAE 0.572 | R² 0.408 | etapa 1: afinidades 0.436, filtros 0.147
+
+========================================================================
+[10/11] Frases de reseña del perfil
+========================================================================
+Criterios con frases de reseña: 5 (17 frases).
+
+Particiones con semilla 0:
+Entrenando la etapa 2 una vez por partición (5)...
+  promedio (sin frases)                         MAE 0.596 | R² 0.406 | etapa 1: afinidades 0.416, filtros 0.126
+  promedio + frases de reseña                   MAE 0.594 | R² 0.411 | etapa 1: afinidades 0.416, filtros 0.138
+  promedio + frases de reseña, ponderadas       MAE 0.605 | R² 0.412 | etapa 1: afinidades 0.416, filtros 0.188
+  solo frases de reseña                         MAE 0.616 | R² 0.395 | etapa 1: afinidades 0.416, filtros 0.099
+  promedio + descripción (control)              MAE 0.596 | R² 0.407 | etapa 1: afinidades 0.416, filtros 0.130
+  solo descripción (control)                    MAE 0.615 | R² 0.383 | etapa 1: afinidades 0.416, filtros 0.048
+
+Particiones con semilla 1:
+Entrenando la etapa 2 una vez por partición (5)...
+  promedio (sin frases)                         MAE 0.619 | R² 0.323 | etapa 1: afinidades 0.360, filtros 0.123
+  promedio + frases de reseña                   MAE 0.615 | R² 0.328 | etapa 1: afinidades 0.360, filtros 0.137
+  promedio + frases de reseña, ponderadas       MAE 0.617 | R² 0.345 | etapa 1: afinidades 0.360, filtros 0.193
+  solo frases de reseña                         MAE 0.632 | R² 0.330 | etapa 1: afinidades 0.360, filtros 0.094
+  promedio + descripción (control)              MAE 0.617 | R² 0.324 | etapa 1: afinidades 0.360, filtros 0.126
+  solo descripción (control)                    MAE 0.621 | R² 0.317 | etapa 1: afinidades 0.360, filtros 0.055
+
+Particiones con semilla 2:
+Entrenando la etapa 2 una vez por partición (5)...
+  promedio (sin frases)                         MAE 0.618 | R² 0.343 | etapa 1: afinidades 0.385, filtros 0.123
+  promedio + frases de reseña                   MAE 0.612 | R² 0.354 | etapa 1: afinidades 0.385, filtros 0.133
+  promedio + frases de reseña, ponderadas       MAE 0.616 | R² 0.365 | etapa 1: afinidades 0.385, filtros 0.192
+  solo frases de reseña                         MAE 0.620 | R² 0.359 | etapa 1: afinidades 0.385, filtros 0.091
+  promedio + descripción (control)              MAE 0.617 | R² 0.346 | etapa 1: afinidades 0.385, filtros 0.124
+  solo descripción (control)                    MAE 0.618 | R² 0.343 | etapa 1: afinidades 0.385, filtros 0.040
+
+Particiones con semilla 3:
+Entrenando la etapa 2 una vez por partición (5)...
+  promedio (sin frases)                         MAE 0.602 | R² 0.333 | etapa 1: afinidades 0.397, filtros 0.086
+  promedio + frases de reseña                   MAE 0.601 | R² 0.337 | etapa 1: afinidades 0.397, filtros 0.100
+  promedio + frases de reseña, ponderadas       MAE 0.596 | R² 0.367 | etapa 1: afinidades 0.397, filtros 0.171
+  solo frases de reseña                         MAE 0.599 | R² 0.370 | etapa 1: afinidades 0.397, filtros 0.094
+  promedio + descripción (control)              MAE 0.602 | R² 0.334 | etapa 1: afinidades 0.397, filtros 0.093
+  solo descripción (control)                    MAE 0.600 | R² 0.343 | etapa 1: afinidades 0.397, filtros 0.037
+
+Particiones con semilla 4:
+Entrenando la etapa 2 una vez por partición (5)...
+  promedio (sin frases)                         MAE 0.577 | R² 0.405 | etapa 1: afinidades 0.427, filtros 0.139
+  promedio + frases de reseña                   MAE 0.576 | R² 0.409 | etapa 1: afinidades 0.427, filtros 0.155
+  promedio + frases de reseña, ponderadas       MAE 0.589 | R² 0.415 | etapa 1: afinidades 0.427, filtros 0.212
+  solo frases de reseña                         MAE 0.597 | R² 0.401 | etapa 1: afinidades 0.427, filtros 0.120
+  promedio + descripción (control)              MAE 0.576 | R² 0.407 | etapa 1: afinidades 0.427, filtros 0.148
+  solo descripción (control)                    MAE 0.600 | R² 0.383 | etapa 1: afinidades 0.427, filtros 0.053
+
+========================================================================
+[11/11] Ranking (opción 8) y datos de análisis
+========================================================================
+Usando el modelo entrenado para el perfil: Ignacio Araya
+Conectando con la base de datos vectorial ChromaDB...
+Agrupando embeddings de reseñas por película...
+
+| -- Resumen -- |
+Películas para entrenar: 101 | candidatas: 57
+MAE entrenamiento: 0.591 | MAE validación cruzada: 0.891 | MAE línea base: 0.812
+R² validación cruzada: -0.276 | con Ridge: 0.113 (MAE 0.745)
+Modelo de reglas en dos etapas: MAE 0.596 | R² 0.406
+Mejor pooling: percentil 75 por dimensión, todas las reseñas (MAE 0.595 | R² 0.376)
+Mejor variante con frases de reseña: promedio + frases de reseña (MAE 0.600 | R² 0.368)
+Tiempo total: 656.2 s
+
+Datos de análisis guardados en: /home/runner/work/motor-de-recomendacion-semantica-multiperfil/motor-de-recomendacion-semantica-multiperfil/analisis/2026-09-26_14-14-03_paraphrase-multilingual-mpnet-base-v2
+  - frases_resenia.csv
+  - frases_resenia_por_criterio.csv
+  - peliculas.csv
+  - pesos.csv
+  - pooling.csv
+  - ranking.csv
+  - reglas.json
+  - resumen.json
+  - resumen.md
+  - similitud_perfil.csv
+
+========================================
+MOTOR NEURO-SIMBÓLICO | PANEL CENTRAL
+
+----------------------------------------
+1) Gestionar perfiles cinéfilos.
+2) Ejecutar pipeline ETL (filtrar CSVs crudos).
+3) Generar embeddings de un perfil.
+4) Generar embeddings de los lotes de reseñas pendientes.
+5) Cargar Ground-truth (dataset_maestro.csv).
+6) Revisar películas pendientes de evaluar.
+7) Entrenar modelo predictivo (Regresión Lineal).
+8) Recomendar películas según el perfil.
+9) Ejecutar todo (opciones 2 a 8) y generar datos de análisis.
+10) Salir.
+
+----------------------------------------
+Seleccione su módulo a ejecutar
+< Saliendo del panel central.

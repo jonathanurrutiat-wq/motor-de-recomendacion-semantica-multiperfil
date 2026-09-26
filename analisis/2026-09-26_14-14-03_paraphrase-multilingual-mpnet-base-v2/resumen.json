@@ -1,0 +1,73 @@
+{
+  "fecha": "2026-09-26T14:14:04",
+  "perfil": "Ignacio Araya",
+  "modelo_embeddings": "sentence-transformers/paraphrase-multilingual-mpnet-base-v2",
+  "parametros_filtrado": {
+    "min_caracteres_resenia": 100,
+    "max_resenias_por_pelicula": 100,
+    "min_resenias_por_pelicula": 20
+  },
+  "datos": {
+    "peliculas_con_embeddings": 158,
+    "chunks_de_resenias": 55932,
+    "peliculas_en_verdad_base": 110,
+    "peliculas_para_entrenar": 101,
+    "peliculas_candidatas": 57,
+    "variables_del_modelo": 21,
+    "parametros": {
+      "regresion_lineal": 22,
+      "reglas_etapa_1": 11535,
+      "reglas_etapa_2": 16
+    },
+    "evaluadas_sin_resenias": [
+      "all-quiet-on-the-western",
+      "avatar-the-way-of-water",
+      "elvis",
+      "everything-everywhere-all-at-once",
+      "frankenstein",
+      "im-still-here",
+      "nickel-boys",
+      "oppenheimer",
+      "the-fabelmans"
+    ]
+  },
+  "metricas": {
+    "entrenamiento": {
+      "mse": 0.6462955057843157,
+      "mae": 0.5907081043132364,
+      "r2": 0.48118433380346415
+    },
+    "validacion_cruzada_5_particiones": {
+      "mse": 1.5893920177444665,
+      "mae": 0.8913652916441456,
+      "r2": -0.27588923511521535
+    },
+    "validacion_cruzada_ridge_5_particiones": {
+      "mse": 1.1054083671647357,
+      "mae": 0.744974565342863,
+      "r2": 0.11263009985839356
+    },
+    "linea_base_promedio": {
+      "mse": 1.273565803077007,
+      "mae": 0.8115167766776682,
+      "r2": -0.02235878890519527
+    },
+    "reglas_dos_etapas_5_particiones": {
+      "mse": 0.7403737754779246,
+      "mae": 0.596254885133375,
+      "r2": 0.4056627191103923
+    }
+  },
+  "tiempos_segundos": {
+    "Filtrado de reseñas crudas (opción 2)": 0.0,
+    "Embeddings del perfil (opción 3)": 13.7,
+    "Embeddings de reseñas (opción 4)": 21.8,
+    "Verdad Base (opción 5)": 0.0,
+    "Películas pendientes de evaluar (opción 6)": 0.2,
+    "Entrenamiento del modelo (opción 7)": 3.4,
+    "Validación cruzada": 0.0,
+    "Modelo de reglas": 100.9,
+    "Comparación de pooling": 277.5,
+    "Frases de reseña": 235.0
+  }
+}
