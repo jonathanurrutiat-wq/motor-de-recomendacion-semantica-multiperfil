@@ -60,11 +60,30 @@ jobs:
           cp src/db/profiles/perfiles.ejemplo.json src/db/profiles/perfiles.json
           rm -rf src/db/embeddings/chroma
 
+      - name: Verificar la integridad de la base de reseñas
+        run: |
+          python - <<'PY'
+          import glob, sqlite3, sys
+          for ruta in glob.glob("src/db/raw/*.db"):
+              resultado = sqlite3.connect(f"file:{ruta}?mode=ro", uri=True).execute("pragma quick_check").fetchone()[0]
+              print(f"{ruta}: {resultado}")
+              if resultado != "ok":
+                  print(f"::error title=Base de reseñas dañada::{ruta}: {resultado[:300]}. "
+                        "Vuelve a copiarla con el scraper detenido y reemplaza el zip del release.")
+                  sys.exit(1)
+          PY
+
       - name: Ejecutar la opción 9 (todo el pipeline y análisis)
         run: |
           set -o pipefail
-          printf '9\n10\n' | python src/main.py 2>&1 | tee salida_opcion9.txt
-          test -n "$(ls -d analisis/*/ 2>/dev/null)"
+          if ! printf '9\n10\n' | python src/main.py 2>&1 | tee salida_opcion9.txt; then
+            echo "::error title=Falló la opción 9::$(tail -n 25 salida_opcion9.txt | sed ':a;N;$!ba;s/%/%25/g;s/\n/%0A/g')"
+            exit 1
+          fi
+          if [ -z "$(ls -d analisis/*/ 2>/dev/null)" ]; then
+            echo "::error title=No se generó el análisis::$(tail -n 25 salida_opcion9.txt | sed ':a;N;$!ba;s/%/%25/g;s/\n/%0A/g')"
+            exit 1
+          fi
 
       - name: Publicar resultados en la rama resultados-analisis
         run: |

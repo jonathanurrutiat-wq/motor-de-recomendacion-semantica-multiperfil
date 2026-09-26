@@ -115,7 +115,13 @@ def main():
     print(f"Procesando archivo: {csv_file.name}\n")
 
     if csv_file.suffix == ".db":
-      df = leer_resenias_db(csv_file)
+      try:
+        df = leer_resenias_db(csv_file)
+      except (sqlite3.DatabaseError, pd.errors.DatabaseError) as error:
+        detalle = str(error).splitlines()[-1].strip(" ':")
+        print(f"[!] Error: {csv_file.name} está dañada ({detalle}). Suele pasar cuando se copia mientras el "
+              "scraper sigue escribiendo: vuelve a copiarla con el scraper detenido.\n")
+        continue
       if df is None:
         print(f"Omitiendo {csv_file.name}: no tiene las tablas 'reviews' y 'films'.\n")
         continue
