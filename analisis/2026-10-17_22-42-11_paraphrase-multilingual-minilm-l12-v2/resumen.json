@@ -1,0 +1,109 @@
+{
+  "fecha": "2026-10-17T22:42:12",
+  "perfil": "Ignacio Araya",
+  "modelo_embeddings": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+  "pooling": "media",
+  "parametros_filtrado": {
+    "min_caracteres_resenia": 100,
+    "max_resenias_por_pelicula": 200,
+    "min_resenias_por_pelicula": 20
+  },
+  "datos": {
+    "peliculas_con_embeddings": 158,
+    "chunks_de_resenias": 106021,
+    "peliculas_en_verdad_base": 130,
+    "peliculas_para_entrenar": 101,
+    "peliculas_candidatas": 57,
+    "variables_regresion_lineal": 21,
+    "frases_de_resenia": true,
+    "parametros": {
+      "regresion_lineal": 22,
+      "reglas_etapa_1": 5819,
+      "reglas_etapa_2": 16
+    },
+    "evaluadas_sin_resenias": [
+      "1917",
+      "all-quiet-on-the-western-front",
+      "american-sniper",
+      "avatar",
+      "avatar-the-way-of-water",
+      "black-panther",
+      "bohemian-rhapsody",
+      "dunkirk",
+      "elvis",
+      "everything-everywhere-all-at-once",
+      "extremely-loud-incredibly-close",
+      "frankenstein",
+      "green-book",
+      "hidden-figures",
+      "im-still-here",
+      "inception",
+      "joker",
+      "les-miserables",
+      "lincoln",
+      "maestro",
+      "nickel-boys",
+      "oppenheimer",
+      "the-blind-side",
+      "the-fabelmans",
+      "the-help",
+      "the-imitation-game",
+      "the-theory-of-everything",
+      "toy-story-3",
+      "war-horse"
+    ]
+  },
+  "metricas": {
+    "entrenamiento": {
+      "mse": 0.8962841663176503,
+      "mae": 0.6383624977423998,
+      "r2": 0.43636633431353233,
+      "spearman": 0.6888258080985714,
+      "ndcg@10": 0.9595955586944146,
+      "precision@10": 0.3
+    },
+    "validacion_cruzada_5_particiones": {
+      "mse": 1.7463877700253174,
+      "mae": 0.8833418755411555,
+      "r2": -0.09822640800789695,
+      "spearman": 0.4893891047081113,
+      "ndcg@10": 0.9354848711854455,
+      "precision@10": 0.3
+    },
+    "validacion_cruzada_ridge_5_particiones": {
+      "mse": 1.5098792367732417,
+      "mae": 0.8400297867779751,
+      "r2": 0.050503399538154525,
+      "spearman": 0.39439944720167636,
+      "ndcg@10": 0.9179342298332259,
+      "precision@10": 0.2
+    },
+    "linea_base_promedio": {
+      "mse": 1.6261401939019346,
+      "mae": 0.8551598215377096,
+      "r2": -0.02260799961986515,
+      "spearman": 0.0,
+      "ndcg@10": 0.8452901541992687,
+      "precision@10": 0.12871287128712872
+    },
+    "reglas_dos_etapas_5_particiones": {
+      "mse": 1.1330799422076085,
+      "mae": 0.6689801662285964,
+      "r2": 0.2874558925143996,
+      "spearman": 0.6028625397223023,
+      "ndcg@10": 0.9467792338174787,
+      "precision@10": 0.24
+    }
+  },
+  "tiempos_segundos": {
+    "Filtrado de reseñas crudas (opción 2)": 0.0,
+    "Embeddings del perfil (opción 3)": 19.3,
+    "Embeddings de reseñas (opción 4)": 0.7,
+    "Verdad Base (opción 5)": 0.1,
+    "Películas pendientes de evaluar (opción 6)": 0.4,
+    "Entrenamiento del modelo de reglas (opción 7)": 383.7,
+    "Regresión lineal (comparación)": 4.1,
+    "Comparación de pooling": 416.1,
+    "Frases de reseña": 362.3
+  }
+}
