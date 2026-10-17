@@ -26,3 +26,15 @@ def test_a_numerico_acepta_asterisco_y_coma():
 
 def test_a_numerico_convierte_reprobada():
     assert a_numerico(pd.Series(["REPROBADA", "reprobada ", "2.5"])).tolist() == [NOTA_REPROBADA, NOTA_REPROBADA, 2.5]
+
+
+def test_lista_evaluadas_sin_resenias(tmp_path, monkeypatch):
+    from src.loss import gt_matrix_pipeline as opcion_6
+    gt = tmp_path / "matriz.csv"
+    pd.DataFrame({"film_id": ["elvis-2022", "persona", "toy-story-3"],
+                  "film_title": ["Elvis (2022)", "Persona", "Toy Story 3 (2010)"]}).to_csv(gt, index=False)
+    salida = tmp_path / "pendientes_resenias.csv"
+    monkeypatch.setattr(opcion_6, "RUTA_SIN_RESENIAS", salida)
+    # Las reseñas de Elvis vienen con otro sufijo de año: igual cuenta como con reseñas.
+    assert opcion_6.guardar_evaluadas_sin_resenias(gt, {"elvis", "persona"}) == 1
+    assert pd.read_csv(salida)["film_slug"].tolist() == ["toy-story-3"]

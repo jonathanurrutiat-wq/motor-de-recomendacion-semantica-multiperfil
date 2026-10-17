@@ -186,7 +186,7 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
 * Pendiente
 
-    * Las 20 películas nuevas no tienen reseñas en `reviews.db` (o tienen menos de 20): por ahora solo entrenan la etapa 2 (la regla global). Para que entren a la etapa 1 hay que descargar sus reseñas con el scraper; sus slugs de Letterboxd están en `dataset_maestro.csv`.
+    * Las 20 películas nuevas no tienen reseñas en `reviews.db` (o tienen menos de 20): por ahora solo entrenan la etapa 2 (la regla global). Para que entren a la etapa 1 hay que descargar sus reseñas con el scraper y reemplazar `reviews.zip` en el release en borrador. La opción 6 ahora genera `src/loss/pendientes_resenias.csv` con las películas evaluadas sin reseñas suficientes y su slug de Letterboxd (hoy 29: las 20 nuevas, 8 de las reevaluadas y *Nickel Boys*). Se completaron los slugs que faltaban en `dataset_maestro.csv` (solo *Nickel Boys* usa el que se deduce del título).
 
 ### [1.4.1] - 26-09-2026
 > Informe del pipeline y pruebas automáticas.

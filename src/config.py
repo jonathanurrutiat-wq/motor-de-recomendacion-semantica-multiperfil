@@ -29,6 +29,8 @@ DIR_CHROMA = DB_DIR / "embeddings" / f"chroma{_SUFIJO}"
 RUTA_DATASET_MAESTRO = LOSS_DIR / "dataset_maestro.csv"
 RUTA_GT = LOSS_DIR / "matriz_perdida.csv"
 RUTA_PENDIENTES = LOSS_DIR / "pendientes_evaluar.csv"
+# Películas de la Verdad Base sin reseñas suficientes: hay que descargarlas con el scraper.
+RUTA_SIN_RESENIAS = LOSS_DIR / "pendientes_resenias.csv"
 RUTA_ADICIONALES = LOSS_DIR / "evaluaciones_adicionales.csv"
 RUTA_INSTRUCCIONES = LOSS_DIR / "instrucciones_evaluacion.md"
 
