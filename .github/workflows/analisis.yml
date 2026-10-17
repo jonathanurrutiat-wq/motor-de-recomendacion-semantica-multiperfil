@@ -15,6 +15,7 @@ on:
     paths:
       - .github/workflows/analisis.yml
       - src/db/profiles/perfiles.ejemplo.json
+      - src/loss/dataset_maestro.csv
       - src/analisis.py
       - src/modelo_reglas.py
       - src/pooling.py

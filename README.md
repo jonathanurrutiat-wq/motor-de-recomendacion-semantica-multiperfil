@@ -171,6 +171,23 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 ## **Changelog (historial de cambios)**
 <small>*Nota: Este changelog está en orden cronológico inverso.*</small>
 
+### [1.4.2] - 17-10-2026
+> Verdad Base ampliada con películas que no gustan.
+
+* Cambios
+
+    * `dataset_maestro.csv` pasa de 110 a 130 películas: 20 nuevas evaluadas por Gemini, la mayoría con notas bajas (Green Book, Bohemian Rhapsody, The Blind Side, Joker, American Sniper, entre otras), y nueva evaluación para 9 que ya estaban (Elvis, Marty Supreme, Oppenheimer, Frankenstein, etc.). La nota media baja de 8,63 a 8,05, las películas bajo 6 pasan de 6 a 18 y todos los filtros tienen más películas donde aplican con fuerza (puntaje ≥ 6: Control de 18 a 29, Diorama de 12 a 24, Caos de 14 a 19, Insoportabilidad de 19 a 23, Camaradería de 1 a 3).
+
+    * La ingesta (opción 5) acepta "REPROBADA" como nota global y le asigna `NOTA_REPROBADA = 2.0`, justo bajo la peor nota aprobada (2,5).
+
+    * `evaluaciones_anteriores.csv` guarda la evaluación anterior de las 9 películas reevaluadas y `explicaciones_gemini.csv` la explicación de Gemini de cada evaluación nueva. Entre ambas evaluaciones, la nota global tiene ρ 0,95 y los puntajes por criterio ρ 0,83 (los filtros varían más: 2,3 puntos en promedio en Insoportabilidad y 2,1 en Diorama).
+
+    * El workflow de análisis también corre al cambiar `dataset_maestro.csv`.
+
+* Pendiente
+
+    * Las 20 películas nuevas no tienen reseñas en `reviews.db` (o tienen menos de 20): por ahora solo entrenan la etapa 2 (la regla global). Para que entren a la etapa 1 hay que descargar sus reseñas con el scraper; sus slugs de Letterboxd están en `dataset_maestro.csv`.
+
 ### [1.4.1] - 26-09-2026
 > Informe del pipeline y pruebas automáticas.
 

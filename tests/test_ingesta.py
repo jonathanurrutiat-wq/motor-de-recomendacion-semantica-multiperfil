@@ -1,6 +1,6 @@
 import pandas as pd
 
-from src.loss.ingest_maestro import a_numerico, mapear_encabezados
+from src.loss.ingest_maestro import NOTA_REPROBADA, a_numerico, mapear_encabezados
 
 
 def test_mapear_encabezados_usa_el_encabezado_o_el_nombre():
@@ -22,3 +22,7 @@ def test_mapear_encabezados_informa_faltantes():
 
 def test_a_numerico_acepta_asterisco_y_coma():
     assert a_numerico(pd.Series(["8,5", "3*", "x"])).tolist()[:2] == [8.5, 3.0]
+
+
+def test_a_numerico_convierte_reprobada():
+    assert a_numerico(pd.Series(["REPROBADA", "reprobada ", "2.5"])).tolist() == [NOTA_REPROBADA, NOTA_REPROBADA, 2.5]

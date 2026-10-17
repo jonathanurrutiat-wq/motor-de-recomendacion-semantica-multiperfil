@@ -99,13 +99,33 @@ Película,film_slug,Rancia,Insoport.,Control,Diorama,Caos,Resist. Fem.,Contemp.,
 98. Mississippi Masala,mississippi-masala,0,0,1,0,0,9,7,9,9,5,9
 99. A Place Further...,a-place-further-than-the-universe,0,0,4,3,0,10,8,10,7,6,9.2
 100. Love Life,love-life-2022,0,0,0,0,0,8,10,8,9,7,9.3
-Marty Supreme (2025),marty-supreme,2,6,4,0,9*,4,2,4,6,7,5.5
-Frankenstein (2025),frankenstein-2025,0,4*,6,6,2,6,6,9,7,6,8.5
-I'm Still Here (2024),,0,0,2,0,0,10,8,9,10,6,9.6
+Marty Supreme (2025),marty-supreme,4,9,3,3,10,2,1,1,4,7,REPROBADA
+Frankenstein (2025),frankenstein-2025,0,1,2,1,2,5,8,10,8,8,9.2
+I'm Still Here (2024),,0,2,2,1,1,10,8,9,10,6,9.6
 Nickel Boys (2024),,0,0,1,0,0,5,10,9,10,10,9.8
-Oppenheimer (2023),oppenheimer-2023,3,4,8,2,7,4,3,3,5,7,6.5
-Avatar: The Way of Water (2022),,2,0,8,9,4,7,7,6,4,8,7
-All Quiet on the Western... (2022),,0,0,7,4,6,0,4,5,6,3,5.5
-The Fabelmans (2022),,0,2,7,3,0,7,6,8,6,5,8.2
-Elvis (2022),,0,7*,9,8,10*,2,0,3,3,4,3
-Everything Everywhere... (2022),everything-everywhere-all-at-once,0,2,5,2,9*,9,2,10,8,8,9.2
+Oppenheimer (2023),oppenheimer-2023,4,3,6,7,5,3,4,3,6,9,6.5
+Avatar: The Way of Water (2022),,6,2,7,6,4,6,8,6,4,7,6.0
+All Quiet on the Western... (2022),,2,7,5,5,8,0,3,4,7,6,5.2
+The Fabelmans (2022),,0,1,6,3,1,6,6,8,5,5,7.2
+Elvis (2022),,2,8,9,9,10,2,0,1,2,5,REPROBADA
+Everything Everywhere... (2022),everything-everywhere-all-at-once,0,1,3,2,9*,9,2,10,6,9,8.8
+Toy Story 3 (2010),toy-story-3,0,1,3,1,3,4,6,10,6,6,9.0
+Dunkirk (2017),dunkirk-2017,1,2,3,4,5,0,9,4,5,9,8.5
+Hidden Figures (2016),hidden-figures,0,1,6,4,2,10,4,7,8,3,8.2
+1917 (2019),1917,2,4,4,5,7,0,8,6,5,8,7.8
+Inception (2010),inception,2,2,4,7,6,2,6,3,2,9,7.4
+Black Panther (2018),black-panther,2,1,5,4,3,8,3,5,8,6,7.2
+Avatar (2009),avatar,5,1,6,8,4,6,9,5,4,8,6.8
+Lincoln (2012),lincoln,3,2,5,5,2,3,6,6,7,4,6.5
+The Theory of Everything (2014),the-theory-of-everything-2014,0,3,8,6,2,8,4,7,3,3,5.5
+War Horse (2011),war-horse,2,2,9,7,5,2,6,8,4,3,5.5
+The Imitation Game (2014),the-imitation-game,2,2,8,7,3,4,3,6,5,3,4.5
+The Help (2011),the-help,0,2,8,9,1,8,2,5,2,1,4.0
+Green Book (2018),green-book,4,2,8,9,1,0,2,4,3,1,3.8
+Maestro (2023),maestro-2023,1,5,9,9,2,4,2,3,2,4,3.5
+Les Misérables (2012),les-miserables-2012,1,7,10,6,8,6,1,5,6,3,3.5
+Bohemian Rhapsody (2018),bohemian-rhapsody,3,3,9,10,4,2,1,2,2,2,3.2
+The Blind Side (2009),the-blind-side,2,4,9,10,1,5,1,3,1,0,2.5
+Joker (2019),joker-2019,4,9,5,3,9,1,3,2,5,4,REPROBADA
+American Sniper (2014),american-sniper,9,4,6,5,6,1,2,2,1,2,REPROBADA
+Extremely Loud & Incredibly Close (2011),extremely-loud-incredibly-close,0,9,10,8,8,2,1,3,2,2,REPROBADA

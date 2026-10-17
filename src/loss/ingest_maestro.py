@@ -12,6 +12,10 @@ from src.normalizacion import (
 )
 
 ENCABEZADO_NOTA_GLOBAL = "Global"
+# Gemini marca como "REPROBADA" (sin número) las películas en que un filtro de
+# veto se activa sin excepción. Se les asigna esta nota: justo bajo la peor
+# nota aprobada de la Verdad Base (2.5), para conservar el orden.
+NOTA_REPROBADA = 2.0
 
 
 def mapear_encabezados(perfil: dict, columnas_planilla) -> tuple[dict, dict, list]:
@@ -32,8 +36,9 @@ def mapear_encabezados(perfil: dict, columnas_planilla) -> tuple[dict, dict, lis
 
 
 def a_numerico(serie: pd.Series) -> pd.Series:
-    # Acepta asteriscos y coma decimal ("8,5").
+    # Acepta asteriscos, coma decimal ("8,5") y "REPROBADA" (vale NOTA_REPROBADA).
     texto = serie.astype(str).str.strip().str.replace('*', '', regex=False).str.replace(',', '.', regex=False)
+    texto = texto.mask(texto.str.upper() == "REPROBADA", str(NOTA_REPROBADA))
     return pd.to_numeric(texto, errors='coerce')
 
 
