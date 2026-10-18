@@ -32,21 +32,18 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Modelo usado hasta la versión 1.2.0; recupera el caché de la versión anterior del workflow.
+          # Modelo usado hasta la versión 1.2.0.
           - modelo: sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
             max_resenias: 200
-            cache_anterior: embeddings-
             publicar_embeddings: false
           # Modelos ~3 veces más lentos: hasta 100 reseñas por película (con MiniLM rinde igual que 200).
           - modelo: sentence-transformers/paraphrase-multilingual-mpnet-base-v2
             max_resenias: 100
-            cache_anterior: ""
             publicar_embeddings: false
           # Modelo por defecto: su base de embeddings se publica en el release en
           # borrador para no tener que regenerarla localmente.
           - modelo: intfloat/multilingual-e5-base
             max_resenias: 100
-            cache_anterior: ""
             publicar_embeddings: true
     concurrency:
       group: analisis-${{ matrix.modelo }}
@@ -89,7 +86,9 @@ jobs:
               salida.write(r.read())
           print(f"Descargado {archivo['name']} ({archivo['size'] / 1e6:.1f} MB)")
           PY
-          unzip -o /tmp/resenias.zip -d src/db/raw/
+          # -DD: la base queda con fecha de ahora, más nueva que los filtrados del
+          # caché, así que se vuelve a filtrar (si no cambió, filter.py no crea otro lote).
+          unzip -o -DD /tmp/resenias.zip -d src/db/raw/
           ls -la src/db/raw/
           echo "huella=$(sha256sum /tmp/resenias.zip | cut -c1-16)" >> "$GITHUB_OUTPUT"
 
@@ -99,10 +98,12 @@ jobs:
           cp src/db/profiles/perfiles.ejemplo.json src/db/profiles/perfiles.json
           rm -rf src/db/embeddings/chroma*
 
-      # Reutiliza los embeddings de corridas anteriores si no cambiaron las
-      # reseñas, el modelo ni la cantidad de reseñas por película (evita horas de
-      # cómputo). Si se cambia cómo se filtran o se chunkean las reseñas, subir
-      # la versión (v1) de la clave. El caché es privado del repositorio.
+      # Reutiliza los embeddings de corridas anteriores con el mismo modelo y
+      # cantidad de reseñas por película (evita horas de cómputo). Si cambiaron
+      # las reseñas, se restaura la base de la versión anterior y la opción 4
+      # solo codifica los chunks nuevos. Si se cambia cómo se filtran o se
+      # chunkean las reseñas, subir la versión (v1) de la clave. El caché es
+      # privado del repositorio.
       - name: Restaurar embeddings de corridas anteriores
         uses: actions/cache@v4
         with:
@@ -110,7 +111,7 @@ jobs:
             src/db/embeddings
             src/db/filtered/result
           key: embeddings-v1-${{ matrix.modelo }}-${{ matrix.max_resenias }}-${{ steps.datos.outputs.huella }}
-          restore-keys: ${{ matrix.cache_anterior && format('{0}{1}-', matrix.cache_anterior, steps.datos.outputs.huella) || '' }}
+          restore-keys: embeddings-v1-${{ matrix.modelo }}-${{ matrix.max_resenias }}-
 
       - name: Verificar la integridad de la base de reseñas
         run: |
@@ -156,6 +157,7 @@ jobs:
           sys.path.insert(0, "src")
           from config import DIR_CHROMA, DIR_FILTRADOS, SLUG_MODELO
           from db.filtered.filter import MAX_RESENIAS_POR_PELICULA
+          from embeddings_previos import ultimos_por_fuente
 
           api = f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}"
           cabeceras = {"Authorization": f"Bearer {os.environ['GH_TOKEN']}", "Accept": "application/vnd.github+json"}
@@ -175,7 +177,7 @@ jobs:
               sys.exit(0)
 
           raiz = Path.cwd()
-          archivos = [p for p in DIR_CHROMA.rglob("*") if p.is_file()] + sorted(DIR_FILTRADOS.glob("filtrado_*.csv"))
+          archivos = [p for p in DIR_CHROMA.rglob("*") if p.is_file()] + ultimos_por_fuente(DIR_FILTRADOS.glob("filtrado_*.csv"))
           with zipfile.ZipFile("/tmp/embeddings.zip", "w", zipfile.ZIP_DEFLATED) as salida:
               for archivo in archivos:
                   salida.write(archivo, archivo.relative_to(raiz))

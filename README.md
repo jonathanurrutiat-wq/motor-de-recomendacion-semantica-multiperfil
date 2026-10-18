@@ -52,7 +52,7 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
     Pide el nombre de un perfil ya creado y genera los vectores semánticos de sus filtros y afinidades (`procesing_profiles.py`), persistiéndolos en la colección `perfiles` de ChromaDB. Cada filtro y afinidad se vectoriza solo con su nombre y descripción; cada excepción tiene su propio vector. Reemplaza por completo los embeddings anteriores de ese perfil y ofrece eliminar los de perfiles que ya no existen.
 
 * **4) Generar embeddings de los lotes de reseñas pendientes.**
-    Toma todos los `.csv` filtrados de `db/filtered/result/` que todavía no están en ChromaDB, chunkea el texto de cada reseña y genera sus embeddings (`procesing_reviews.py`), guardándolos en la colección `resenias`. Cada chunk se identifica como `pelicula::lote::review_N::chunk_M`, así que reseñas de lotes distintos no se pisan.
+    Toma todos los `.csv` filtrados de `db/filtered/result/` que todavía no están en ChromaDB, chunkea el texto de cada reseña y genera sus embeddings (`procesing_reviews.py`), guardándolos en la colección `resenias`. Cada chunk se identifica como `pelicula::lote::review_N::chunk_M`, así que reseñas de lotes distintos no se pisan. De cada fuente (ej. `reviews.db`) solo se usa el filtrado más reciente, que trae todas sus reseñas: los chunks que ya estaban vectorizados en el lote anterior se reutilizan, solo se codifican los nuevos, y el lote anterior se elimina de la colección (`embeddings_previos.py`).
 
 * **5) Cargar Ground-truth (dataset_maestro.csv).**
     Lee `dataset_maestro.csv` (las notas que evaluó Gemini para un grupo de películas según el perfil), lo limpia y normaliza, y genera `matriz_perdida.csv`: el archivo liviano que usan las opciones 6, 7 y 8. Las columnas se asocian a los filtros y afinidades del perfil elegido: cada uno se busca en la planilla por su campo `encabezado` (la abreviatura usada al evaluar, ej. `"Insoport."`) o, si no lo tiene, por su nombre. La nota global se lee de la columna `Global`, y un asterisco junto al puntaje de un filtro (ej. `0*`) se guarda como excepción aplicada en la columna `gt_excepcion_*`. Además importa las películas ya evaluadas en `pendientes_evaluar.csv` (las que tienen `gt_nota_global`): las mueve a `evaluaciones_adicionales.csv`, que se suma a la Verdad Base en cada ejecución.
@@ -156,6 +156,8 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
     * <code><b><span style="color: #009dff;">procesing_reviews.py</span></b></code>: Genera los chunks y embeddings de los lotes de reseñas filtradas que aún no están vectorizados y los persiste en ChromaDB.
 
+    * <code><b><span style="color: #009dff;">embeddings_previos.py</span></b></code>: Reutiliza los embeddings ya calculados al vectorizar una versión nueva de la base de reseñas: solo se codifican los chunks cuyo texto no está en ChromaDB.
+
     * <code><b><span style="color: #009dff;">normalizacion.py</span></b></code>: Funciones compartidas para normalizar y comparar el `film_id` entre las distintas fuentes de datos del proyecto (reseñas vs. ground-truth).
 
     * <code><b><span style="color: #009dff;">config.py</span></b></code>: Archivo de configuración centralizada del proyecto: nombre del modelo de embeddings y todas las rutas del proyecto.
@@ -170,6 +172,15 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
 ## **Changelog (historial de cambios)**
 <small>*Nota: Este changelog está en orden cronológico inverso.*</small>
+
+### [1.4.3] - 18-10-2026
+> Embeddings de reseñas incrementales.
+
+* Cambios
+
+    * Al llegar una versión nueva de `reviews.db`, la opción 4 ya no vuelve a codificar todas las reseñas: reutiliza el vector de cada chunk cuyo texto ya está en la colección y solo codifica los nuevos. Después elimina el lote anterior de la misma fuente, que antes quedaba junto al nuevo y duplicaba sus reseñas en el promedio de cada película. La lógica está en `embeddings_previos.py`, con pruebas en `tests/test_embeddings_previos.py`.
+
+    * El workflow de análisis restaura la base de embeddings de la versión anterior de `reviews.zip` cuando la actual no está en caché (antes partía de cero, unas 2 horas), descomprime la base con fecha actual para que siempre se vuelva a filtrar, y la base publicada en el release solo incluye el filtrado vigente.
 
 ### [1.4.2] - 17-10-2026
 > Verdad Base ampliada con películas que no gustan.

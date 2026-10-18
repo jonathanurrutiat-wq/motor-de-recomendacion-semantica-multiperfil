@@ -1,13 +1,14 @@
 from pathlib import Path
 
 import chromadb
-import numpy as np
 import pandas as pd
 import semchunk
 import torch
 from sentence_transformers import SentenceTransformer
 
 from config import DIR_CHROMA, DIR_FILTRADOS, EMBEDDING_MODEL_NAME, PREFIJO_EMBEDDINGS
+from embeddings_previos import (codificar_reutilizando, lotes_de_coleccion, lotes_reemplazados,
+                                ultimos_por_fuente, vectores_previos)
 
 NOMBRE_COLECCION = "resenias"
 TAMANO_TANDA_CHROMA = 5000
@@ -18,16 +19,17 @@ COLUMNAS_REQUERIDAS = {"film_id", "review_text"}
 """Selección de lotes filtrados pendientes"""
 
 def obtener_lotes_pendientes(directorio: Path, coleccion) -> list[Path]:
-    # Un lote está pendiente si ninguno de sus chunks está en la colección.
+    # Un lote está pendiente si ninguno de sus chunks está en la colección. De
+    # cada fuente solo cuenta el filtrado más reciente: trae todas sus reseñas.
     if not directorio.exists():
         raise FileNotFoundError(f"No existe el directorio {directorio}")
 
-    archivos = sorted(directorio.glob("filtrado_*.csv"), key=lambda p: p.stat().st_mtime)
+    archivos = list(directorio.glob("filtrado_*.csv"))
     if not archivos:
         raise FileNotFoundError(f"No se encontraron csv 'filtrado_*.csv' en {directorio}")
 
     return [
-        archivo for archivo in archivos
+        archivo for archivo in ultimos_por_fuente(archivos)
         if not coleccion.get(where={"lote": archivo.stem}, limit=1, include=[])['ids']
     ]
 
@@ -89,15 +91,23 @@ def chunking_resenias(resenias: pd.DataFrame) -> list[dict]:
 
 """Construccion de embeddings"""
 
-def crear_embeddings_resenias(resenias_chunkeadas: list[dict], model: SentenceTransformer) -> list[dict]:
+def crear_embeddings_resenias(resenias_chunkeadas: list[dict], model: SentenceTransformer,
+                              previos: dict | None = None) -> list[dict]:
     # Todos los chunks se codifican en una sola pasada por tandas: llamar al
-    # modelo una vez por reseña es mucho más lento con lotes grandes.
+    # modelo una vez por reseña es mucho más lento con lotes grandes. Los que
+    # están en previos (texto -> embedding ya guardado) no se vuelven a codificar.
     entradas = [entrada for entrada in resenias_chunkeadas if entrada["chunks"]]
     todos_los_chunks = [chunk for entrada in entradas for chunk in entrada["chunks"]]
     if not todos_los_chunks:
         return []
-    print(f"Codificando {len(todos_los_chunks)} chunks de {len(entradas)} reseñas...")
-    vectores = np.asarray(model.encode([PREFIJO_EMBEDDINGS + chunk for chunk in todos_los_chunks], batch_size=64, show_progress_bar=True), dtype="float32")
+
+    def codificar(textos):
+        print(f"Codificando {len(textos)} chunks nuevos...")
+        return model.encode([PREFIJO_EMBEDDINGS + texto for texto in textos], batch_size=64, show_progress_bar=True)
+
+    vectores, nuevos = codificar_reutilizando(todos_los_chunks, previos or {}, codificar)
+    print(f"{len(todos_los_chunks)} chunks de {len(entradas)} reseñas: {nuevos} codificados, "
+          f"{len(todos_los_chunks) - nuevos} reutilizados de lotes anteriores.")
 
     resultado, inicio = [], 0
     for entrada in entradas:
@@ -160,25 +170,31 @@ def main(eliminar_ids_antiguos: bool | None = None):
     lotes = obtener_lotes_pendientes(DIR_FILTRADOS, coleccion)
     if not lotes:
         print("Todos los lotes filtrados ya están vectorizados. No hay nada nuevo que procesar.")
-        return
+    else:
+        print(f"Lotes pendientes de vectorizar: {', '.join(lote.name for lote in lotes)}")
 
-    print(f"Lotes pendientes de vectorizar: {', '.join(lote.name for lote in lotes)}")
+        dispositivo = "cuda" if torch.cuda.is_available() else "cpu"
+        print(f"Cargando nuevo modelo neuronal en memoria ({dispositivo.upper()}). Por favor espere...")
+        model = SentenceTransformer(EMBEDDING_MODEL_NAME, device=dispositivo)
 
-    dispositivo = "cuda" if torch.cuda.is_available() else "cpu"
-    print(f"Cargando nuevo modelo neuronal en memoria ({dispositivo.upper()}). Por favor espere...")
-    model = SentenceTransformer(EMBEDDING_MODEL_NAME, device=dispositivo)
+        for csv_path in lotes:
+            print(f"\nLeyendo lote: {csv_path.name}")
+            resenias = cargar_resenias(csv_path)
 
-    for csv_path in lotes:
-        print(f"\nLeyendo lote: {csv_path.name}")
-        resenias = cargar_resenias(csv_path)
+            print("Chunkeando reseñas...")
+            resenias_chunkeadas = chunking_resenias(resenias)
 
-        print("Chunkeando reseñas...")
-        resenias_chunkeadas = chunking_resenias(resenias)
+            print("Generando embeddings...")
+            textos = {chunk for entrada in resenias_chunkeadas for chunk in entrada["chunks"]}
+            resenias_embebidas = crear_embeddings_resenias(resenias_chunkeadas, model, vectores_previos(coleccion, textos))
 
-        print("Generando embeddings...")
-        resenias_embebidas = crear_embeddings_resenias(resenias_chunkeadas, model)
+            guardar_lote(coleccion, csv_path.stem, resenias_embebidas)
 
-        guardar_lote(coleccion, csv_path.stem, resenias_embebidas)
+    # Un lote reemplazado por uno más reciente de la misma fuente duplicaría sus
+    # reseñas en el promedio de cada película.
+    for lote in lotes_reemplazados(lotes_de_coleccion(coleccion)):
+        coleccion.delete(where={"lote": lote})
+        print(f"Eliminado de la colección el lote {lote}: lo reemplaza uno más reciente de la misma fuente.")
 
 
 if __name__ == '__main__':
