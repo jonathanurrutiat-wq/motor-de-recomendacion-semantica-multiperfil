@@ -141,6 +141,11 @@ jobs:
             exit 1
           fi
 
+      # Chroma no libera espacio al eliminar el lote de reseñas reemplazado: sin
+      # esto, la base (y el caché) crece con cada versión de reviews.zip.
+      - name: Compactar la base de embeddings
+        run: python src/compactar_chroma.py
+
       # La base contiene fragmentos de reseñas: solo va al release en borrador,
       # visible únicamente para quienes tienen permiso de escritura, igual que
       # el zip de reseñas. Se sube una vez por cada versión de las reseñas.
@@ -172,9 +177,6 @@ jobs:
           prefijo = f"embeddings-{SLUG_MODELO}-"
           nombre = f"{prefijo}{MAX_RESENIAS_POR_PELICULA}-{os.environ['HUELLA']}.zip"
           anteriores = [a for a in release["assets"] if a["name"].startswith(prefijo)]
-          if any(a["name"] == nombre for a in anteriores):
-              print(f"{nombre} ya está publicado.")
-              sys.exit(0)
 
           raiz = Path.cwd()
           archivos = [p for p in DIR_CHROMA.rglob("*") if p.is_file()] + ultimos_por_fuente(DIR_FILTRADOS.glob("filtrado_*.csv"))
@@ -182,19 +184,31 @@ jobs:
               for archivo in archivos:
                   salida.write(archivo, archivo.relative_to(raiz))
           datos = Path("/tmp/embeddings.zip").read_bytes()
-          # Resguardo: una base mucho más chica que la publicada indica que algo
-          # falló antes (ej. faltó la base de reseñas); no se reemplaza.
-          mayor_anterior = max((a["size"] for a in anteriores), default=0)
-          if len(datos) < 0.5 * mayor_anterior:
-              print(f"::warning title=Base de embeddings no publicada::{nombre} pesa {len(datos) / 1e6:.0f} MB, "
-                    f"menos de la mitad de la ya publicada ({mayor_anterior / 1e6:.0f} MB). Se mantiene la anterior.")
+          # Si esta versión ya está publicada, solo se reemplaza cuando la nueva es
+          # bastante más chica (la publicada quedó sin compactar).
+          mismo = next((a for a in anteriores if a["name"] == nombre), None)
+          if mismo is not None and mismo["size"] <= 1.2 * len(datos):
+              print(f"{nombre} ya está publicado.")
               sys.exit(0)
-          subida = release["upload_url"].split("{")[0] + f"?name={nombre}"
-          pedir(subida, "POST", datos, "application/zip")
+          # Resguardo: una base mucho más chica que la publicada indica que algo
+          # falló antes (ej. faltó la base de reseñas); no se reemplaza. Compactar
+          # puede reducirla a la mitad, así que el umbral es menor.
+          mayor_anterior = max((a["size"] for a in anteriores), default=0)
+          if len(datos) < 0.3 * mayor_anterior:
+              print(f"::warning title=Base de embeddings no publicada::{nombre} pesa {len(datos) / 1e6:.0f} MB, "
+                    f"menos del 30 % de la ya publicada ({mayor_anterior / 1e6:.0f} MB). Se mantiene la anterior.")
+              sys.exit(0)
+          # Con el mismo nombre ya publicado, se sube con otro nombre y se renombra
+          # al eliminar la anterior: nunca queda el release sin base.
+          nombre_subida = nombre if mismo is None else nombre.replace(".zip", "-nuevo.zip")
+          subida = release["upload_url"].split("{")[0] + f"?name={nombre_subida}"
+          nuevo = pedir(subida, "POST", datos, "application/zip")
           print(f"Publicado {nombre} ({len(datos) / 1e6:.0f} MB, {len(archivos)} archivos).")
           for anterior in anteriores:
               pedir(f"{api}/releases/assets/{anterior['id']}", "DELETE")
-              print(f"Eliminado {anterior['name']} (versión anterior).")
+              print(f"Eliminado {anterior['name']} ({anterior['size'] / 1e6:.0f} MB, versión anterior).")
+          if nombre_subida != nombre:
+              pedir(f"{api}/releases/assets/{nuevo['id']}", "PATCH", json.dumps({"name": nombre}).encode(), "application/json")
           PY
 
       - name: Publicar resultados en la rama resultados-analisis
