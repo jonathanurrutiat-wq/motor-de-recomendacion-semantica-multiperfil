@@ -1,0 +1,81 @@
+{
+  "fecha": "2026-10-19T01:31:05",
+  "perfil": "Ignacio Araya",
+  "modelo_embeddings": "intfloat/multilingual-e5-base",
+  "pooling": "media",
+  "parametros_filtrado": {
+    "min_caracteres_resenia": 100,
+    "max_resenias_por_pelicula": 100,
+    "min_resenias_por_pelicula": 20
+  },
+  "datos": {
+    "peliculas_con_embeddings": 187,
+    "chunks_de_resenias": 62965,
+    "peliculas_en_verdad_base": 130,
+    "peliculas_para_entrenar": 129,
+    "peliculas_candidatas": 58,
+    "variables_regresion_lineal": 21,
+    "frases_de_resenia": true,
+    "parametros": {
+      "regresion_lineal": 22,
+      "reglas_etapa_1": 11579,
+      "reglas_etapa_2": 16
+    },
+    "evaluadas_sin_resenias": [
+      "nickel-boys"
+    ]
+  },
+  "metricas": {
+    "entrenamiento": {
+      "mse": 1.4933116748430584,
+      "mae": 0.9171587242866335,
+      "r2": 0.6378345510195447,
+      "spearman": 0.730623136455612,
+      "ndcg@10": 0.9466650347880913,
+      "precision@10": 0.2
+    },
+    "validacion_cruzada_5_particiones": {
+      "mse": 2.364773916940507,
+      "mae": 1.15682383004221,
+      "r2": 0.4264831503068255,
+      "spearman": 0.6172402362522267,
+      "ndcg@10": 0.9172908572226933,
+      "precision@10": 0.2
+    },
+    "validacion_cruzada_ridge_5_particiones": {
+      "mse": 2.1779672182576384,
+      "mae": 1.0838985179119445,
+      "r2": 0.47178844928813035,
+      "spearman": 0.6527934757240282,
+      "ndcg@10": 0.9460271617718737,
+      "precision@10": 0.3
+    },
+    "linea_base_promedio": {
+      "mse": 4.156339054241767,
+      "mae": 1.5312867261811718,
+      "r2": -0.008016226654539826,
+      "spearman": 0.0,
+      "ndcg@10": 0.7614309208625243,
+      "precision@10": 0.10077519379844961
+    },
+    "reglas_dos_etapas_5_particiones": {
+      "mse": 1.9262003158568597,
+      "mae": 0.9452886969617816,
+      "r2": 0.5328482232003509,
+      "spearman": 0.738926181853904,
+      "ndcg@10": 0.9595570564157659,
+      "precision@10": 0.31999999999999995
+    }
+  },
+  "tiempos_segundos": {
+    "Filtrado de reseñas crudas (opción 2)": 2.0,
+    "Embeddings del perfil (opción 3)": 21.0,
+    "Embeddings de reseñas (opción 4)": 2.4,
+    "Verdad Base (opción 5)": 0.1,
+    "Películas pendientes de evaluar (opción 6)": 0.4,
+    "Entrenamiento del modelo de reglas (opción 7)": 394.8,
+    "Regresión lineal (comparación)": 4.8,
+    "Comparación de pooling": 457.6,
+    "Frases de reseña": 379.7
+  }
+}
