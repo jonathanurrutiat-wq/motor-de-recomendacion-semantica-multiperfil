@@ -45,7 +45,7 @@
 \title{\textbf{Motor de recomendación semántica multiperfil}\\[4pt]
 \large Pipeline completo, estrategias elegidas y resultados (versión 1.4)}
 \author{Documento de trabajo para el equipo del proyecto}
-\date{26 de septiembre de 2026}
+\date{19 de octubre de 2026}
 
 \begin{document}
 \maketitle
@@ -54,11 +54,11 @@
 \noindent El motor recomienda películas a un perfil cinéfilo a partir de reseñas de Letterboxd. Las reseñas se
 vectorizan con un modelo de lenguaje; un \emph{modelo de reglas en dos etapas} predice, desde esas reseñas, cuánto
 cumple cada película cada afinidad y cada filtro del perfil, y luego calcula la nota global con la forma de la regla
-global del perfil. Se entrena contra una Verdad Base de 110 películas evaluadas por Gemini. Con el modelo de
-embeddings \texttt{multilingual-e5-base} y las \emph{frases de reseña} del perfil, el orden que produce el modelo se
-parece al de Gemini con $\rho$ de Spearman $=0.674$ en validación cruzada (0.55 con la regresión lineal de las
-versiones anteriores y 0 al azar), y la nota se equivoca en 0.58 puntos en promedio (0.81 prediciendo siempre el
-promedio). El documento explica cada paso con la estrategia elegida y la descartada, sigue una película de principio a
+global del perfil. Se entrena contra una Verdad Base de 130 películas evaluadas por Gemini, que incluye películas
+que a la persona no le gustan. Con el modelo de embeddings \texttt{multilingual-e5-base}, el orden que produce el modelo
+se parece al de Gemini con $\rho$ de Spearman $=0.739$ en validación cruzada (0.62 con la regresión lineal de las
+versiones anteriores y 0 al azar), y la nota se equivoca en 0.95 puntos en promedio (1.53 prediciendo siempre el
+promedio). Agregar las películas que disgustan subió $\rho$ de 0.674 a 0.739. El documento explica cada paso con la estrategia elegida y la descartada, sigue una película de principio a
 fin (\emph{Manhattan}), resume cómo ejecutar el sistema y los resultados, y propone los pasos siguientes.
 \end{abstract}
 
@@ -87,25 +87,28 @@ genérico: puede tener cualquier cantidad de criterios.
   \emph{``Oscar bait designed to make you cry''} para \emph{Control Emocional Artificial}.
 \end{itemize}
 
-\paragraph{Las reseñas.} Un \emph{scraper} guarda reseñas de Letterboxd en una base SQLite (\archivo{reviews.db},
-146\,163 reseñas). Se publica solo como \archivo{reviews.zip} en el \emph{release} en borrador \archivo{datos-resenas}
+\paragraph{Las reseñas.} Un \emph{scraper} guarda reseñas de Letterboxd en una base SQLite (\archivo{reviews.db}). Se publica solo como \archivo{reviews.zip} en el \emph{release} en borrador \archivo{datos-resenas}
 del repositorio, visible únicamente para quienes tienen permiso de escritura: el repositorio es público y las reseñas
-no se deben publicar. Tras el filtrado (sección~\ref{sec:filtrado}) quedan 14\,864 reseñas de 150 películas, que se
-dividen en 55\,769 fragmentos (\emph{chunks}).
+no se deben publicar. Tras el filtrado (sección~\ref{sec:filtrado}) quedan 16\,841 reseñas de 180 películas, que se
+dividen en 62\,802 fragmentos (\emph{chunks}).
 
 \paragraph{La Verdad Base.} Gemini evalúa cada película con las instrucciones que genera la \menu{6}
 (\archivo{src/loss/instrucciones.py}): el perfil completo en texto, la regla global y el formato de salida. Para cada
 película entrega un puntaje 0--10 por afinidad y por filtro, si aplica la excepción de cada filtro (0/1) y la nota
-global. Hay 110 películas evaluadas (\archivo{dataset_maestro.csv} $\rightarrow$ \archivo{matriz_perdida.csv}); 101
-tienen reseñas y sirven para entrenar, y \NCandidatas{} películas con reseñas aún no tienen nota: son las candidatas a
-recomendar.
+global. Hay 130 películas evaluadas (\archivo{dataset_maestro.csv} $\rightarrow$ \archivo{matriz_perdida.csv}): 110
+de la lista de películas preferidas de la persona y 20 agregadas en la versión 1.4.2, la mayoría con notas bajas
+(\emph{Green Book}, \emph{Bohemian Rhapsody}, \emph{The Blind Side}, \emph{Joker}, entre otras). \NEvaluadasRanking{}
+tienen reseñas y sirven para entrenar (falta \emph{Nickel Boys}), y \NCandidatas{} películas con reseñas aún no tienen
+nota: son las candidatas a recomendar. Gemini es bastante consistente consigo mismo: al reevaluar 9 películas, la nota
+global tuvo $\rho=0.95$ con la evaluación anterior y los puntajes por criterio $\rho=0.83$
+(\archivo{evaluaciones_anteriores.csv}).
 
 \begin{figure}[H]
   \centering
   \includegraphics[width=\linewidth]{distribucion_verdad_base}
-  \caption{La Verdad Base es una lista de películas preferidas: la nota media es 8.63 y 93 de 110 tienen 8 o más
-  (izquierda). Los filtros casi nunca aplican con fuerza; \emph{Camaradería Masculina Rancia} tiene una sola película
-  con puntaje $\geq 6$ (derecha).}
+  \caption{La Verdad Base sigue dominada por películas preferidas (nota media 8.05; 95 de 130 tienen 8 o más), pero las
+  20 películas agregadas suman 18 con nota bajo 6 (izquierda). Los filtros aplican con fuerza en más películas;
+  \emph{Camaradería Masculina Rancia} sigue siendo el más escaso, con 3 películas con puntaje $\geq 6$ (derecha).}
   \label{fig:distribucion}
 \end{figure}
 
@@ -182,7 +185,8 @@ archivo, para no duplicar embeddings después.
 \begin{decision}{}
 Elegida & hasta \textbf{100 reseñas por película}, ordenadas por \emph{likes} (\archivo{MAX_RESENIAS_POR_PELICULA}). \\
 Descartadas & 200 reseñas: ordena igual o peor y duplica el tiempo de generar embeddings (con MiniLM, 100 ordenó mejor
-que 200 en las 10 repeticiones, $\Delta\rho=+0.021$). 50 reseñas: peor con los tres modelos (fig.~\ref{fig:pooling}). \\
+que 200 en las 10 repeticiones, $\Delta\rho=+0.021$, con la Verdad Base anterior). 50 reseñas: no mejora de forma
+consistente (fig.~\ref{fig:pooling}). \\
 \end{decision}
 
 \subsection{Chunks y embeddings de reseñas (\menu{4}, \texttt{src/procesing\_reviews.py})}
@@ -191,15 +195,20 @@ Cada reseña se divide con \archivo{semchunk} en fragmentos de hasta 128 tokens 
 vector (\emph{embedding}) con un modelo multilingüe de \archivo{sentence-transformers}. Los vectores se guardan en
 ChromaDB (colección \archivo{resenias}); cada modelo en su propia carpeta (\archivo{src/db/embeddings/chroma_<modelo>/})
 porque sus dimensiones no se pueden mezclar. El identificador de cada chunk incluye película, lote, reseña y número de
-chunk, así que reprocesar un lote no duplica.
+chunk, así que reprocesar un lote no duplica. Cuando llega una versión nueva de \archivo{reviews.db}, solo se
+codifican los chunks cuyo texto no está en la base: los demás reutilizan su vector, y el lote anterior se elimina
+(\archivo{src/embeddings_previos.py}). Al agregar las reseñas de 28 películas, e5 codificó 7\,117 chunks y reutilizó
+55\,685 (89\,\%). Chroma no libera el espacio de lo eliminado; \archivo{src/compactar_chroma.py} copia la base a una nueva.
 
 \begin{decision}{}
 Elegida & \textbf{\texttt{intfloat/multilingual-e5-base}} (768 dimensiones), con el prefijo \texttt{"query: "} que exige
 la familia e5. Por defecto desde la versión 1.3. \\
 Básica (descartada) & \texttt{paraphrase-multilingual-MiniLM-L12-v2} (384 dimensiones), la de las versiones anteriores:
-$\rho=0.605$ contra $0.674$ con e5 (tabla~\ref{tab:modelos}). Sigue disponible con la variable \archivo{MODELO_EMBEDDINGS}. \\
-Alternativa & \texttt{paraphrase-multilingual-mpnet-base-v2}: mejora las afinidades pero no los filtros ($\rho=0.651$). \\
-Costo & e5 y mpnet tardan unas 3 veces más por chunk: 1\,h\,40\,min en GitHub Actions para 55\,769 chunks, sin GPU. \\
+$\rho=0.718$ contra $0.739$ con e5 (tabla~\ref{tab:modelos}). Sigue disponible con la variable \archivo{MODELO_EMBEDDINGS}. \\
+Alternativa & \texttt{paraphrase-multilingual-mpnet-base-v2}: $\rho=0.721$. Con las películas que disgustan, las
+diferencias entre modelos se achicaron (antes 0.605, 0.651 y 0.674). \\
+Costo & e5 y mpnet tardan unas 3 veces más por chunk: 1\,h\,40\,min en GitHub Actions para codificar 55\,769 chunks
+desde cero, sin GPU; con la base anterior reutilizada, la corrida completa tarda unos 45 minutos. \\
 \end{decision}
 
 \subsection{Embeddings del perfil (\menu{3}, \texttt{src/procesing\_profiles.py})}
@@ -222,8 +231,10 @@ Una película tiene cientos de chunks; la etapa 1 necesita un solo vector por pe
 Elegida & \textbf{promedio} de los embeddings de todos sus chunks (\archivo{POOLING_RESENIAS=media}). \\
 Descartadas & percentil 50, 75, 90 o 95 de cada dimensión del embedding, y promedio más percentiles de la similitud de
 los chunks con cada término del perfil. Con e5 ninguna ordena mejor que el promedio en 10 repeticiones (la mejor,
-$\Delta\rho=+0.001$; el percentil 75, $-0.021$, peor en las 10). Con una sola partición el percentil 90 parecía ganar
-($0.584$ contra $0.606$ de MAE), pero era ruido (fig.~\ref{fig:pooling}). Se pueden elegir con \archivo{POOLING_RESENIAS=pXX}. \\
+$\Delta\rho=+0.000$; con 100 o todas las reseñas, los percentiles 75 a 95 bajan entre $0.014$ y $0.021$, peores en
+casi todas las repeticiones). Con MiniLM y mpnet
+algunas mejoran levemente (hasta $+0.017$), sin repetirse con e5. Con una sola partición el percentil 90 parecía ganar,
+pero era ruido (fig.~\ref{fig:pooling}). Se pueden elegir con \archivo{POOLING_RESENIAS=pXX}. \\
 \end{decision}
 
 \subsection{Rasgos de frases de reseña (\texttt{src/pooling.py})}\label{sec:frases}
@@ -245,10 +256,15 @@ películas que se recomiendan después.
 \begin{decision}{}
 Elegida & \textbf{ponderar}: los rasgos se agregan al embedding y, tras estandarizar, se multiplican por
 $\sqrt{768/k}$ ($k$ = cantidad de rasgos), para que pesen en conjunto lo mismo que las 768 dimensiones del embedding.
-Con e5 mejora el orden en las 10 repeticiones ($\Delta\rho=+0.008$) y baja el MAE. \\
-Descartadas & concatenarlos sin ponderar (Ridge los diluye: $+0.002$); usar solo las frases, sin el embedding ($+0.011$
-en $\rho$ pero sube el MAE y con mpnet no se repite); y los controles con solo la descripción ($+0.000$ y $+0.005$), que
-muestran que la ganancia viene de las frases y no solo de medir ``cuántas reseñas hablan de''. \\
+Con la Verdad Base de 101 películas mejoraba el orden con e5 en las 10 repeticiones ($\Delta\rho=+0.008$). Con las
+129 actuales la ganancia casi desaparece: $+0.004\pm0.004$, mejor en 6 de 10; con MiniLM empeora levemente
+($-0.004$). Mejora la etapa 1 de tres filtros (\emph{Insoportabilidad} 0.22 $\rightarrow$ 0.27, \emph{Control}
+0.47 $\rightarrow$ 0.51, \emph{Caos} 0.45 $\rightarrow$ 0.47) y empeora la de \emph{Camaradería} y \emph{Diorama}. \\
+Descartadas & concatenarlos sin ponderar (Ridge los diluye: $+0.001$); usar solo las frases, sin el embedding
+($-0.003$); y los controles con solo la descripción ($+0.000$ y $-0.008$). \\
+Lectura & las frases aportaban sobre todo cuando faltaban ejemplos de películas con los filtros presentes; con esos
+ejemplos, el embedding promedio ya recoge buena parte de la señal. Se mantienen porque con e5 no empeoran y ayudan en
+los filtros con más vocabulario propio, pero conviene revisar las frases de \emph{Camaradería} y \emph{Diorama}. \\
 \end{decision}
 
 \subsection{Modelo de reglas en dos etapas (\menu{7})}\label{sec:modelo}
@@ -273,7 +289,8 @@ afinidad, $u_k$ el umbral desde el que el filtro $k$ ``se activa'', $d_k$ cuánt
 sigmoide, que hace suave el umbral para poder optimizarlo. La excepción ($E_k=1$) anula el descuento. Se ajusta con
 L-BFGS-B minimizando el error cuadrático, con tres inicios y una penalización L2 pequeña ($10^{-3}$) sobre los
 descuentos. Tiene $1+n_A+2n_F$ parámetros: 16 para este perfil, y la misma forma sirve para cualquier perfil. La etapa 2
-se entrena con las 110 películas de la Verdad Base, porque no necesita reseñas.
+se entrena con las 130 películas de la Verdad Base, porque no necesita reseñas. Con las películas que disgustan, la regla
+aprendió descuentos que antes no tenía datos para aprender, como \emph{Camaradería} y \emph{Caos}.
 
 La regla aprendida con e5 es:
 \input{generado/reglas_e5}
@@ -282,13 +299,13 @@ La regla aprendida con e5 es:
 Elegida & \textbf{modelo de reglas} de dos etapas con la regla simple \eqref{eq:regla}. \\
 Básica (descartada) & la \textbf{regresión lineal} de las versiones anteriores: similitud coseno entre el embedding de la
 película y el de cada término del perfil, más un producto por relación (afinidad $\times$ filtro, filtro $\times$
-excepción), 21 variables. Ordena peor ($\rho=0.546$ contra $0.674$ con e5) y con MiniLM su error era mayor que
-predecir el promedio (MAE $0.828$ contra $0.812$). La \menu{9} la sigue calculando como comparación. \\
+excepción), 21 variables. Ordena peor ($\rho=0.617$ contra $0.739$ con e5) y se equivoca más en la nota (MAE $1.16$
+contra $0.95$). La \menu{9} la sigue calculando como comparación. \\
 Alternativas de etapa 2 & regla con \emph{pisos} (una afinidad alta asegura una nota mínima) y \emph{corrupción} (el
 filtro reduce las afinidades que corrompe): MAE $0.293$ contra $0.294$ con casi el doble de parámetros (31); quedan como
 opciones desactivadas. También se probaron regresión lineal ($0.333$), GAM, \emph{gradient boosting} con y sin
-restricciones monótonas y \emph{random forest} (peores con 110 películas) y la regla corregida con \emph{boosting}
-($0.280$, apenas mejor y mucho menos legible). \\
+restricciones monótonas y \emph{random forest} (peores) y la regla corregida con \emph{boosting} ($0.280$, apenas mejor y
+mucho menos legible). Estas comparaciones se hicieron con las 110 películas de la Verdad Base anterior. \\
 \end{decision}
 
 \subsection{Recomendación (\menu{8}, \texttt{src/recommend.py})}
@@ -302,7 +319,7 @@ aparecen para comparar.
 \begin{itemize}
   \item \textbf{Validación cruzada}: cada película se predice con un modelo que no la vio. 5 particiones, repetidas con
   10 semillas distintas; se informa el promedio y la desviación. Con unas 100 películas, el $\rho$ de una sola partición
-  varía $\pm 0.05$, tanto como las diferencias que se quieren medir.
+  variaba $\pm 0.05$, tanto como las diferencias que se quieren medir; con 129, $\pm 0.02$.
   \item \textbf{Comparaciones pareadas}: cada variante se compara contra una referencia \emph{en las mismas
   particiones} ($\Delta\rho$), que varía mucho menos, y se cuenta en cuántas de las 10 repeticiones la supera.
   \item \textbf{Métricas}: $\rho$ de Spearman (principal: el orden completo); NDCG@10 (si las 10 primeras según el
@@ -433,30 +450,35 @@ Variable & Uso \\ \midrule
 
 \subsection{GitHub Actions}
 \begin{itemize}
-  \item \archivo{analisis.yml}: ejecuta la \menu{9} con MiniLM, mpnet y e5 en paralelo, reutiliza los embeddings del
-  caché y publica los resultados en la rama \archivo{resultados-analisis} (solo números, nunca texto de reseñas). El job
-  de e5 publica su base de embeddings en el \emph{release} en borrador. Corre al cambiar el workflow, el perfil de
-  ejemplo, \archivo{analisis.py}, \archivo{modelo_reglas.py} o \archivo{pooling.py}.
+  \item \archivo{analisis.yml}: ejecuta la \menu{9} con MiniLM, mpnet y e5 en paralelo y publica los resultados en la
+  rama \archivo{resultados-analisis} (solo números, nunca texto de reseñas). Reutiliza los embeddings del caché; si
+  cambió \archivo{reviews.zip}, parte de la base de la versión anterior y solo codifica los chunks nuevos. Al terminar
+  compacta la base, y el job de e5 la publica en el \emph{release} en borrador. Corre al cambiar el workflow, el perfil de
+  ejemplo, \archivo{dataset_maestro.csv}, \archivo{analisis.py}, \archivo{modelo_reglas.py} o \archivo{pooling.py}.
+  Lanzado a mano con la opción \emph{calcular también los datos del informe}, el job de e5 corre además
+  \archivo{docs/informe/calculos.py}.
   \item \archivo{sondas.yml}: el experimento de frases sonda de la sección~\ref{sec:frases}.
-  \item \archivo{tests.yml}: en cada \emph{push}, 30 pruebas unitarias con datos sintéticos
+  \item \archivo{tests.yml}: en cada \emph{push}, 37 pruebas unitarias con datos sintéticos
   (\texttt{python -m pytest tests}) y la revisión estática del código con \archivo{pyflakes}.
 \end{itemize}
 
 \subsection{Archivos del análisis}
 \archivo{resumen.md} (todas las tablas), \archivo{peliculas.csv} (por película: similitudes, puntajes predichos, notas y
 errores), \archivo{ranking.csv}, \archivo{reglas.json}, \archivo{pooling.csv}, \archivo{frases_resenia.csv},
-\archivo{pesos.csv} y \archivo{similitud_perfil.csv}. Este informe se regenera con
-\texttt{python docs/informe/figuras.py}, \texttt{python docs/informe/tablas.py} y \texttt{latexmk -pdf informe.tex}
-desde \archivo{docs/informe/}.
+\archivo{pesos.csv} y \archivo{similitud_perfil.csv}; con los datos del informe, también la carpeta \archivo{informe/}
+(predicciones por película, ejemplo guiado y curva de aprendizaje). Para regenerar este informe se copian esos archivos
+a \archivo{docs/informe/datos/} y se ejecutan \texttt{python docs/informe/tablas.py}, \texttt{python
+docs/informe/figuras.py} y \texttt{latexmk -pdf informe.tex} (este último desde \archivo{docs/informe/}).
 
 %=====================================================================
 \section{Resultados}
 %=====================================================================
 
 Las tablas~\ref{tab:modelos} a~\ref{tab:candidatas} y las figuras~\ref{fig:pooling} y~\ref{fig:frases} vienen de la
-corrida del workflow de análisis del 26 de septiembre (commit \texttt{9669c1c}), publicada en la rama
-\archivo{resultados-analisis}. La curva de aprendizaje, la dispersión y el ejemplo guiado se calcularon con el mismo código
-sobre la base de embeddings de e5 publicada en el \emph{release}. Los datos agregados de cada tabla y figura están en
+corrida del workflow de análisis del 19 de octubre (commit \texttt{25f7d2b}), publicada en la rama
+\archivo{resultados-analisis}. La curva de aprendizaje, la dispersión y el ejemplo guiado se calcularon con
+\archivo{docs/informe/calculos.py} en una corrida posterior del mismo workflow, con los mismos datos. La tabla de frases
+sonda (tabla~\ref{tab:sondas}) es de la Verdad Base anterior. Los datos agregados de cada tabla y figura están en
 \archivo{docs/informe/datos/}.
 
 \subsection{Modelo final y comparación de modelos de embeddings}
@@ -464,7 +486,7 @@ sobre la base de embeddings de e5 publicada en el \emph{release}. Los datos agre
 \begin{table}[H]
   \centering\footnotesize
   \input{generado/tabla_modelos}
-  \caption{Validación cruzada (101 películas). El modelo de reglas es el promedio de 10 repeticiones $\pm$ su
+  \caption{Validación cruzada (129 películas). El modelo de reglas es el promedio de 10 repeticiones $\pm$ su
   desviación; las regresiones lineales, una partición. En negrita, el modelo que usan las opciones 7 y 8.}
   \label{tab:modelos}
 \end{table}
@@ -485,10 +507,11 @@ sobre la base de embeddings de e5 publicada en el \emph{release}. Los datos agre
 
 \subsection{Dónde se pierde precisión: la etapa 1}
 
-Con los puntajes reales de Gemini, la etapa 2 explica el 88\,\% de la varianza de la nota global
-(tabla~\ref{tab:etapa2}). Con los puntajes que predice la etapa 1 desde las reseñas, el modelo completo explica el
-39\,\%. El cuello de botella es predecir los criterios desde las reseñas, sobre todo los filtros
-(fig.~\ref{fig:etapa1}).
+Con los puntajes reales de Gemini, la etapa 2 explica el 94\,\% de la varianza de la nota global
+(tabla~\ref{tab:etapa2}; con la Verdad Base anterior, 88\,\%). Con los puntajes que predice la etapa 1 desde las reseñas,
+el modelo completo explica el 53\,\% (antes 39\,\%). El cuello de botella sigue siendo predecir los criterios desde las
+reseñas, sobre todo los filtros (fig.~\ref{fig:etapa1}), aunque con las películas que disgustan el $R^2$ medio de los
+filtros subió de 0.22 a 0.34 y el de las afinidades de 0.45 a 0.53.
 
 \begin{table}[H]
   \centering\small
@@ -500,9 +523,9 @@ Con los puntajes reales de Gemini, la etapa 2 explica el 88\,\% de la varianza d
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.95\linewidth]{etapa_1}
-  \caption{$R^2$ de la etapa 1 por criterio (e5). Las afinidades se predicen mejor que los filtros; las frases de reseña
-  mejoran los filtros (barra) respecto del modelo sin frases (marca negra). \emph{Camaradería Masculina Rancia} no se
-  puede aprender: una sola película con puntaje alto.}
+  \caption{$R^2$ de la etapa 1 por criterio (e5). Las afinidades se predicen mejor que los filtros. Las frases de reseña
+  (barra) mejoran tres filtros respecto del modelo sin frases (marca negra) y empeoran \emph{Camaradería} y
+  \emph{Diorama}. \emph{Camaradería Masculina Rancia} tiene solo 3 películas con puntaje alto.}
   \label{fig:etapa1}
 \end{figure}
 
@@ -513,7 +536,7 @@ Con los puntajes reales de Gemini, la etapa 2 explica el 88\,\% de la varianza d
   \includegraphics[width=\linewidth]{pooling}
   \caption{Diferencia de $\rho$ de cada forma de resumir las reseñas contra el promedio de todas (media $\pm$ desviación
   de 10 repeticiones pareadas). Con mpnet y e5 ``todas'' son 100 reseñas. Ninguna variante mejora de forma consistente
-  con los tres modelos; con e5, el promedio es el mejor.}
+  con los tres modelos; con e5, el promedio es el mejor y los percentiles altos empeoran.}
   \label{fig:pooling}
 \end{figure}
 
@@ -530,7 +553,7 @@ Con los puntajes reales de Gemini, la etapa 2 explica el 88\,\% de la varianza d
 \begin{table}[H]
   \centering\footnotesize
   \input{generado/tabla_sondas}
-  \caption{Experimento de frases sonda (MiniLM, 101 películas): $\rho$ de Spearman entre la fracción de chunks muy
+  \caption{Experimento de frases sonda (MiniLM, 101 películas de la Verdad Base anterior): $\rho$ de Spearman entre la fracción de chunks muy
   similares a cada texto y el puntaje de Gemini del filtro, y la correlación de un conteo de palabras clave (léxico).
   La descripción del perfil, escrita como la escribiría un crítico, detecta mal \emph{Control} y \emph{Diorama}.}
   \label{tab:sondas}
@@ -540,7 +563,8 @@ Con los puntajes reales de Gemini, la etapa 2 explica el 88\,\% de la varianza d
   \centering
   \includegraphics[width=\linewidth]{frases}
   \caption{Diferencia de $\rho$ de cada forma de usar las frases contra el modelo sin frases (10 repeticiones
-  pareadas). Con e5, las frases ponderadas mejoran en las 10 repeticiones.}
+  pareadas). Con la Verdad Base actual la ganancia es pequeña: con e5, las frases ponderadas mejoran en 6 de 10
+  repeticiones ($+0.004$); con la anterior mejoraban en las 10 ($+0.008$).}
   \label{fig:frases}
 \end{figure}
 
@@ -586,14 +610,17 @@ y con los filtros presentes deberían rendir más, porque aportan justo la varie
 %=====================================================================
 
 \begin{enumerate}
-  \item \textbf{La Verdad Base es una lista de películas preferidas.} Con media 8.63 y 93 de 110 películas con 8 o más,
-  el modelo aprende sobre todo a distinguir ``muy buena'' de ``excelente''. Los filtros casi nunca aplican
-  (fig.~\ref{fig:distribucion}), así que hay pocos ejemplos para aprender a detectarlos, y \emph{Camaradería Masculina
-  Rancia} tiene uno solo. El rango estrecho también limita el $\rho$ alcanzable: con notas casi iguales, pequeñas
-  diferencias cambian el orden.
+  \item \textbf{Las películas que disgustan fueron la mejora más grande.} Con 20 películas más, casi todas con notas
+  bajas, y las reseñas de las 28 que no tenían, $\rho$ subió de 0.674 a 0.739, más que cualquier cambio de modelo
+  (de MiniLM a e5 fueron $+0.07$ con la Verdad Base anterior y $+0.02$ con la actual). La curva de aprendizaje anterior
+  predecía unos $+0.02$ por 20 películas parecidas a las de la lista. El MAE subió de 0.61 a 0.95 porque las notas
+  ahora tienen mucho más rango: comparado con predecir el promedio, el error bajó de 72\,\% a 62\,\%.
+  \item \textbf{La Verdad Base sigue cargada a las preferidas} (95 de 130 con 8 o más) y \emph{Camaradería Masculina
+  Rancia} tiene solo 3 películas con puntaje alto, pocas para aprender a detectarla.
   \item \textbf{La Verdad Base es la lectura de Gemini, no la nota de la persona.} El modelo aprende a imitar cómo
-  Gemini interpreta el perfil. Falta medir cuánto se parece eso al gusto real y cuán consistente es Gemini consigo
-  mismo: si al reevaluar las mismas películas su propio $\rho$ ronda 0.8, el 0.67 del modelo estaría cerca del techo.
+  Gemini interpreta el perfil. Gemini es consistente consigo mismo (al reevaluar 9 películas, $\rho=0.95$ en la nota
+  global), así que el 0.74 del modelo todavía está lejos del techo. Falta medir cuánto se parece la lectura de Gemini
+  al gusto real.
   \item \textbf{El cuello de botella es la etapa 1} (tabla~\ref{tab:etapa2}): la regla explica bien la nota a partir de
   los puntajes, pero predecir los puntajes desde reseñas es difícil, en especial los filtros, que suelen estar en una
   minoría de reseñas y se diluyen en el promedio.
@@ -603,7 +630,8 @@ y con los filtros presentes deberían rendir más, porque aportan justo la varie
   \item \textbf{La etapa 2 tiene óptimos locales parecidos}: diferencias de redondeo pueden llevar al optimizador a otra
   solución con casi el mismo error; afecta $\rho$ en $\sim0.004$.
   \item \textbf{Las frases se eligieron después de leer reseñas} de algunas películas de la Verdad Base, así que su
-  ganancia puede ser algo optimista.
+  ganancia puede ser algo optimista. Con las películas nuevas, que no se usaron para escribirlas, la ganancia bajó a
+  $+0.004$.
   \item \textbf{Los chunks en otros idiomas} (13\,\% de las reseñas) son el 35\,\% de los más similares a las frases
   (\emph{hubness} del modelo multilingüe), pero usar solo inglés no cambió las correlaciones ($\pm0.04$).
   \item \textbf{Privacidad}: el repositorio es público. Las reseñas y las bases de embeddings (que contienen fragmentos
@@ -615,20 +643,20 @@ y con los filtros presentes deberían rendir más, porque aportan justo la varie
 %=====================================================================
 
 \begin{enumerate}
-  \item \textbf{Agregar películas que disgustan.} Evaluar con Gemini 30--50 películas que la persona rechaza o le
-  resultan indiferentes, eligiendo a propósito casos de cada filtro (en especial \emph{Camaradería Masculina Rancia}).
-  Amplía el rango de notas, da ejemplos positivos a los filtros y hace más informativo el $\rho$. Conviene descargar sus
-  reseñas con el \emph{scraper} antes de evaluarlas.
+  \item \textbf{Seguir agregando películas que disgustan.} Las primeras 20 dieron la mayor mejora hasta ahora. Conviene
+  sumar otras 20--30, eligiendo a propósito casos de \emph{Camaradería Masculina Rancia} (solo 3) y \emph{Personajes
+  Diorama}, y descargar sus reseñas con el \emph{scraper} antes de evaluarlas.
   \item \textbf{Tres perfiles más.} Es la premisa del proyecto (multiperfil) y lo más barato de escalar: los embeddings
   de reseñas no dependen del perfil, así que un perfil nuevo solo necesita su JSON, la \menu{3} y la evaluación de Gemini
   de las mismas películas. Permite comprobar que la regla genérica se adapta a perfiles con otra cantidad de criterios
   y comparar la dificultad entre perfiles. Idealmente, perfiles con gustos contrastantes (p.~ej.\ uno que valore el cine
   de acción o la comedia) para que las mismas películas tengan notas distintas.
-  \item \textbf{Evaluar las \NCandidatas{} candidatas} con la \menu{6} y descargar reseñas de las 9 películas evaluadas que
-  no tienen: pasaría de 101 a unas 167 películas de entrenamiento. La curva de aprendizaje (fig.~\ref{fig:curva}) indica
-  cuánto puede rendir.
-  \item \textbf{Validar contra notas reales} de la persona (su diario de Letterboxd) y medir la consistencia de Gemini
-  reevaluando unas 20 películas.
+  \item \textbf{Evaluar las \NCandidatas{} candidatas} con la \menu{6}: pasaría de 129 a unas 187 películas de
+  entrenamiento. La curva de aprendizaje (fig.~\ref{fig:curva}) indica cuánto puede rendir.
+  \item \textbf{Validar contra notas reales} de la persona (su diario de Letterboxd) y ampliar la medición de la
+  consistencia de Gemini a unas 20 películas (hoy son 9).
+  \item \textbf{Revisar las frases de reseña} de \emph{Camaradería} y \emph{Diorama}, que hoy empeoran la etapa 1 de
+  esos filtros.
   \item \textbf{Experimentos de modelo}, con ganancia más incierta: modelos de embeddings más grandes, como
   \archivo{multilingual-e5-large} o \archivo{bge-m3} (unas 5\,h en Actions); entrenar la etapa 2 optimizando el orden en
   vez del error, y agregar frases de reseña a las afinidades.
@@ -644,14 +672,14 @@ y con los filtros presentes deberían rendir más, porque aportan justo la varie
 \begin{tabularx}{\linewidth}{@{}>{\raggedright}p{2.3cm}>{\raggedright}p{3.6cm}>{\raggedright}p{3.9cm}>{\raggedright\arraybackslash}X@{}}
 \toprule
 Paso & Elegida & Descartada & Evidencia \\ \midrule
-Reseñas por película & 100 con más \emph{likes}, $\geq$100 caracteres & 200 (igual o peor, el doble de lento); 50 (peor) & $\Delta\rho$ con MiniLM: 100 vs.\ 200, $+0.021$ (10/10) \\
-Modelo de embeddings & e5-base (768 dim.) & MiniLM (básica), mpnet-base & $\rho$ 0.674 vs.\ 0.605 y 0.651 \\
+Reseñas por película & 100 con más \emph{likes}, $\geq$100 caracteres & 200 (igual o peor, el doble de lento); 50 (no mejora) & $\Delta\rho$ con MiniLM: 100 vs.\ 200, $+0.021$ (10/10) \\
+Modelo de embeddings & e5-base (768 dim.) & MiniLM (básica), mpnet-base & $\rho$ 0.739 vs.\ 0.718 y 0.721 \\
 Embedding del perfil & nombre + descripción & texto completo del criterio & similitud filtro--afinidad 0.68 $\rightarrow$ 0.50 \\
-Pooling & promedio & percentiles 50--95, promedio + similitudes & con e5 ninguna mejora ($\leq +0.001$) \\
-Frases de reseña & ponderadas junto al embedding & concatenadas, solo frases, solo descripción & $+0.008$ en 10/10 y menor MAE \\
-Modelo & reglas en dos etapas & regresión lineal (básica), Ridge & $\rho$ 0.674 vs.\ 0.546 y 0.597 \\
-Etapa 2 & regla simple (16 parámetros) & pisos y corrupción (31), GAM, \emph{boosting}, \emph{random forest} & MAE 0.294 vs.\ 0.293 con el doble de parámetros; árboles peores \\
-Métrica & $\rho$ de Spearman, 10 repeticiones & MAE, una partición & una partición varía $\pm0.05$ \\
+Pooling & promedio & percentiles 50--95, promedio + similitudes & con e5 ninguna mejora ($\leq +0.000$) \\
+Frases de reseña & ponderadas junto al embedding & concatenadas, solo frases, solo descripción & $+0.004$ en 6/10 (antes $+0.008$ en 10/10) \\
+Modelo & reglas en dos etapas & regresión lineal (básica), Ridge & $\rho$ 0.739 vs.\ 0.617 y 0.653 \\
+Etapa 2 & regla simple (16 parámetros) & pisos y corrupción (31), GAM, \emph{boosting}, \emph{random forest} & MAE 0.294 vs.\ 0.293 con el doble de parámetros; árboles peores (110 películas) \\
+Métrica & $\rho$ de Spearman, 10 repeticiones & MAE, una partición & una partición varía $\pm0.02$--$0.05$ \\
 \bottomrule
 \end{tabularx}
 \caption{Estrategias elegidas y descartadas en cada paso del pipeline.}

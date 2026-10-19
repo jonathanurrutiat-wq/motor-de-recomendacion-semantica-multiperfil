@@ -1,5 +1,5 @@
 {
-  "fecha": "2026-09-26T17:37:18",
+  "fecha": "2026-10-19T00:12:34",
   "perfil": "Ignacio Araya",
   "modelo_embeddings": "intfloat/multilingual-e5-base",
   "pooling": "media",
@@ -9,11 +9,11 @@
     "min_resenias_por_pelicula": 20
   },
   "datos": {
-    "peliculas_con_embeddings": 158,
-    "chunks_de_resenias": 55769,
-    "peliculas_en_verdad_base": 110,
-    "peliculas_para_entrenar": 101,
-    "peliculas_candidatas": 57,
+    "peliculas_con_embeddings": 187,
+    "chunks_de_resenias": 62965,
+    "peliculas_en_verdad_base": 130,
+    "peliculas_para_entrenar": 129,
+    "peliculas_candidatas": 58,
     "variables_regresion_lineal": 21,
     "frases_de_resenia": true,
     "parametros": {
@@ -22,68 +22,60 @@
       "reglas_etapa_2": 16
     },
     "evaluadas_sin_resenias": [
-      "all-quiet-on-the-western",
-      "avatar-the-way-of-water",
-      "elvis",
-      "everything-everywhere-all-at-once",
-      "frankenstein",
-      "im-still-here",
-      "nickel-boys",
-      "oppenheimer",
-      "the-fabelmans"
+      "nickel-boys"
     ]
   },
   "metricas": {
     "entrenamiento": {
-      "mse": 0.6132068226666182,
-      "mae": 0.5636928553391225,
-      "r2": 0.5077463739563526,
-      "spearman": 0.6841898956718313,
-      "ndcg@10": 0.9283223312430542,
-      "precision@10": 0.4
+      "mse": 1.4933110794131035,
+      "mae": 0.9171585065106325,
+      "r2": 0.6378346954262084,
+      "spearman": 0.730623136455612,
+      "ndcg@10": 0.9466650347880913,
+      "precision@10": 0.2
     },
     "validacion_cruzada_5_particiones": {
-      "mse": 1.045317042579118,
-      "mae": 0.734798492311569,
-      "r2": 0.1608685918771261,
-      "spearman": 0.5456724199603938,
-      "ndcg@10": 0.8974883448050603,
-      "precision@10": 0.3
+      "mse": 2.364772747310773,
+      "mae": 1.1568234980121208,
+      "r2": 0.42648343397130417,
+      "spearman": 0.6172402362522267,
+      "ndcg@10": 0.9172908572226933,
+      "precision@10": 0.2
     },
     "validacion_cruzada_ridge_5_particiones": {
-      "mse": 0.8893555975350748,
-      "mae": 0.6592068618891748,
-      "r2": 0.28606711219378,
-      "spearman": 0.5974686097239714,
-      "ndcg@10": 0.9436566224313802,
-      "precision@10": 0.5
+      "mse": 2.17796616077017,
+      "mae": 1.0838983908185817,
+      "r2": 0.4717887057553034,
+      "spearman": 0.6527934757240282,
+      "ndcg@10": 0.9460271617718737,
+      "precision@10": 0.3
     },
     "linea_base_promedio": {
-      "mse": 1.273565803077007,
-      "mae": 0.8115167766776682,
-      "r2": -0.02235878890519527,
+      "mse": 4.156339054241767,
+      "mae": 1.5312867261811718,
+      "r2": -0.008016226654539826,
       "spearman": 0.0,
-      "ndcg@10": 0.7804402450641265,
-      "precision@10": 0.12871287128712872
+      "ndcg@10": 0.7614309208625243,
+      "precision@10": 0.10077519379844961
     },
     "reglas_dos_etapas_5_particiones": {
-      "mse": 0.7551453550417637,
-      "mae": 0.5799481846103699,
-      "r2": 0.39380478907127187,
-      "spearman": 0.6744748160994429,
-      "ndcg@10": 0.9377656447135566,
-      "precision@10": 0.27999999999999997
+      "mse": 1.928041478669909,
+      "mae": 0.9452269258300495,
+      "r2": 0.532401695145915,
+      "spearman": 0.7388224463550903,
+      "ndcg@10": 0.9587382997973306,
+      "precision@10": 0.30999999999999994
     }
   },
   "tiempos_segundos": {
-    "Filtrado de reseñas crudas (opción 2)": 0.0,
-    "Embeddings del perfil (opción 3)": 16.2,
-    "Embeddings de reseñas (opción 4)": 0.4,
-    "Verdad Base (opción 5)": 0.0,
-    "Películas pendientes de evaluar (opción 6)": 0.2,
-    "Entrenamiento del modelo de reglas (opción 7)": 279.7,
-    "Regresión lineal (comparación)": 3.0,
-    "Comparación de pooling": 323.5,
-    "Frases de reseña": 271.6
+    "Filtrado de reseñas crudas (opción 2)": 2.1,
+    "Embeddings del perfil (opción 3)": 9.3,
+    "Embeddings de reseñas (opción 4)": 840.6,
+    "Verdad Base (opción 5)": 0.1,
+    "Películas pendientes de evaluar (opción 6)": 0.4,
+    "Entrenamiento del modelo de reglas (opción 7)": 584.3,
+    "Regresión lineal (comparación)": 3.9,
+    "Comparación de pooling": 630.2,
+    "Frases de reseña": 550.1
   }
 }
