@@ -13,7 +13,7 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
 ## **Documentación**
 
-* [`docs/informe/informe.pdf`](docs/informe/informe.pdf): informe del pipeline completo, con la estrategia elegida y la descartada en cada paso, un ejemplo guiado (*Manhattan*), cómo ejecutarlo, resultados con tablas y gráficos, observaciones y pasos propuestos. Se regenera con `python docs/informe/figuras.py`, `python docs/informe/tablas.py` y `latexmk -pdf informe.tex` desde `docs/informe/`.
+* [`docs/informe/informe.pdf`](docs/informe/informe.pdf): informe del pipeline completo, con la estrategia elegida y la descartada en cada paso, un ejemplo guiado (*Manhattan*), cómo ejecutarlo, resultados con tablas y gráficos, observaciones y pasos propuestos. Los datos que necesitan la base de embeddings (predicciones por película, ejemplo guiado y curva de aprendizaje) los calcula `docs/informe/calculos.py`: el workflow de análisis lo corre con e5 al lanzarlo a mano con la opción *calcular también los datos del informe*, y los deja en `informe/` dentro de la carpeta del análisis. Se copian a `docs/informe/datos/` junto con los archivos del análisis de cada modelo, y el informe se regenera con `python docs/informe/figuras.py`, `python docs/informe/tablas.py` y `latexmk -pdf informe.tex` desde `docs/informe/`.
 
 ## **¿Cómo ejecutar el programa?**
 

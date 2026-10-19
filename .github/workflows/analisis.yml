@@ -7,6 +7,11 @@ name: Análisis completo (opción 9)
 # nunca se suben al repositorio.
 on:
   workflow_dispatch:
+    inputs:
+      calculos_informe:
+        description: "Calcular también los datos del informe con e5 (curva de aprendizaje y ejemplo, ~30 min más)"
+        type: boolean
+        default: false
   push:
     branches: [feature/program-refinement]
     # También al cambiar el perfil (sus embeddings se recalculan en cada corrida)
@@ -140,6 +145,14 @@ jobs:
             echo "::error title=No se generó el análisis::$(tail -n 25 salida_opcion9.txt | sed ':a;N;$!ba;s/%/%25/g;s/\n/%0A/g')"
             exit 1
           fi
+
+      # Datos del informe que necesitan la base de embeddings (docs/informe/calculos.py);
+      # quedan en la carpeta del análisis, en informe/.
+      - name: Calcular los datos del informe
+        if: matrix.publicar_embeddings && inputs.calculos_informe
+        run: |
+          carpeta=$(ls -d analisis/*/ | tail -1)
+          python docs/informe/calculos.py "${carpeta}informe" 2>&1 | tee -a salida_opcion9.txt
 
       # Chroma no libera espacio al eliminar el lote de reseñas reemplazado: sin
       # esto, la base (y el caché) crece con cada versión de reviews.zip.
