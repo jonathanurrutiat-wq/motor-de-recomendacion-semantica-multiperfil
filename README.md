@@ -182,6 +182,16 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
     * El workflow de análisis restaura la base de embeddings de la versión anterior de `reviews.zip` cuando la actual no está en caché (antes partía de cero, unas 2 horas), descomprime la base con fecha actual para que siempre se vuelva a filtrar, y la base publicada en el release solo incluye el filtrado vigente.
 
+    * `reviews.zip` actualizado con las reseñas de 28 de las 29 películas pendientes (falta *Nickel Boys*). En la primera corrida incremental, e5 codificó 7.117 chunks y reutilizó 55.685 (89 %), y el workflow bajó de 1 h 50 a 45 min.
+
+* Resultados (e5, reglas con frases, 10 repeticiones)
+
+    * Películas evaluadas con reseñas: de 101 a 129. ρ de Spearman 0,674 ± 0,024 → 0,739 ± 0,012; R² 0,40 → 0,53; precisión@10 0,28 → 0,31. Etapa 1 (R² medio): afinidades 0,45 → 0,53, filtros 0,22 → 0,34.
+
+    * El MAE sube de 0,61 a 0,95 porque las notas ahora tienen mucha más dispersión (las películas que no gustan): la línea base que predice el promedio pasa de 0,86 a 1,53, así que el error relativo a ella baja de 72 % a 62 %.
+
+    * mpnet: ρ 0,721, MiniLM: ρ 0,718; e5 sigue siendo el mejor.
+
 ### [1.4.2] - 17-10-2026
 > Verdad Base ampliada con películas que no gustan.
 
