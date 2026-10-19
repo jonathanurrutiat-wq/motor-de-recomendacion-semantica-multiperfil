@@ -106,8 +106,8 @@ global tuvo $\rho=0.95$ con la evaluación anterior y los puntajes por criterio 
 \begin{figure}[H]
   \centering
   \includegraphics[width=\linewidth]{distribucion_verdad_base}
-  \caption{La Verdad Base sigue dominada por películas preferidas (nota media 8.05; 95 de 130 tienen 8 o más), pero las
-  20 películas agregadas suman 18 con nota bajo 6 (izquierda). Los filtros aplican con fuerza en más películas;
+  \caption{La Verdad Base sigue dominada por películas preferidas (nota media 8.05; 95 de 130 tienen 8 o más), pero con las
+  20 películas agregadas las notas bajo 6 pasaron de 6 a 18 (izquierda). Los filtros aplican con fuerza en más películas;
   \emph{Camaradería Masculina Rancia} sigue siendo el más escaso, con 3 películas con puntaje $\geq 6$ (derecha).}
   \label{fig:distribucion}
 \end{figure}
@@ -338,8 +338,8 @@ reseña casi no cambian el MAE pero sí el orden) y hacía que variantes iguales
 \section{Ejemplo guiado: \emph{Manhattan} (Woody Allen, 1979)}\label{sec:ejemplo}
 %=====================================================================
 
-\emph{Manhattan} es una de las pocas películas de la lista con nota baja (Gemini: \EjNotaGemini) y la razón es un
-filtro: la película obliga a convivir con un protagonista cuya relación con una adolescente de 17 años y cuyo aire de
+\emph{Manhattan} es una de las pocas películas de la lista original de preferidas con nota baja (Gemini:
+\EjNotaGemini) y la razón es un filtro: la película obliga a convivir con un protagonista cuya relación con una adolescente de 17 años y cuyo aire de
 superioridad intelectual encajan en \emph{Insoportabilidad Prolongada} (Gemini: \EjInsGemini{} de 10, sin excepción).
 Además Gemini le da puntajes bajos en tres afinidades. Es un caso difícil y por eso instructivo: muestra cada paso y
 también dónde falla el modelo. Para que el ejemplo sea honesto, el modelo de esta sección se entrenó \textbf{con todas
@@ -357,7 +357,7 @@ el promedio, las críticas de la minoría se diluyen: para eso están los rasgos
 \paragraph{Paso 3: rasgos de frases.} Para \emph{Insoportabilidad Prolongada}, la tabla~\ref{tab:ejemplo_frases} muestra
 qué fracción de los chunks de Manhattan supera el umbral de similitud con cada texto. Con la frase \emph{``I couldn't
 stand the protagonist, he is a pretentious narcissist and a creep''}, el \EjFraseManhattan\,\% de sus chunks la supera,
-contra \EjFraseMediana\,\% en la película mediana: Manhattan está en el percentil \EjFrasePercentil{} de las 101 películas.
+contra \EjFraseMediana\,\% en la película mediana: Manhattan está en el percentil \EjFrasePercentil{} de las \NPeliculasCV{} películas.
 Con la descripción del perfil, escrita en otro registro, queda en el percentil \EjDescPercentil. Las frases sí encuentran
 el problema.
 
@@ -365,7 +365,8 @@ el problema.
   \centering\small
   \input{generado/tabla_ejemplo_frases}
   \caption{Rasgos de frases de \emph{Insoportabilidad Prolongada} para Manhattan: fracción de sus chunks sobre el
-  umbral de cada texto, la misma fracción en la película mediana y el percentil de Manhattan entre las 101 películas.}
+  umbral de cada texto, la misma fracción en la película mediana y el percentil de Manhattan entre las \NPeliculasCV{}
+  películas.}
   \label{tab:ejemplo_frases}
 \end{table}
 
@@ -383,23 +384,26 @@ restan \EjDescuento{} en total: la nota predicha queda en \textbf{\EjNotaModelo}
 
 \paragraph{Dónde falla.} La etapa 2 hace lo que dice la regla, pero recibe puntajes equivocados de la etapa 1:
 \begin{itemize}
-  \item \textbf{Afinidades}: la etapa 1 predice cerca de 7 para todas, el valor típico de la lista, mientras Gemini da 2
-  o 3 en tres de ellas. Con 101 películas casi todas bien evaluadas, Ridge aprende a quedarse cerca del promedio.
+  \item \textbf{Afinidades}: la etapa 1 predice entre 5 y 6.5 para todas, mientras Gemini da 2 o 3 en tres de ellas.
+  Ridge todavía tiende al valor típico de la lista, que sigue dominada por películas preferidas.
   \item \textbf{El filtro}: aunque el rasgo de la frase está en el percentil \EjFrasePercentil, la etapa 1 predice
-  \EjInsPredicho{} para \emph{Insoportabilidad}, bajo su umbral de \EjInsUmbral, y el descuento no se activa. Hay 19
-  películas con ese filtro alto: pocas para que Ridge le dé tanto peso al rasgo.
-  \item \textbf{Camaradería Masculina Rancia}: Gemini le da 9, pero con su excepción aplicada; Manhattan es la
-  \emph{única} película de la lista con ese filtro alto, así que al sacarla del entrenamiento no queda ningún ejemplo.
+  \EjInsPredicho{} para \emph{Insoportabilidad}, bajo su umbral de \EjInsUmbral, y el descuento no se activa. Hay 23
+  películas con ese filtro alto (antes 19): todavía pocas para que Ridge le dé tanto peso a un rasgo que aparece en una
+  minoría de las reseñas.
+  \item \textbf{Camaradería Masculina Rancia}: Gemini le da 9, pero con su excepción aplicada, así que no descuenta.
+  Es una de las 3 películas con ese filtro alto; al sacarla del entrenamiento quedan 2 ejemplos y la etapa 1 predice 1.3.
 \end{itemize}
 
 \paragraph{En el ranking.} En la validación cruzada de 10 repeticiones, Manhattan queda en el puesto
-\PuestoManhattan{} de \NPeliculasCV{} (nota predicha \NotaCVManhattan; en Gemini es la \PuestoGeminiManhattan). El caso
-contrario es \emph{Marty Supreme} (Gemini \NotaGeminiMarty, puesto \PuestoGeminiMarty): el modelo la deja última
-(\PuestoMarty{} de \NPeliculasCV, nota \NotaCVMarty). \emph{Amélie} (\NotaGeminiAmelie, la peor nota con reseñas) queda en
-el puesto \PuestoAmelie: sus reseñas describen lo dulce y excéntrico como virtud, mientras el perfil lo considera
+\PuestoManhattan{} de \NPeliculasCV{} (nota predicha \NotaCVManhattan; en Gemini es la \PuestoGeminiManhattan): el modelo
+la ubica entre las de abajo, pero no tan abajo como Gemini. Con las películas que disgustan pasa lo mismo a otra escala
+(fig.~\ref{fig:modelos}, derecha). Algunas bajan bien: \emph{Extremely Loud \& Incredibly Close} (Gemini 2.0) queda con
+2.65, \emph{Bohemian Rhapsody} (3.2) con 4.83 y \emph{Les Misérables} (3.5) con 5.18. Otras no: \emph{Marty Supreme}
+(Gemini \NotaGeminiMarty, reprobada) queda en el puesto \PuestoMarty{} con nota \NotaCVMarty, y \emph{American Sniper}
+(2.0) con 7.05. \emph{Amélie} (Gemini \NotaGeminiAmelie, puesto \PuestoGeminiAmelie) queda en el puesto \PuestoAmelie{}
+con \NotaCVAmelie: sus reseñas describen lo dulce y excéntrico como virtud, mientras el perfil lo considera
 \emph{Control Emocional Artificial}. Los errores grandes se concentran en películas cuyo defecto, según el perfil, las
-reseñas no describen como defecto, o describen en pocas reseñas. Más películas con notas bajas en la Verdad Base
-atacarían ambos problemas (sección~\ref{sec:pasos}).
+reseñas no describen como defecto, o describen en pocas reseñas.
 
 %=====================================================================
 \section{Cómo ejecutarlo}
@@ -524,8 +528,8 @@ filtros subió de 0.22 a 0.34 y el de las afinidades de 0.45 a 0.53.
   \centering
   \includegraphics[width=0.95\linewidth]{etapa_1}
   \caption{$R^2$ de la etapa 1 por criterio (e5). Las afinidades se predicen mejor que los filtros. Las frases de reseña
-  (barra) mejoran tres filtros respecto del modelo sin frases (marca negra) y empeoran \emph{Camaradería} y
-  \emph{Diorama}. \emph{Camaradería Masculina Rancia} tiene solo 3 películas con puntaje alto.}
+  (barra) mejoran \emph{Control}, \emph{Caos} e \emph{Insoportabilidad} respecto del modelo sin frases (marca negra);
+  en \emph{Camaradería} y \emph{Diorama} no ayudan (en el promedio de 10 repeticiones, empeoran levemente). \emph{Camaradería Masculina Rancia} tiene solo 3 películas con puntaje alto.}
   \label{fig:etapa1}
 \end{figure}
 
@@ -578,9 +582,12 @@ filtros subió de 0.22 a 0.34 y el de las afinidades de 0.45 a 0.53.
 \subsection{¿Cuánto ayudaría tener más películas evaluadas?}
 
 La curva de aprendizaje (fig.~\ref{fig:curva}) entrena con una fracción de las películas de cada partición y predice el
-resto. $\rho$ sube de 0.45 con 20 películas a 0.60 con 40, 0.65 con 61 y 0.675 con 81: todavía sube, pero cada vez menos
-($+0.026$ entre 61 y 81). Más películas parecidas a las actuales darían una mejora moderada; películas con notas bajas
-y con los filtros presentes deberían rendir más, porque aportan justo la variedad que falta (sección~\ref{sec:pasos}).
+resto. Con la Verdad Base actual, $\rho$ sube de 0.63 con 26 películas a 0.71 con 52, 0.73 con 77 y 0.74 con 103: la
+curva ya casi se aplana ($+0.007$ entre 77 y 103). Con la Verdad Base anterior subía de 0.45 con 20 películas a 0.675
+con 81 y todavía crecía. Con las películas que disgustan en la Verdad Base, el modelo ya ordena con la mitad de las
+películas casi tan bien como con todas.
+Más películas del mismo tipo rendirán poco; lo que más debería ayudar son casos de los filtros que todavía tienen pocos
+ejemplos y mejorar la etapa 1 (sección~\ref{sec:pasos}).
 
 \begin{figure}[H]
   \centering
@@ -652,7 +659,8 @@ y con los filtros presentes deberían rendir más, porque aportan justo la varie
   y comparar la dificultad entre perfiles. Idealmente, perfiles con gustos contrastantes (p.~ej.\ uno que valore el cine
   de acción o la comedia) para que las mismas películas tengan notas distintas.
   \item \textbf{Evaluar las \NCandidatas{} candidatas} con la \menu{6}: pasaría de 129 a unas 187 películas de
-  entrenamiento. La curva de aprendizaje (fig.~\ref{fig:curva}) indica cuánto puede rendir.
+  entrenamiento. Según la curva de aprendizaje (fig.~\ref{fig:curva}), que ya casi se aplana, rendiría poco si son
+  parecidas a las actuales; conviene priorizar las que probablemente activen algún filtro.
   \item \textbf{Validar contra notas reales} de la persona (su diario de Letterboxd) y ampliar la medición de la
   consistencia de Gemini a unas 20 películas (hoy son 9).
   \item \textbf{Revisar las frases de reseña} de \emph{Camaradería} y \emph{Diorama}, que hoy empeoran la etapa 1 de

@@ -41,11 +41,11 @@ def guardar(figura, nombre):
 def distribucion_verdad_base():
     gt = pd.read_csv(RAIZ / "src" / "loss" / "matriz_perdida.csv")
     figura, (izq, der) = plt.subplots(1, 2, figsize=(6.4, 2.4), gridspec_kw={"width_ratios": [1.1, 1]})
-    izq.hist(gt["gt_nota_global"], bins=np.arange(2.75, 10.5, 0.5), color=AZUL, edgecolor="white", linewidth=1)
+    izq.hist(gt["gt_nota_global"], bins=np.arange(1.75, 10.5, 0.5), color=AZUL, edgecolor="white", linewidth=1)
     izq.axvline(gt["gt_nota_global"].mean(), color=TINTA_2, linewidth=1, linestyle="--")
     izq.text(gt["gt_nota_global"].mean() - 0.15, izq.get_ylim()[1] * 0.92, f"media {gt['gt_nota_global'].mean():.2f}",
              ha="right", color=TINTA_2, fontsize=8)
-    izq.set(xlabel="Nota global de Gemini", ylabel="Películas", title="Nota global (110 películas)")
+    izq.set(xlabel="Nota global de Gemini", ylabel="Películas", title=f"Nota global ({gt['gt_nota_global'].notna().sum()} películas)")
     izq.grid(axis="x", visible=False)
     filtros = [c for c in gt.columns if c.startswith("gt_cols_")]
     nombres = [c.replace("gt_cols_", "").replace("_", " ").capitalize() for c in filtros]
@@ -167,24 +167,24 @@ def etapa_1():
     eje.set_yticks(y, [f[0] for f in filas])
     eje.axvline(0, color=REFERENCIA, linewidth=0.8)
     eje.set(xlabel="R² de la etapa 1: puntaje predicho desde reseñas vs. Gemini (validación cruzada, e5)",
-            ylabel="Criterio del perfil", xlim=(-0.05, 0.7))
+            ylabel="Criterio del perfil", xlim=(-0.05, 0.95))
     eje.grid(axis="y", visible=False)
     from matplotlib.lines import Line2D
     from matplotlib.patches import Patch
     eje.legend(handles=[Patch(color=AZUL, label="afinidad"), Patch(color=NARANJA, label="filtro (con frases)"),
                         Line2D([], [], marker="|", color=TINTA, linestyle="", markersize=10, markeredgewidth=1.5,
-                               label="filtro sin frases")], loc="center left", bbox_to_anchor=(1.0, 0.5), fontsize=7.5)
+                               label="filtro sin frases")], loc="lower right", fontsize=7.5)
     guardar(figura, "etapa_1")
 
 
 def dispersion():
     cv = pd.read_csv(DATOS / "cv_e5.csv")
     figura, eje = plt.subplots(figsize=(3.6, 3.2))
-    eje.plot([3, 10], [3, 10], color=REFERENCIA, linewidth=0.8, linestyle="--", label="predicción = nota de Gemini")
+    eje.plot([1.5, 10.3], [1.5, 10.3], color=REFERENCIA, linewidth=0.8, linestyle="--", label="predicción = nota de Gemini")
     eje.scatter(cv["nota_gemini"], cv["nota_cv"], s=18, color=AZUL, edgecolor="white", linewidth=0.6, zorder=3,
                 label="película evaluada")
     # Películas comentadas en el ejemplo guiado, con la etiqueta en una posición fija.
-    for film, tx, ty in [("manhattan", 5.3, 8.95), ("amelie", 4.1, 9.4), ("marty-supreme", 5.8, 6.35)]:
+    for film, tx, ty in [("manhattan", 5.6, 9.3), ("amelie", 3.0, 9.75), ("marty-supreme", 2.3, 7.95)]:
         fila = cv[cv["film_id"] == film]
         if len(fila):
             x, y = fila.iloc[0]["nota_gemini"], fila.iloc[0]["nota_cv"]
@@ -192,7 +192,7 @@ def dispersion():
                         label="comentada en el ejemplo guiado" if film == "manhattan" else None)
             eje.annotate(film, (x, y), xytext=(tx, ty), fontsize=7.5, color=TINTA,
                          arrowprops={"arrowstyle": "-", "color": TINTA_2, "linewidth": 0.6})
-    eje.set(xlabel="Nota de Gemini", ylabel="Nota predicha (validación cruzada)", xlim=(4, 10.3), ylim=(4, 10.3),
+    eje.set(xlabel="Nota de Gemini", ylabel="Nota predicha (validación cruzada)", xlim=(1.5, 10.3), ylim=(1.5, 10.3),
             title="e5 + frases, predicción promedio de 10 repeticiones")
     eje.legend(loc="lower right", fontsize=7, handletextpad=0.4, borderaxespad=0.3)
     guardar(figura, "dispersion")

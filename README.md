@@ -196,6 +196,12 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
     * mpnet: ρ 0,721, MiniLM: ρ 0,718; e5 sigue siendo el mejor.
 
+    * Las frases de reseña casi dejaron de aportar: con e5, +0,004 ± 0,004 en ρ (mejor en 6 de 10 repeticiones; antes +0,008 en 10 de 10), y con MiniLM empeoran levemente. Mejoran la etapa 1 de Insoportabilidad, Control y Caos, y no ayudan en Camaradería ni Diorama.
+
+    * La curva de aprendizaje casi se aplana (ρ 0,63 con 26 películas, 0,71 con 52, 0,73 con 77 y 0,74 con 103): más películas parecidas a las actuales rendirán poco.
+
+    * `docs/informe/informe.pdf` actualizado con estos resultados. `docs/informe/calculos.py` calcula los datos del informe que necesitan la base de embeddings; el workflow de análisis lo corre con e5 al lanzarlo a mano con la opción `calculos_informe`.
+
 ### [1.4.2] - 17-10-2026
 > Verdad Base ampliada con películas que no gustan.
 
