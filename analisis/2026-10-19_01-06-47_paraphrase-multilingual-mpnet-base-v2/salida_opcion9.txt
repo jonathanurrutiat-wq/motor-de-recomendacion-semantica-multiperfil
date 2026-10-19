@@ -1,0 +1,596 @@
+
+========================================
+MOTOR NEURO-SIMBÓLICO | PANEL CENTRAL
+
+----------------------------------------
+1) Gestionar perfiles cinéfilos.
+2) Ejecutar pipeline ETL (filtrar CSVs crudos).
+3) Generar embeddings de un perfil.
+4) Generar embeddings de los lotes de reseñas pendientes.
+5) Cargar Ground-truth (dataset_maestro.csv).
+6) Revisar películas pendientes de evaluar.
+7) Entrenar modelo predictivo (modelo de reglas).
+8) Recomendar películas según el perfil.
+9) Ejecutar todo (opciones 2 a 8) y generar datos de análisis.
+10) Salir.
+
+----------------------------------------
+Seleccione su módulo a ejecutar
+< Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+
+[9] Ejecutando todo el pipeline y generando datos de análisis...
+
+Perfil: Ignacio Araya. El pipeline corre sin más preguntas y no borra datos: los chunks antiguos o perfiles huérfanos solo se informan.
+
+========================================================================
+[1/10] Filtrado de reseñas crudas (opción 2)
+========================================================================
+Procesando archivo: base_de_datos_inicial_100.csv
+
+| ---------------- Inspección inicial: base_de_datos_inicial_100.csv ---------------- |
+<class 'pandas.DataFrame'>
+RangeIndex: 110 entries, 0 to 109
+Data columns (total 7 columns):
+ #   Column       Non-Null Count  Dtype
+---  ------       --------------  -----
+ 0   user_name    110 non-null    str  
+ 1   date         110 non-null    str  
+ 2   rating       99 non-null     str  
+ 3   review_text  110 non-null    str  
+ 4   film_id      110 non-null    str  
+ 5   film_title   110 non-null    str  
+ 6   director     110 non-null    str  
+dtypes: str(7)
+memory usage: 6.1 KB
+
+|========================================================|
+
+
+Omitiendo base_de_datos_inicial_100.csv: el resultado es idéntico a filtrado_base_de_datos_inicial_100_2026-10-17_20-06-57.csv.
+
+Procesando archivo: reviews.db
+
+Reseñas de al menos 100 caracteres, hasta 100 por película, en películas con al menos 20: 16841 reseñas de 180 películas.
+
+Omitiendo reviews.db: el resultado es idéntico a filtrado_reviews_2026-10-18_23-28-48.csv.
+
+
+--> Filtrado de reseñas crudas (opción 2): 2.2 s
+
+========================================================================
+[2/10] Embeddings del perfil (opción 3)
+========================================================================
+Cargando nuevo modelo neuronal en memoria (CPU). Por favor espere...
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 3399.92it/s]
+Construyendo chunks...
+Generando embeddings...
+Embeddings generados con éxito. Forma del tensor: (29, 768)
+Colección 'perfiles' actualizada en: /home/runner/work/motor-de-recomendacion-semantica-multiperfil/motor-de-recomendacion-semantica-multiperfil/src/db/embeddings/chroma_paraphrase-multilingual-mpnet-base-v2
+Documentos guardados/actualizados: 29
+
+--> Embeddings del perfil (opción 3): 10.8 s
+
+========================================================================
+[3/10] Embeddings de reseñas (opción 4)
+========================================================================
+Todos los lotes filtrados ya están vectorizados. No hay nada nuevo que procesar.
+
+--> Embeddings de reseñas (opción 4): 2.5 s
+
+========================================================================
+[4/10] Verdad Base (opción 5)
+========================================================================
+Leyendo el dataset maestro...
+Mapeando columnas según el perfil: Ignacio Araya
+Guardando Verdad Base en formato ligero: matriz_perdida.csv...
+Éxito. 130 películas ingestadas y normalizadas.
+
+| -- Verificación de integridad matemática -- |
+                  film_id  ...  gt_nota_global
+0    in-the-mood-for-love  ...             9.5
+1  kikis-delivery-service  ...             8.5
+2                 persona  ...             9.5
+3                close-up  ...             9.5
+4      memories-of-murder  ...             8.0
+
+[5 rows x 17 columns]
+
+--> Verdad Base (opción 5): 0.1 s
+
+========================================================================
+[5/10] Películas pendientes de evaluar (opción 6)
+========================================================================
+Recolectando películas con reseñas procesadas...
+Cruzando contra la Verdad Base actual...
+
+| -- Estado de evaluación -- |
+Películas con reseñas procesadas: 187
+Películas ya evaluadas (Verdad Base): 130
+Películas pendientes de evaluar: 58
+Películas evaluadas sin reseñas suficientes: 1 (lista para el scraper en pendientes_resenias.csv)
+
+Películas pendientes:
+  - 2046
+  - 500-days-of-summer
+  - a-clockwork-orange
+  - alien
+  - another-round
+  - before-midnight
+  - before-sunrise
+  - bojack-horseman-christmas-special-sabrinas
+  - burning
+  - but-im-a-cheerleader
+  - chungking-express
+  - climax
+  - dawn-of-the-dead
+  - eternal-sunshine-of-the-spotless-mind
+  - fantastic-mr-fox
+  - flcl
+  - godzilla
+  - halloween
+  - hamnet
+  - happy-together
+  - inside-llewyn-davis
+  - it-was-just-an-accident
+  - lady-bird
+  - let-the-right-one-in
+  - neon-genesis-evangelion
+  - night-of-the-living-dead
+  - nightmare-alley
+  - nosferatu
+  - one-battle-after-another
+  - parasite
+  - perfect-blue
+  - phantom-thread
+  - portrait-of-a-lady-on-fire
+  - pride-prejudice
+  - princess-mononoke
+  - pulp-fiction
+  - requiem-for-a-dream
+  - scott-pilgrim-vs-the-world
+  - sentimental-value
+  - seven-samurai
+  - shaun-of-the-dead
+  - sorry-baby
+  - spencer
+  - suspiria
+  - taipei-suicide-story
+  - the-handmaiden
+  - the-lighthouse
+  - the-nightmare-before-christmas
+  - the-passion-of-joan-of-arc
+  - the-secret-agent
+  - the-seventh-seal
+  - the-shining
+  - the-witch
+  - train-dreams
+  - twin-peaks
+  - under-the-skin
+  - weapons
+  - wristcutters-a-love-story
+
+Plantilla para evaluación guardada en: /home/runner/work/motor-de-recomendacion-semantica-multiperfil/motor-de-recomendacion-semantica-multiperfil/src/loss/pendientes_evaluar.csv
+Instrucciones para evaluar con Gemini guardadas en: /home/runner/work/motor-de-recomendacion-semantica-multiperfil/motor-de-recomendacion-semantica-multiperfil/src/loss/instrucciones_evaluacion.md
+Pega su respuesta en la plantilla (al menos gt_nota_global) y ejecuta el módulo 5 para sumarla a la Verdad Base.
+
+--> Películas pendientes de evaluar (opción 6): 0.4 s
+
+========================================================================
+[6/10] Entrenamiento del modelo de reglas (opción 7)
+========================================================================
+Conectando con la base de datos vectorial ChromaDB...
+Cargando los chunks de reseñas vectorizadas...
+Entrenando el modelo de reglas con 129 películas (con frases de reseña, pooling media)...
+Criterios: 5 afinidades, 5 filtros, 7 relaciones de corrupción.
+Etapa 2 con 130 películas con todos sus puntajes en la Verdad Base.
+
+Etapa 2 por separado (puntajes reales de Gemini -> nota global):
+  Partición 1/5: MAE regla 0.301 | MAE lineal sobre puntajes 0.349
+  Partición 2/5: MAE regla 0.308 | MAE lineal sobre puntajes 0.391
+  Partición 3/5: MAE regla 0.396 | MAE lineal sobre puntajes 0.375
+  Partición 4/5: MAE regla 0.414 | MAE lineal sobre puntajes 0.469
+  Partición 5/5: MAE regla 0.378 | MAE lineal sobre puntajes 0.465
+
+Modelo completo (reseñas -> puntajes -> nota global):
+  Repetición 1/10 (5 particiones): ρ 0.718 | MAE 1.019
+  Repetición 2/10 (5 particiones): ρ 0.734 | MAE 0.976
+  Repetición 3/10 (5 particiones): ρ 0.707 | MAE 0.999
+  Repetición 4/10 (5 particiones): ρ 0.694 | MAE 1.048
+  Repetición 5/10 (5 particiones): ρ 0.719 | MAE 1.017
+  Repetición 6/10 (5 particiones): ρ 0.715 | MAE 1.013
+  Repetición 7/10 (5 particiones): ρ 0.732 | MAE 0.995
+  Repetición 8/10 (5 particiones): ρ 0.728 | MAE 0.970
+  Repetición 9/10 (5 particiones): ρ 0.728 | MAE 1.026
+  Repetición 10/10 (5 particiones): ρ 0.737 | MAE 0.978
+  Promedio de 10 repeticiones: ρ 0.721 ± 0.013 | MAE 1.004 ± 0.024
+
+Entrenando el modelo de reglas final con todos los datos...
+
+| -- Modelo de reglas: validación cruzada (películas que el modelo no vio) -- |
+Perfil: Ignacio Araya | películas evaluadas: 129
+Promedio de 10 repeticiones con particiones distintas.
+ρ de Spearman (orden de las películas contra el de Gemini): 0.721 ± 0.013
+NDCG@10: 0.956 | Precisión@10: 0.360
+Error absoluto medio de la nota (MAE): 1.004 | R²: 0.461
+Frases de reseña usadas en: Camaradería Masculina Rancia, Insoportabilidad Prolongada, Control Emocional Artificial, Personajes Diorama, Caos Asfixiante.
+
+| -- Reglas aprendidas -- |
+ - Nota base = 3.75 + 0.06·Resistencia Femenina + 0.12·Contemplación Inmersiva + 0.16·Ternura y Empatía Radical + 0.13·Humanismo Social + 0.21·Vanguardia y Simbolismo
+ - Si Camaradería Masculina Rancia supera 3.7 y su excepción no aplica: resta hasta 1.73 puntos.
+ - Si Insoportabilidad Prolongada supera 5.3 y su excepción no aplica: resta hasta 1.25 puntos.
+ - Si Control Emocional Artificial supera 7.8 y su excepción no aplica: resta hasta 1.52 puntos.
+ - Si Personajes Diorama supera 3.3 y su excepción no aplica: resta hasta 0.18 puntos.
+ - Si Caos Asfixiante supera 8.6 y su excepción no aplica: resta hasta 1.54 puntos.
+
+Parámetros: 16 en la regla (etapa 2) y 11579 en las regresiones Ridge de la etapa 1.
+
+Modelo guardado en: /home/runner/work/motor-de-recomendacion-semantica-multiperfil/motor-de-recomendacion-semantica-multiperfil/src/loss/modelo_reglas_paraphrase-multilingual-mpnet-base-v2.joblib
+
+--> Entrenamiento del modelo de reglas (opción 7): 584.4 s
+
+========================================================================
+[7/10] Regresión lineal anterior, como comparación (5 particiones)
+========================================================================
+Conectando con la base de datos vectorial ChromaDB...
+Calculando distancias semánticas (Matriz X)...
+Entrenando Regresión Lineal...
+  Partición 1/5: entrena con 103, prueba con 26 | MAE modelo 0.989 | MAE Ridge 1.062 | MAE promedio 1.670
+  Partición 2/5: entrena con 103, prueba con 26 | MAE modelo 1.057 | MAE Ridge 1.069 | MAE promedio 1.469
+  Partición 3/5: entrena con 103, prueba con 26 | MAE modelo 1.112 | MAE Ridge 0.999 | MAE promedio 1.313
+  Partición 4/5: entrena con 103, prueba con 26 | MAE modelo 1.064 | MAE Ridge 0.979 | MAE promedio 1.600
+  Partición 5/5: entrena con 104, prueba con 25 | MAE modelo 1.455 | MAE Ridge 1.361 | MAE promedio 1.608
+
+========================================================================
+[8/10] Comparación de pooling y número de reseñas
+========================================================================
+
+Particiones con semilla 0:
+Entrenando la etapa 2 una vez por partición (5)...
+  promedio, hasta 50 reseñas                    ρ 0.714 | MAE 1.037 | NDCG@10 0.949 | etapa 1: afinidades 0.443, filtros 0.289
+  promedio, hasta 100 reseñas                   ρ 0.724 | MAE 1.019 | NDCG@10 0.955 | etapa 1: afinidades 0.448, filtros 0.294
+  promedio, todas las reseñas                   ρ 0.723 | MAE 1.021 | NDCG@10 0.955 | etapa 1: afinidades 0.447, filtros 0.293
+  percentil 50 por dimensión, hasta 50 reseñas  ρ 0.717 | MAE 1.036 | NDCG@10 0.951 | etapa 1: afinidades 0.441, filtros 0.288
+  percentil 50 por dimensión, hasta 100 reseñas ρ 0.723 | MAE 1.018 | NDCG@10 0.957 | etapa 1: afinidades 0.453, filtros 0.295
+  percentil 50 por dimensión, todas las reseñas ρ 0.723 | MAE 1.020 | NDCG@10 0.957 | etapa 1: afinidades 0.453, filtros 0.295
+  percentil 75 por dimensión, hasta 50 reseñas  ρ 0.731 | MAE 1.024 | NDCG@10 0.958 | etapa 1: afinidades 0.450, filtros 0.299
+  percentil 75 por dimensión, hasta 100 reseñas ρ 0.733 | MAE 1.006 | NDCG@10 0.966 | etapa 1: afinidades 0.450, filtros 0.298
+  percentil 75 por dimensión, todas las reseñas ρ 0.730 | MAE 1.006 | NDCG@10 0.965 | etapa 1: afinidades 0.449, filtros 0.299
+  percentil 90 por dimensión, hasta 50 reseñas  ρ 0.725 | MAE 1.032 | NDCG@10 0.948 | etapa 1: afinidades 0.447, filtros 0.305
+  percentil 90 por dimensión, hasta 100 reseñas ρ 0.727 | MAE 1.012 | NDCG@10 0.955 | etapa 1: afinidades 0.450, filtros 0.299
+  percentil 90 por dimensión, todas las reseñas ρ 0.726 | MAE 1.013 | NDCG@10 0.956 | etapa 1: afinidades 0.449, filtros 0.299
+  percentil 95 por dimensión, hasta 50 reseñas  ρ 0.719 | MAE 1.039 | NDCG@10 0.954 | etapa 1: afinidades 0.447, filtros 0.288
+  percentil 95 por dimensión, hasta 100 reseñas ρ 0.724 | MAE 1.016 | NDCG@10 0.962 | etapa 1: afinidades 0.450, filtros 0.296
+  percentil 95 por dimensión, todas las reseñas ρ 0.726 | MAE 1.014 | NDCG@10 0.962 | etapa 1: afinidades 0.450, filtros 0.295
+  promedio + percentiles de similitud, hasta 50 reseñas ρ 0.718 | MAE 1.031 | NDCG@10 0.930 | etapa 1: afinidades 0.448, filtros 0.296
+  promedio + percentiles de similitud, hasta 100 reseñas ρ 0.730 | MAE 1.006 | NDCG@10 0.955 | etapa 1: afinidades 0.462, filtros 0.303
+  promedio + percentiles de similitud, todas las reseñas ρ 0.731 | MAE 1.008 | NDCG@10 0.955 | etapa 1: afinidades 0.461, filtros 0.302
+
+Particiones con semilla 1:
+Entrenando la etapa 2 una vez por partición (5)...
+  promedio, hasta 50 reseñas                    ρ 0.734 | MAE 0.998 | NDCG@10 0.963 | etapa 1: afinidades 0.464, filtros 0.272
+  promedio, hasta 100 reseñas                   ρ 0.739 | MAE 0.989 | NDCG@10 0.964 | etapa 1: afinidades 0.471, filtros 0.279
+  promedio, todas las reseñas                   ρ 0.739 | MAE 0.989 | NDCG@10 0.964 | etapa 1: afinidades 0.471, filtros 0.279
+  percentil 50 por dimensión, hasta 50 reseñas  ρ 0.740 | MAE 0.993 | NDCG@10 0.963 | etapa 1: afinidades 0.461, filtros 0.272
+  percentil 50 por dimensión, hasta 100 reseñas ρ 0.740 | MAE 0.990 | NDCG@10 0.964 | etapa 1: afinidades 0.468, filtros 0.278
+  percentil 50 por dimensión, todas las reseñas ρ 0.738 | MAE 0.990 | NDCG@10 0.964 | etapa 1: afinidades 0.469, filtros 0.278
+  percentil 75 por dimensión, hasta 50 reseñas  ρ 0.739 | MAE 0.998 | NDCG@10 0.973 | etapa 1: afinidades 0.462, filtros 0.273
+  percentil 75 por dimensión, hasta 100 reseñas ρ 0.738 | MAE 0.989 | NDCG@10 0.969 | etapa 1: afinidades 0.471, filtros 0.281
+  percentil 75 por dimensión, todas las reseñas ρ 0.739 | MAE 0.989 | NDCG@10 0.969 | etapa 1: afinidades 0.470, filtros 0.280
+  percentil 90 por dimensión, hasta 50 reseñas  ρ 0.733 | MAE 1.003 | NDCG@10 0.966 | etapa 1: afinidades 0.463, filtros 0.282
+  percentil 90 por dimensión, hasta 100 reseñas ρ 0.747 | MAE 0.984 | NDCG@10 0.969 | etapa 1: afinidades 0.470, filtros 0.279
+  percentil 90 por dimensión, todas las reseñas ρ 0.746 | MAE 0.984 | NDCG@10 0.969 | etapa 1: afinidades 0.470, filtros 0.279
+  percentil 95 por dimensión, hasta 50 reseñas  ρ 0.729 | MAE 1.021 | NDCG@10 0.967 | etapa 1: afinidades 0.463, filtros 0.264
+  percentil 95 por dimensión, hasta 100 reseñas ρ 0.739 | MAE 0.997 | NDCG@10 0.968 | etapa 1: afinidades 0.472, filtros 0.278
+  percentil 95 por dimensión, todas las reseñas ρ 0.737 | MAE 0.996 | NDCG@10 0.968 | etapa 1: afinidades 0.472, filtros 0.278
+  promedio + percentiles de similitud, hasta 50 reseñas ρ 0.728 | MAE 0.992 | NDCG@10 0.962 | etapa 1: afinidades 0.474, filtros 0.278
+  promedio + percentiles de similitud, hasta 100 reseñas ρ 0.745 | MAE 0.979 | NDCG@10 0.960 | etapa 1: afinidades 0.480, filtros 0.285
+  promedio + percentiles de similitud, todas las reseñas ρ 0.745 | MAE 0.979 | NDCG@10 0.960 | etapa 1: afinidades 0.479, filtros 0.285
+
+Particiones con semilla 2:
+Entrenando la etapa 2 una vez por partición (5)...
+  promedio, hasta 50 reseñas                    ρ 0.711 | MAE 1.023 | NDCG@10 0.939 | etapa 1: afinidades 0.460, filtros 0.298
+  promedio, hasta 100 reseñas                   ρ 0.708 | MAE 1.006 | NDCG@10 0.937 | etapa 1: afinidades 0.460, filtros 0.305
+  promedio, todas las reseñas                   ρ 0.707 | MAE 1.006 | NDCG@10 0.937 | etapa 1: afinidades 0.459, filtros 0.308
+  percentil 50 por dimensión, hasta 50 reseñas  ρ 0.713 | MAE 1.016 | NDCG@10 0.938 | etapa 1: afinidades 0.461, filtros 0.296
+  percentil 50 por dimensión, hasta 100 reseñas ρ 0.706 | MAE 1.007 | NDCG@10 0.939 | etapa 1: afinidades 0.458, filtros 0.303
+  percentil 50 por dimensión, todas las reseñas ρ 0.705 | MAE 1.005 | NDCG@10 0.939 | etapa 1: afinidades 0.458, filtros 0.305
+  percentil 75 por dimensión, hasta 50 reseñas  ρ 0.719 | MAE 1.010 | NDCG@10 0.953 | etapa 1: afinidades 0.462, filtros 0.310
+  percentil 75 por dimensión, hasta 100 reseñas ρ 0.714 | MAE 1.004 | NDCG@10 0.944 | etapa 1: afinidades 0.468, filtros 0.300
+  percentil 75 por dimensión, todas las reseñas ρ 0.715 | MAE 1.001 | NDCG@10 0.960 | etapa 1: afinidades 0.468, filtros 0.310
+  percentil 90 por dimensión, hasta 50 reseñas  ρ 0.718 | MAE 1.009 | NDCG@10 0.941 | etapa 1: afinidades 0.465, filtros 0.310
+  percentil 90 por dimensión, hasta 100 reseñas ρ 0.716 | MAE 0.998 | NDCG@10 0.953 | etapa 1: afinidades 0.469, filtros 0.315
+  percentil 90 por dimensión, todas las reseñas ρ 0.715 | MAE 0.998 | NDCG@10 0.953 | etapa 1: afinidades 0.468, filtros 0.317
+  percentil 95 por dimensión, hasta 50 reseñas  ρ 0.714 | MAE 1.016 | NDCG@10 0.943 | etapa 1: afinidades 0.460, filtros 0.296
+  percentil 95 por dimensión, hasta 100 reseñas ρ 0.716 | MAE 1.005 | NDCG@10 0.953 | etapa 1: afinidades 0.464, filtros 0.309
+  percentil 95 por dimensión, todas las reseñas ρ 0.713 | MAE 1.000 | NDCG@10 0.953 | etapa 1: afinidades 0.464, filtros 0.312
+  promedio + percentiles de similitud, hasta 50 reseñas ρ 0.712 | MAE 1.014 | NDCG@10 0.927 | etapa 1: afinidades 0.469, filtros 0.307
+  promedio + percentiles de similitud, hasta 100 reseñas ρ 0.712 | MAE 1.003 | NDCG@10 0.933 | etapa 1: afinidades 0.471, filtros 0.311
+  promedio + percentiles de similitud, todas las reseñas ρ 0.710 | MAE 1.002 | NDCG@10 0.933 | etapa 1: afinidades 0.470, filtros 0.311
+
+Particiones con semilla 3:
+Entrenando la etapa 2 una vez por partición (5)...
+  promedio, hasta 50 reseñas                    ρ 0.711 | MAE 1.042 | NDCG@10 0.960 | etapa 1: afinidades 0.457, filtros 0.279
+  promedio, hasta 100 reseñas                   ρ 0.696 | MAE 1.062 | NDCG@10 0.965 | etapa 1: afinidades 0.437, filtros 0.283
+  promedio, todas las reseñas                   ρ 0.694 | MAE 1.061 | NDCG@10 0.965 | etapa 1: afinidades 0.436, filtros 0.285
+  percentil 50 por dimensión, hasta 50 reseñas  ρ 0.702 | MAE 1.036 | NDCG@10 0.970 | etapa 1: afinidades 0.448, filtros 0.298
+  percentil 50 por dimensión, hasta 100 reseñas ρ 0.702 | MAE 1.056 | NDCG@10 0.969 | etapa 1: afinidades 0.438, filtros 0.286
+  percentil 50 por dimensión, todas las reseñas ρ 0.699 | MAE 1.056 | NDCG@10 0.965 | etapa 1: afinidades 0.436, filtros 0.287
+  percentil 75 por dimensión, hasta 50 reseñas  ρ 0.714 | MAE 1.037 | NDCG@10 0.971 | etapa 1: afinidades 0.457, filtros 0.280
+  percentil 75 por dimensión, hasta 100 reseñas ρ 0.703 | MAE 1.046 | NDCG@10 0.967 | etapa 1: afinidades 0.445, filtros 0.270
+  percentil 75 por dimensión, todas las reseñas ρ 0.701 | MAE 1.045 | NDCG@10 0.967 | etapa 1: afinidades 0.444, filtros 0.275
+  percentil 90 por dimensión, hasta 50 reseñas  ρ 0.711 | MAE 1.033 | NDCG@10 0.961 | etapa 1: afinidades 0.456, filtros 0.310
+  percentil 90 por dimensión, hasta 100 reseñas ρ 0.705 | MAE 1.047 | NDCG@10 0.965 | etapa 1: afinidades 0.446, filtros 0.294
+  percentil 90 por dimensión, todas las reseñas ρ 0.703 | MAE 1.046 | NDCG@10 0.965 | etapa 1: afinidades 0.446, filtros 0.295
+  percentil 95 por dimensión, hasta 50 reseñas  ρ 0.714 | MAE 1.024 | NDCG@10 0.959 | etapa 1: afinidades 0.460, filtros 0.295
+  percentil 95 por dimensión, hasta 100 reseñas ρ 0.704 | MAE 1.042 | NDCG@10 0.968 | etapa 1: afinidades 0.451, filtros 0.284
+  percentil 95 por dimensión, todas las reseñas ρ 0.703 | MAE 1.042 | NDCG@10 0.968 | etapa 1: afinidades 0.450, filtros 0.288
+  promedio + percentiles de similitud, hasta 50 reseñas ρ 0.709 | MAE 1.028 | NDCG@10 0.953 | etapa 1: afinidades 0.458, filtros 0.301
+  promedio + percentiles de similitud, hasta 100 reseñas ρ 0.703 | MAE 1.049 | NDCG@10 0.962 | etapa 1: afinidades 0.455, filtros 0.290
+  promedio + percentiles de similitud, todas las reseñas ρ 0.700 | MAE 1.049 | NDCG@10 0.962 | etapa 1: afinidades 0.453, filtros 0.288
+
+Particiones con semilla 4:
+Entrenando la etapa 2 una vez por partición (5)...
+  promedio, hasta 50 reseñas                    ρ 0.722 | MAE 1.018 | NDCG@10 0.942 | etapa 1: afinidades 0.466, filtros 0.308
+  promedio, hasta 100 reseñas                   ρ 0.723 | MAE 1.022 | NDCG@10 0.945 | etapa 1: afinidades 0.461, filtros 0.312
+  promedio, todas las reseñas                   ρ 0.725 | MAE 1.022 | NDCG@10 0.941 | etapa 1: afinidades 0.465, filtros 0.313
+  percentil 50 por dimensión, hasta 50 reseñas  ρ 0.718 | MAE 1.024 | NDCG@10 0.938 | etapa 1: afinidades 0.461, filtros 0.306
+  percentil 50 por dimensión, hasta 100 reseñas ρ 0.724 | MAE 1.023 | NDCG@10 0.948 | etapa 1: afinidades 0.462, filtros 0.311
+  percentil 50 por dimensión, todas las reseñas ρ 0.723 | MAE 1.025 | NDCG@10 0.948 | etapa 1: afinidades 0.461, filtros 0.312
+  percentil 75 por dimensión, hasta 50 reseñas  ρ 0.727 | MAE 1.020 | NDCG@10 0.945 | etapa 1: afinidades 0.465, filtros 0.314
+  percentil 75 por dimensión, hasta 100 reseñas ρ 0.734 | MAE 1.010 | NDCG@10 0.956 | etapa 1: afinidades 0.473, filtros 0.320
+  percentil 75 por dimensión, todas las reseñas ρ 0.733 | MAE 1.011 | NDCG@10 0.945 | etapa 1: afinidades 0.473, filtros 0.321
+  percentil 90 por dimensión, hasta 50 reseñas  ρ 0.724 | MAE 1.021 | NDCG@10 0.944 | etapa 1: afinidades 0.470, filtros 0.311
+  percentil 90 por dimensión, hasta 100 reseñas ρ 0.728 | MAE 1.018 | NDCG@10 0.956 | etapa 1: afinidades 0.471, filtros 0.317
+  percentil 90 por dimensión, todas las reseñas ρ 0.728 | MAE 1.018 | NDCG@10 0.955 | etapa 1: afinidades 0.471, filtros 0.318
+  percentil 95 por dimensión, hasta 50 reseñas  ρ 0.738 | MAE 1.017 | NDCG@10 0.955 | etapa 1: afinidades 0.470, filtros 0.306
+  percentil 95 por dimensión, hasta 100 reseñas ρ 0.734 | MAE 1.011 | NDCG@10 0.961 | etapa 1: afinidades 0.479, filtros 0.312
+  percentil 95 por dimensión, todas las reseñas ρ 0.732 | MAE 1.012 | NDCG@10 0.960 | etapa 1: afinidades 0.478, filtros 0.311
+  promedio + percentiles de similitud, hasta 50 reseñas ρ 0.720 | MAE 1.020 | NDCG@10 0.940 | etapa 1: afinidades 0.468, filtros 0.310
+  promedio + percentiles de similitud, hasta 100 reseñas ρ 0.729 | MAE 1.013 | NDCG@10 0.946 | etapa 1: afinidades 0.473, filtros 0.318
+  promedio + percentiles de similitud, todas las reseñas ρ 0.727 | MAE 1.013 | NDCG@10 0.946 | etapa 1: afinidades 0.471, filtros 0.318
+
+Particiones con semilla 5:
+Entrenando la etapa 2 una vez por partición (5)...
+  promedio, hasta 50 reseñas                    ρ 0.715 | MAE 1.026 | NDCG@10 0.954 | etapa 1: afinidades 0.450, filtros 0.299
+  promedio, hasta 100 reseñas                   ρ 0.708 | MAE 1.025 | NDCG@10 0.956 | etapa 1: afinidades 0.439, filtros 0.305
+  promedio, todas las reseñas                   ρ 0.714 | MAE 1.022 | NDCG@10 0.956 | etapa 1: afinidades 0.444, filtros 0.305
+  percentil 50 por dimensión, hasta 50 reseñas  ρ 0.717 | MAE 1.027 | NDCG@10 0.953 | etapa 1: afinidades 0.448, filtros 0.298
+  percentil 50 por dimensión, hasta 100 reseñas ρ 0.715 | MAE 1.027 | NDCG@10 0.949 | etapa 1: afinidades 0.439, filtros 0.306
+  percentil 50 por dimensión, todas las reseñas ρ 0.715 | MAE 1.024 | NDCG@10 0.949 | etapa 1: afinidades 0.442, filtros 0.307
+  percentil 75 por dimensión, hasta 50 reseñas  ρ 0.717 | MAE 1.026 | NDCG@10 0.953 | etapa 1: afinidades 0.447, filtros 0.305
+  percentil 75 por dimensión, hasta 100 reseñas ρ 0.716 | MAE 1.016 | NDCG@10 0.965 | etapa 1: afinidades 0.447, filtros 0.309
+  percentil 75 por dimensión, todas las reseñas ρ 0.716 | MAE 1.014 | NDCG@10 0.965 | etapa 1: afinidades 0.448, filtros 0.309
+  percentil 90 por dimensión, hasta 50 reseñas  ρ 0.719 | MAE 1.016 | NDCG@10 0.946 | etapa 1: afinidades 0.453, filtros 0.310
+  percentil 90 por dimensión, hasta 100 reseñas ρ 0.714 | MAE 1.014 | NDCG@10 0.956 | etapa 1: afinidades 0.449, filtros 0.305
+  percentil 90 por dimensión, todas las reseñas ρ 0.712 | MAE 1.013 | NDCG@10 0.956 | etapa 1: afinidades 0.449, filtros 0.309
+  percentil 95 por dimensión, hasta 50 reseñas  ρ 0.719 | MAE 1.011 | NDCG@10 0.951 | etapa 1: afinidades 0.464, filtros 0.304
+  percentil 95 por dimensión, hasta 100 reseñas ρ 0.710 | MAE 1.011 | NDCG@10 0.955 | etapa 1: afinidades 0.459, filtros 0.313
+  percentil 95 por dimensión, todas las reseñas ρ 0.709 | MAE 1.010 | NDCG@10 0.955 | etapa 1: afinidades 0.459, filtros 0.318
+  promedio + percentiles de similitud, hasta 50 reseñas ρ 0.713 | MAE 1.017 | NDCG@10 0.948 | etapa 1: afinidades 0.460, filtros 0.304
+  promedio + percentiles de similitud, hasta 100 reseñas ρ 0.717 | MAE 1.012 | NDCG@10 0.952 | etapa 1: afinidades 0.450, filtros 0.309
+  promedio + percentiles de similitud, todas las reseñas ρ 0.721 | MAE 1.008 | NDCG@10 0.952 | etapa 1: afinidades 0.454, filtros 0.309
+
+Particiones con semilla 6:
+Entrenando la etapa 2 una vez por partición (5)...
+  promedio, hasta 50 reseñas                    ρ 0.728 | MAE 1.006 | NDCG@10 0.954 | etapa 1: afinidades 0.463, filtros 0.293
+  promedio, hasta 100 reseñas                   ρ 0.724 | MAE 1.012 | NDCG@10 0.955 | etapa 1: afinidades 0.462, filtros 0.308
+  promedio, todas las reseñas                   ρ 0.724 | MAE 1.012 | NDCG@10 0.955 | etapa 1: afinidades 0.462, filtros 0.307
+  percentil 50 por dimensión, hasta 50 reseñas  ρ 0.727 | MAE 1.014 | NDCG@10 0.951 | etapa 1: afinidades 0.460, filtros 0.297
+  percentil 50 por dimensión, hasta 100 reseñas ρ 0.722 | MAE 1.019 | NDCG@10 0.957 | etapa 1: afinidades 0.454, filtros 0.310
+  percentil 50 por dimensión, todas las reseñas ρ 0.720 | MAE 1.019 | NDCG@10 0.955 | etapa 1: afinidades 0.454, filtros 0.310
+  percentil 75 por dimensión, hasta 50 reseñas  ρ 0.727 | MAE 1.012 | NDCG@10 0.955 | etapa 1: afinidades 0.466, filtros 0.293
+  percentil 75 por dimensión, hasta 100 reseñas ρ 0.727 | MAE 1.009 | NDCG@10 0.966 | etapa 1: afinidades 0.469, filtros 0.305
+  percentil 75 por dimensión, todas las reseñas ρ 0.722 | MAE 1.012 | NDCG@10 0.966 | etapa 1: afinidades 0.467, filtros 0.310
+  percentil 90 por dimensión, hasta 50 reseñas  ρ 0.725 | MAE 1.013 | NDCG@10 0.947 | etapa 1: afinidades 0.469, filtros 0.310
+  percentil 90 por dimensión, hasta 100 reseñas ρ 0.721 | MAE 1.012 | NDCG@10 0.957 | etapa 1: afinidades 0.467, filtros 0.309
+  percentil 90 por dimensión, todas las reseñas ρ 0.721 | MAE 1.011 | NDCG@10 0.957 | etapa 1: afinidades 0.467, filtros 0.309
+  percentil 95 por dimensión, hasta 50 reseñas  ρ 0.735 | MAE 1.010 | NDCG@10 0.950 | etapa 1: afinidades 0.473, filtros 0.296
+  percentil 95 por dimensión, hasta 100 reseñas ρ 0.725 | MAE 1.004 | NDCG@10 0.953 | etapa 1: afinidades 0.474, filtros 0.311
+  percentil 95 por dimensión, todas las reseñas ρ 0.726 | MAE 1.004 | NDCG@10 0.953 | etapa 1: afinidades 0.473, filtros 0.312
+  promedio + percentiles de similitud, hasta 50 reseñas ρ 0.734 | MAE 1.003 | NDCG@10 0.943 | etapa 1: afinidades 0.465, filtros 0.298
+  promedio + percentiles de similitud, hasta 100 reseñas ρ 0.728 | MAE 0.999 | NDCG@10 0.956 | etapa 1: afinidades 0.467, filtros 0.310
+  promedio + percentiles de similitud, todas las reseñas ρ 0.727 | MAE 0.999 | NDCG@10 0.956 | etapa 1: afinidades 0.467, filtros 0.309
+
+Particiones con semilla 7:
+Entrenando la etapa 2 una vez por partición (5)...
+  promedio, hasta 50 reseñas                    ρ 0.739 | MAE 0.967 | NDCG@10 0.949 | etapa 1: afinidades 0.465, filtros 0.298
+  promedio, hasta 100 reseñas                   ρ 0.728 | MAE 0.988 | NDCG@10 0.956 | etapa 1: afinidades 0.459, filtros 0.302
+  promedio, todas las reseñas                   ρ 0.727 | MAE 0.987 | NDCG@10 0.956 | etapa 1: afinidades 0.459, filtros 0.301
+  percentil 50 por dimensión, hasta 50 reseñas  ρ 0.741 | MAE 0.974 | NDCG@10 0.947 | etapa 1: afinidades 0.464, filtros 0.298
+  percentil 50 por dimensión, hasta 100 reseñas ρ 0.728 | MAE 0.986 | NDCG@10 0.953 | etapa 1: afinidades 0.459, filtros 0.306
+  percentil 50 por dimensión, todas las reseñas ρ 0.724 | MAE 0.988 | NDCG@10 0.953 | etapa 1: afinidades 0.456, filtros 0.305
+  percentil 75 por dimensión, hasta 50 reseñas  ρ 0.747 | MAE 0.973 | NDCG@10 0.960 | etapa 1: afinidades 0.469, filtros 0.299
+  percentil 75 por dimensión, hasta 100 reseñas ρ 0.737 | MAE 0.975 | NDCG@10 0.953 | etapa 1: afinidades 0.467, filtros 0.307
+  percentil 75 por dimensión, todas las reseñas ρ 0.737 | MAE 0.975 | NDCG@10 0.953 | etapa 1: afinidades 0.465, filtros 0.308
+  percentil 90 por dimensión, hasta 50 reseñas  ρ 0.735 | MAE 0.980 | NDCG@10 0.965 | etapa 1: afinidades 0.458, filtros 0.311
+  percentil 90 por dimensión, hasta 100 reseñas ρ 0.729 | MAE 0.983 | NDCG@10 0.961 | etapa 1: afinidades 0.462, filtros 0.304
+  percentil 90 por dimensión, todas las reseñas ρ 0.727 | MAE 0.982 | NDCG@10 0.961 | etapa 1: afinidades 0.460, filtros 0.303
+  percentil 95 por dimensión, hasta 50 reseñas  ρ 0.731 | MAE 0.996 | NDCG@10 0.955 | etapa 1: afinidades 0.463, filtros 0.293
+  percentil 95 por dimensión, hasta 100 reseñas ρ 0.731 | MAE 0.985 | NDCG@10 0.962 | etapa 1: afinidades 0.466, filtros 0.296
+  percentil 95 por dimensión, todas las reseñas ρ 0.730 | MAE 0.983 | NDCG@10 0.962 | etapa 1: afinidades 0.466, filtros 0.295
+  promedio + percentiles de similitud, hasta 50 reseñas ρ 0.744 | MAE 0.960 | NDCG@10 0.946 | etapa 1: afinidades 0.474, filtros 0.302
+  promedio + percentiles de similitud, hasta 100 reseñas ρ 0.745 | MAE 0.974 | NDCG@10 0.950 | etapa 1: afinidades 0.478, filtros 0.306
+  promedio + percentiles de similitud, todas las reseñas ρ 0.743 | MAE 0.974 | NDCG@10 0.950 | etapa 1: afinidades 0.477, filtros 0.305
+
+Particiones con semilla 8:
+Entrenando la etapa 2 una vez por partición (5)...
+  promedio, hasta 50 reseñas                    ρ 0.739 | MAE 1.005 | NDCG@10 0.959 | etapa 1: afinidades 0.479, filtros 0.321
+  promedio, hasta 100 reseñas                   ρ 0.725 | MAE 1.020 | NDCG@10 0.967 | etapa 1: afinidades 0.472, filtros 0.319
+  promedio, todas las reseñas                   ρ 0.726 | MAE 1.020 | NDCG@10 0.967 | etapa 1: afinidades 0.471, filtros 0.320
+  percentil 50 por dimensión, hasta 50 reseñas  ρ 0.736 | MAE 1.005 | NDCG@10 0.960 | etapa 1: afinidades 0.476, filtros 0.321
+  percentil 50 por dimensión, hasta 100 reseñas ρ 0.727 | MAE 1.020 | NDCG@10 0.967 | etapa 1: afinidades 0.474, filtros 0.318
+  percentil 50 por dimensión, todas las reseñas ρ 0.725 | MAE 1.020 | NDCG@10 0.967 | etapa 1: afinidades 0.473, filtros 0.317
+  percentil 75 por dimensión, hasta 50 reseñas  ρ 0.745 | MAE 1.007 | NDCG@10 0.968 | etapa 1: afinidades 0.481, filtros 0.322
+  percentil 75 por dimensión, hasta 100 reseñas ρ 0.737 | MAE 1.016 | NDCG@10 0.971 | etapa 1: afinidades 0.476, filtros 0.322
+  percentil 75 por dimensión, todas las reseñas ρ 0.737 | MAE 1.016 | NDCG@10 0.971 | etapa 1: afinidades 0.475, filtros 0.324
+  percentil 90 por dimensión, hasta 50 reseñas  ρ 0.745 | MAE 0.993 | NDCG@10 0.958 | etapa 1: afinidades 0.485, filtros 0.329
+  percentil 90 por dimensión, hasta 100 reseñas ρ 0.727 | MAE 1.018 | NDCG@10 0.968 | etapa 1: afinidades 0.477, filtros 0.320
+  percentil 90 por dimensión, todas las reseñas ρ 0.728 | MAE 1.016 | NDCG@10 0.968 | etapa 1: afinidades 0.477, filtros 0.324
+  percentil 95 por dimensión, hasta 50 reseñas  ρ 0.737 | MAE 1.005 | NDCG@10 0.962 | etapa 1: afinidades 0.478, filtros 0.319
+  percentil 95 por dimensión, hasta 100 reseñas ρ 0.728 | MAE 1.015 | NDCG@10 0.969 | etapa 1: afinidades 0.475, filtros 0.322
+  percentil 95 por dimensión, todas las reseñas ρ 0.727 | MAE 1.014 | NDCG@10 0.969 | etapa 1: afinidades 0.475, filtros 0.324
+  promedio + percentiles de similitud, hasta 50 reseñas ρ 0.732 | MAE 1.000 | NDCG@10 0.954 | etapa 1: afinidades 0.485, filtros 0.324
+  promedio + percentiles de similitud, hasta 100 reseñas ρ 0.735 | MAE 1.008 | NDCG@10 0.958 | etapa 1: afinidades 0.482, filtros 0.323
+  promedio + percentiles de similitud, todas las reseñas ρ 0.732 | MAE 1.009 | NDCG@10 0.960 | etapa 1: afinidades 0.481, filtros 0.323
+
+Particiones con semilla 9:
+Entrenando la etapa 2 una vez por partición (5)...
+  promedio, hasta 50 reseñas                    ρ 0.738 | MAE 1.006 | NDCG@10 0.952 | etapa 1: afinidades 0.473, filtros 0.314
+  promedio, hasta 100 reseñas                   ρ 0.737 | MAE 0.990 | NDCG@10 0.960 | etapa 1: afinidades 0.474, filtros 0.320
+  promedio, todas las reseñas                   ρ 0.737 | MAE 0.988 | NDCG@10 0.963 | etapa 1: afinidades 0.475, filtros 0.319
+  percentil 50 por dimensión, hasta 50 reseñas  ρ 0.739 | MAE 1.002 | NDCG@10 0.952 | etapa 1: afinidades 0.474, filtros 0.327
+  percentil 50 por dimensión, hasta 100 reseñas ρ 0.740 | MAE 0.985 | NDCG@10 0.960 | etapa 1: afinidades 0.479, filtros 0.318
+  percentil 50 por dimensión, todas las reseñas ρ 0.740 | MAE 0.983 | NDCG@10 0.960 | etapa 1: afinidades 0.477, filtros 0.318
+  percentil 75 por dimensión, hasta 50 reseñas  ρ 0.739 | MAE 0.995 | NDCG@10 0.954 | etapa 1: afinidades 0.475, filtros 0.328
+  percentil 75 por dimensión, hasta 100 reseñas ρ 0.742 | MAE 0.983 | NDCG@10 0.972 | etapa 1: afinidades 0.475, filtros 0.322
+  percentil 75 por dimensión, todas las reseñas ρ 0.739 | MAE 0.982 | NDCG@10 0.972 | etapa 1: afinidades 0.473, filtros 0.321
+  percentil 90 por dimensión, hasta 50 reseñas  ρ 0.734 | MAE 1.003 | NDCG@10 0.955 | etapa 1: afinidades 0.476, filtros 0.330
+  percentil 90 por dimensión, hasta 100 reseñas ρ 0.734 | MAE 0.991 | NDCG@10 0.961 | etapa 1: afinidades 0.473, filtros 0.324
+  percentil 90 por dimensión, todas las reseñas ρ 0.733 | MAE 0.991 | NDCG@10 0.961 | etapa 1: afinidades 0.471, filtros 0.322
+  percentil 95 por dimensión, hasta 50 reseñas  ρ 0.728 | MAE 1.020 | NDCG@10 0.959 | etapa 1: afinidades 0.479, filtros 0.313
+  percentil 95 por dimensión, hasta 100 reseñas ρ 0.734 | MAE 0.997 | NDCG@10 0.960 | etapa 1: afinidades 0.478, filtros 0.318
+  percentil 95 por dimensión, todas las reseñas ρ 0.734 | MAE 0.997 | NDCG@10 0.960 | etapa 1: afinidades 0.477, filtros 0.321
+  promedio + percentiles de similitud, hasta 50 reseñas ρ 0.741 | MAE 1.007 | NDCG@10 0.945 | etapa 1: afinidades 0.484, filtros 0.316
+  promedio + percentiles de similitud, hasta 100 reseñas ρ 0.744 | MAE 0.988 | NDCG@10 0.953 | etapa 1: afinidades 0.483, filtros 0.319
+  promedio + percentiles de similitud, todas las reseñas ρ 0.743 | MAE 0.985 | NDCG@10 0.953 | etapa 1: afinidades 0.481, filtros 0.318
+
+========================================================================
+[9/10] Frases de reseña del perfil
+========================================================================
+Criterios con frases de reseña: 5 (17 frases).
+
+Particiones con semilla 0:
+Entrenando la etapa 2 una vez por partición (5)...
+  promedio (sin frases)                         ρ 0.723 | MAE 1.021 | NDCG@10 0.955 | etapa 1: afinidades 0.447, filtros 0.293
+  promedio + frases de reseña                   ρ 0.723 | MAE 1.015 | NDCG@10 0.955 | etapa 1: afinidades 0.447, filtros 0.302
+  promedio + frases de reseña, ponderadas       ρ 0.718 | MAE 1.019 | NDCG@10 0.955 | etapa 1: afinidades 0.447, filtros 0.313
+  solo frases de reseña                         ρ 0.715 | MAE 1.049 | NDCG@10 0.958 | etapa 1: afinidades 0.447, filtros 0.121
+  promedio + descripción (control)              ρ 0.724 | MAE 1.020 | NDCG@10 0.955 | etapa 1: afinidades 0.447, filtros 0.295
+  solo descripción (control)                    ρ 0.719 | MAE 1.030 | NDCG@10 0.958 | etapa 1: afinidades 0.447, filtros 0.066
+
+Particiones con semilla 1:
+Entrenando la etapa 2 una vez por partición (5)...
+  promedio (sin frases)                         ρ 0.739 | MAE 0.989 | NDCG@10 0.964 | etapa 1: afinidades 0.471, filtros 0.279
+  promedio + frases de reseña                   ρ 0.738 | MAE 0.983 | NDCG@10 0.964 | etapa 1: afinidades 0.471, filtros 0.290
+  promedio + frases de reseña, ponderadas       ρ 0.734 | MAE 0.976 | NDCG@10 0.964 | etapa 1: afinidades 0.471, filtros 0.326
+  solo frases de reseña                         ρ 0.724 | MAE 1.009 | NDCG@10 0.964 | etapa 1: afinidades 0.471, filtros 0.113
+  promedio + descripción (control)              ρ 0.740 | MAE 0.988 | NDCG@10 0.964 | etapa 1: afinidades 0.471, filtros 0.282
+  solo descripción (control)                    ρ 0.735 | MAE 0.999 | NDCG@10 0.964 | etapa 1: afinidades 0.471, filtros 0.042
+
+Particiones con semilla 2:
+Entrenando la etapa 2 una vez por partición (5)...
+  promedio (sin frases)                         ρ 0.707 | MAE 1.006 | NDCG@10 0.937 | etapa 1: afinidades 0.459, filtros 0.308
+  promedio + frases de reseña                   ρ 0.706 | MAE 1.003 | NDCG@10 0.937 | etapa 1: afinidades 0.459, filtros 0.318
+  promedio + frases de reseña, ponderadas       ρ 0.707 | MAE 1.000 | NDCG@10 0.937 | etapa 1: afinidades 0.459, filtros 0.339
+  solo frases de reseña                         ρ 0.698 | MAE 1.044 | NDCG@10 0.937 | etapa 1: afinidades 0.459, filtros 0.097
+  promedio + descripción (control)              ρ 0.707 | MAE 1.005 | NDCG@10 0.937 | etapa 1: afinidades 0.459, filtros 0.311
+  solo descripción (control)                    ρ 0.693 | MAE 1.050 | NDCG@10 0.938 | etapa 1: afinidades 0.459, filtros 0.052
+
+Particiones con semilla 3:
+Entrenando la etapa 2 una vez por partición (5)...
+  promedio (sin frases)                         ρ 0.694 | MAE 1.061 | NDCG@10 0.965 | etapa 1: afinidades 0.436, filtros 0.285
+  promedio + frases de reseña                   ρ 0.694 | MAE 1.057 | NDCG@10 0.965 | etapa 1: afinidades 0.436, filtros 0.296
+  promedio + frases de reseña, ponderadas       ρ 0.694 | MAE 1.048 | NDCG@10 0.965 | etapa 1: afinidades 0.436, filtros 0.330
+  solo frases de reseña                         ρ 0.695 | MAE 1.070 | NDCG@10 0.966 | etapa 1: afinidades 0.436, filtros 0.127
+  promedio + descripción (control)              ρ 0.694 | MAE 1.060 | NDCG@10 0.965 | etapa 1: afinidades 0.436, filtros 0.286
+  solo descripción (control)                    ρ 0.698 | MAE 1.061 | NDCG@10 0.965 | etapa 1: afinidades 0.436, filtros 0.063
+
+Particiones con semilla 4:
+Entrenando la etapa 2 una vez por partición (5)...
+  promedio (sin frases)                         ρ 0.725 | MAE 1.022 | NDCG@10 0.941 | etapa 1: afinidades 0.465, filtros 0.313
+  promedio + frases de reseña                   ρ 0.727 | MAE 1.018 | NDCG@10 0.941 | etapa 1: afinidades 0.465, filtros 0.324
+  promedio + frases de reseña, ponderadas       ρ 0.719 | MAE 1.017 | NDCG@10 0.941 | etapa 1: afinidades 0.465, filtros 0.339
+  solo frases de reseña                         ρ 0.727 | MAE 1.044 | NDCG@10 0.946 | etapa 1: afinidades 0.465, filtros 0.115
+  promedio + descripción (control)              ρ 0.725 | MAE 1.021 | NDCG@10 0.941 | etapa 1: afinidades 0.465, filtros 0.316
+  solo descripción (control)                    ρ 0.725 | MAE 1.035 | NDCG@10 0.949 | etapa 1: afinidades 0.465, filtros 0.059
+
+Particiones con semilla 5:
+Entrenando la etapa 2 una vez por partición (5)...
+  promedio (sin frases)                         ρ 0.714 | MAE 1.022 | NDCG@10 0.956 | etapa 1: afinidades 0.444, filtros 0.305
+  promedio + frases de reseña                   ρ 0.716 | MAE 1.015 | NDCG@10 0.956 | etapa 1: afinidades 0.444, filtros 0.319
+  promedio + frases de reseña, ponderadas       ρ 0.715 | MAE 1.013 | NDCG@10 0.956 | etapa 1: afinidades 0.444, filtros 0.353
+  solo frases de reseña                         ρ 0.704 | MAE 1.068 | NDCG@10 0.956 | etapa 1: afinidades 0.444, filtros 0.127
+  promedio + descripción (control)              ρ 0.714 | MAE 1.019 | NDCG@10 0.956 | etapa 1: afinidades 0.444, filtros 0.309
+  solo descripción (control)                    ρ 0.703 | MAE 1.064 | NDCG@10 0.957 | etapa 1: afinidades 0.444, filtros 0.062
+
+Particiones con semilla 6:
+Entrenando la etapa 2 una vez por partición (5)...
+  promedio (sin frases)                         ρ 0.724 | MAE 1.012 | NDCG@10 0.955 | etapa 1: afinidades 0.462, filtros 0.307
+  promedio + frases de reseña                   ρ 0.723 | MAE 1.008 | NDCG@10 0.955 | etapa 1: afinidades 0.462, filtros 0.317
+  promedio + frases de reseña, ponderadas       ρ 0.732 | MAE 0.995 | NDCG@10 0.959 | etapa 1: afinidades 0.462, filtros 0.352
+  solo frases de reseña                         ρ 0.709 | MAE 1.041 | NDCG@10 0.959 | etapa 1: afinidades 0.462, filtros 0.154
+  promedio + descripción (control)              ρ 0.725 | MAE 1.011 | NDCG@10 0.955 | etapa 1: afinidades 0.462, filtros 0.310
+  solo descripción (control)                    ρ 0.719 | MAE 1.034 | NDCG@10 0.967 | etapa 1: afinidades 0.462, filtros 0.065
+
+Particiones con semilla 7:
+Entrenando la etapa 2 una vez por partición (5)...
+  promedio (sin frases)                         ρ 0.727 | MAE 0.987 | NDCG@10 0.956 | etapa 1: afinidades 0.459, filtros 0.301
+  promedio + frases de reseña                   ρ 0.728 | MAE 0.983 | NDCG@10 0.956 | etapa 1: afinidades 0.459, filtros 0.313
+  promedio + frases de reseña, ponderadas       ρ 0.728 | MAE 0.970 | NDCG@10 0.956 | etapa 1: afinidades 0.459, filtros 0.354
+  solo frases de reseña                         ρ 0.729 | MAE 1.004 | NDCG@10 0.955 | etapa 1: afinidades 0.459, filtros 0.134
+  promedio + descripción (control)              ρ 0.727 | MAE 0.987 | NDCG@10 0.956 | etapa 1: afinidades 0.459, filtros 0.304
+  solo descripción (control)                    ρ 0.726 | MAE 1.011 | NDCG@10 0.949 | etapa 1: afinidades 0.459, filtros 0.059
+
+Particiones con semilla 8:
+Entrenando la etapa 2 una vez por partición (5)...
+  promedio (sin frases)                         ρ 0.726 | MAE 1.020 | NDCG@10 0.967 | etapa 1: afinidades 0.471, filtros 0.320
+  promedio + frases de reseña                   ρ 0.725 | MAE 1.021 | NDCG@10 0.967 | etapa 1: afinidades 0.471, filtros 0.329
+  promedio + frases de reseña, ponderadas       ρ 0.728 | MAE 1.025 | NDCG@10 0.967 | etapa 1: afinidades 0.471, filtros 0.360
+  solo frases de reseña                         ρ 0.716 | MAE 1.051 | NDCG@10 0.967 | etapa 1: afinidades 0.471, filtros 0.135
+  promedio + descripción (control)              ρ 0.726 | MAE 1.020 | NDCG@10 0.967 | etapa 1: afinidades 0.471, filtros 0.322
+  solo descripción (control)                    ρ 0.725 | MAE 1.036 | NDCG@10 0.961 | etapa 1: afinidades 0.471, filtros 0.072
+
+Particiones con semilla 9:
+Entrenando la etapa 2 una vez por partición (5)...
+  promedio (sin frases)                         ρ 0.737 | MAE 0.988 | NDCG@10 0.963 | etapa 1: afinidades 0.475, filtros 0.319
+  promedio + frases de reseña                   ρ 0.738 | MAE 0.983 | NDCG@10 0.963 | etapa 1: afinidades 0.475, filtros 0.331
+  promedio + frases de reseña, ponderadas       ρ 0.737 | MAE 0.978 | NDCG@10 0.960 | etapa 1: afinidades 0.475, filtros 0.371
+  solo frases de reseña                         ρ 0.731 | MAE 1.030 | NDCG@10 0.957 | etapa 1: afinidades 0.475, filtros 0.146
+  promedio + descripción (control)              ρ 0.738 | MAE 0.985 | NDCG@10 0.963 | etapa 1: afinidades 0.475, filtros 0.323
+  solo descripción (control)                    ρ 0.728 | MAE 1.037 | NDCG@10 0.959 | etapa 1: afinidades 0.475, filtros 0.075
+
+========================================================================
+[10/10] Ranking (opción 8) y datos de análisis
+========================================================================
+Usando el modelo de reglas entrenado para el perfil: Ignacio Araya
+Conectando con la base de datos vectorial ChromaDB...
+Cargando los chunks de reseñas vectorizadas...
+
+| -- Resumen -- |
+Películas para entrenar: 129 | candidatas: 58
+Modelo de reglas (opciones 7 y 8), validación cruzada: ρ 0.721 | MAE 1.004 | R² 0.461 | NDCG@10 0.956 | Precisión@10 0.360
+Regresión lineal anterior, validación cruzada: ρ 0.691 | MAE 1.133 (con Ridge: ρ 0.700, MAE 1.092) | línea base: MAE 1.531
+Mejor pooling según ρ: percentil 75 por dimensión, hasta 50 reseñas (ρ 0.731, Δ +0.009 ± 0.008, mejora en 10/10 | MAE 1.010)
+Mejor variante con frases de reseña según ρ: promedio + descripción (control) (ρ 0.722, Δ +0.000 ± 0.001, mejora en 8/10 | MAE 1.012)
+Tiempo total: 1781.2 s
+
+Datos de análisis guardados en: /home/runner/work/motor-de-recomendacion-semantica-multiperfil/motor-de-recomendacion-semantica-multiperfil/analisis/2026-10-19_01-06-47_paraphrase-multilingual-mpnet-base-v2
+  - frases_resenia.csv
+  - frases_resenia_por_criterio.csv
+  - peliculas.csv
+  - pesos.csv
+  - pooling.csv
+  - ranking.csv
+  - reglas.json
+  - resumen.json
+  - resumen.md
+  - similitud_perfil.csv
+
+========================================
+MOTOR NEURO-SIMBÓLICO | PANEL CENTRAL
+
+----------------------------------------
+1) Gestionar perfiles cinéfilos.
+2) Ejecutar pipeline ETL (filtrar CSVs crudos).
+3) Generar embeddings de un perfil.
+4) Generar embeddings de los lotes de reseñas pendientes.
+5) Cargar Ground-truth (dataset_maestro.csv).
+6) Revisar películas pendientes de evaluar.
+7) Entrenar modelo predictivo (modelo de reglas).
+8) Recomendar películas según el perfil.
+9) Ejecutar todo (opciones 2 a 8) y generar datos de análisis.
+10) Salir.
+
+----------------------------------------
+Seleccione su módulo a ejecutar
+< Saliendo del panel central.
