@@ -186,12 +186,17 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
     Es la premisa del proyecto (multiperfil) y lo más barato de escalar: los embeddings de reseñas no dependen del perfil, así que un perfil nuevo solo necesita su JSON y la evaluación de Gemini de las mismas películas (la opción 3 solo hace falta si algún criterio tiene `frases_resenia`). En `perfiles.json` hay tres perfiles más con gustos contrastantes, cada uno con 5 afinidades, 5 filtros, `encabezado` y `regla_global`: *Matías Fuentes* (acción), *Valentina Soto* (comedia) y *Camila Rojas* (terror).
 
+    **Aclaración sobre Ignacio Araya.** Su Verdad Base ya no es la de los otros tres perfiles: después de esa corrida se evaluaron con Gemini las 58 candidatas del paso 3 (con las instrucciones que genera la opción 6) y pasó de 130 a 188 películas (187 con reseñas; falta *Nickel Boys*). Matías, Valentina y Camila siguen con las 130. Por eso la tabla trae dos filas de Ignacio: la de 130 es la línea base y la única comparable con los otros tres perfiles; la de 188 no lo es.
+
+    Además, las 58 se evaluaron en otra sesión de Gemini y con otra escala en los filtros: el porcentaje de películas con puntaje 0 bajó de 77 % a 7 % en *Camaradería Masculina Rancia* y de 58 % a 3 % en *Caos Asfixiante*, y la desviación de la nota global es 1,40 en las 58 contra 2,04 en las 130 anteriores. Con la Verdad Base ampliada, la regla aprendida dice "si *Caos Asfixiante* supera 0,0, resta hasta 0,54 puntos" y el ρ baja de 0,735 a 0,686. Cambiaron a la vez las películas y la calibración, así que la caída no se puede atribuir al método ni a las películas nuevas. Para separarlos hay que evaluar las 188 en una misma sesión (ver "Qué rehacer", más abajo).
+
     Se evaluaron con Gemini las mismas 130 películas de *Ignacio Araya* (con las instrucciones de la opción 6; los archivos de cada perfil quedaron en `src/loss/<perfil>/`) y se entrenó cada perfil sin frases de reseña (e5-base, pooling media, 129 películas con reseñas, 10 repeticiones de validación cruzada):
 
     | Perfil | ρ | NDCG@10 | Precisión@10 | MAE | R² | Nota global (media ± desv.) |
     |---|---|---|---|---|---|---|
     | Camila Rojas | **0,828** ± 0,011 | 0,873 | 0,350 | 0,400 | 0,655 | 8,22 ± 0,86 |
-    | Ignacio Araya | **0,735** ± 0,012 | 0,960 | 0,330 | 0,973 | 0,493 | 8,05 ± 2,04 |
+    | Ignacio Araya (130 películas) | **0,735** ± 0,012 | 0,960 | 0,330 | 0,973 | 0,493 | 8,05 ± 2,04 |
+    | *Ignacio Araya (188 películas, ver aclaración)* | **0,686** ± 0,010 | 0,937 | 0,230 | 0,967 | 0,443 | 8,01 ± 1,86 |
     | Matías Fuentes | **0,639** ± 0,014 | 0,877 | 0,630 | 0,330 | 0,348 | 8,42 ± 0,56 |
     | Valentina Soto | **0,533** ± 0,027 | 0,847 | 0,210 | 0,385 | 0,338 | 8,62 ± 0,62 |
 
@@ -212,9 +217,17 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
     * Sumar películas del terreno de cada perfil (acción para Matías, comedia para Valentina), para que sus afinidades principales tengan ejemplos altos.
     * Conservar los resultados de la tabla como línea base. Si solo se cambian las instrucciones de algunos perfiles, la comparación entre perfiles deja de ser pareja.
 
-3. **Evaluar las 57 candidatas y completar reseñas** — *parcialmente hecho (1.4.3).*
+3. **Evaluar las 58 candidatas y completar reseñas** — *parcialmente hecho: evaluadas solo para Ignacio (24-10-2026); el resto, pendiente.*
 
-    Evaluar con Gemini las candidatas que aún no tienen nota (opción 6) y descargar las reseñas de las películas evaluadas que no las tenían. El informe estimaba pasar de 101 a unas 167 películas de entrenamiento. En la 1.4.3 se incorporaron las reseñas de 28 de las 29 películas evaluadas que no las tenían (falta *Nickel Boys*); el changelog no registra la evaluación de las candidatas.
+    Evaluar con Gemini las candidatas que aún no tienen nota (opción 6) y descargar las reseñas de las películas evaluadas que no las tenían. Las candidatas son 58: las películas con reseñas procesadas que no están en la Verdad Base (todas con entre 69 y 100 reseñas). En la 1.4.3 se incorporaron las reseñas de 28 de las 29 películas evaluadas que no las tenían (falta *Nickel Boys*). Estado de cada parte:
+
+    * **Evaluar las 58 con Gemini, perfil Ignacio Araya** — *hecho (24-10-2026).* Se evaluaron con las instrucciones que genera la opción 6 y se importaron con la opción 5: su Verdad Base pasó de 130 a 188 películas (187 con reseñas, contra 129 antes) y el ρ bajó de 0,735 a 0,686 ± 0,010. Las 58 se evaluaron en otra sesión de Gemini y con otra escala en los filtros, así que ese ρ no es comparable con la línea base (ver la aclaración en el paso 2); la línea base de 130 películas sigue en `src/loss/ignacio/`.
+
+    * **Evaluar las 58 con Gemini, perfiles Matías Fuentes, Valentina Soto y Camila Rojas** — *pendiente (en espera).* Esos tres perfiles se hicieron con 130 películas y no con 188. Sin embargo, no se deben evaluar otra vez hasta recibir las instrucciones del profesor a cargo, para saber si vale la pena.
+
+    * **Descargar las reseñas de *Nickel Boys*** — *pendiente.* Es la única película de la Verdad Base sin reseñas procesadas, así que solo entrena la etapa 2. Su slug (`nickel-boys`) es el correcto en Letterboxd y está en `src/loss/pendientes_resenias.csv`. Hay que bajarlas con el scraper a `reviews.db`, correr las opciones 2 y 4 y reemplazar `reviews.zip` en el release en borrador. Conviene hacerlo cuando el contenido de `reviews.db` esté acordado con el compañero que agrega películas, porque las nuevas aparecerían como candidatas.
+
+    * **Rehacer la Verdad Base con instrucciones centradas en el perfil** — *pendiente.* Ver "Qué rehacer" en el paso 2. También corregiría la diferencia de escala entre las 130 y las 58, al evaluar las 188 en una misma sesión.
 
 
 4. **Experimentos de modelo** — *pendiente, con ganancia más incierta.*
