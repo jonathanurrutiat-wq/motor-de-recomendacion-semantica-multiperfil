@@ -174,7 +174,7 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
 ## **Cambios pendientes**
 
-<small>*Nota: salen del informe (`docs/informe/informe.pdf`, versión 1.4 del 26-09-2026; secciones 5.2, 6 y 7). El estado de cada punto se contrastó con el changelog hasta la versión 1.4.3.*</small>
+<small>*Nota: salen del informe (`docs/informe/informe.pdf`, versión 1.4 del 26-09-2026; secciones 5.2, 6 y 7). El estado de cada punto se contrastó con el changelog hasta la versión 1.4.3; el punto 2 se actualizó con las corridas de los cuatro perfiles del 24-10-2026.*</small>
 
 ### Pasos propuestos
 
@@ -182,26 +182,55 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
     Evaluar con Gemini entre 30 y 50 películas que la persona rechaza o le resultan indiferentes, eligiendo a propósito casos de cada filtro (en especial *Camaradería Masculina Rancia*). Así se amplía el rango de notas, los filtros tienen ejemplos positivos y el ρ es más informativo. Conviene descargar sus reseñas con el scraper antes de evaluarlas. En la 1.4.2 se agregaron 20 películas; *Camaradería* subió de 1 a 3 películas con puntaje ≥ 6, todavía muy pocas para aprenderla.
 
-2. **Evaluar los perfiles adicionales** — *parcialmente hecho.*
+2. **Evaluar los perfiles adicionales** — *hecho pero se tiene que volver a hacer cambiando la verdad base para todos los perfiles.*
 
-    Es la premisa del proyecto (multiperfil) y lo más barato de escalar: los embeddings de reseñas no dependen del perfil, así que un perfil nuevo solo necesita su JSON, la opción 3 y la evaluación de Gemini de las mismas películas. En `perfiles.json` ya hay tres perfiles más con gustos contrastantes, cada uno con 5 afinidades y 5 filtros: *Matías Fuentes* (acción), *Valentina Soto* (comedia) y *Camila Rojas* (terror). Los cuatro ya tienen `regla_global` (el texto con que la opción 6 le indica a Gemini cómo calcular la nota global). Falta generar sus embeddings (opción 3) y evaluar con Gemini las mismas películas, porque hoy `dataset_maestro.csv` solo tiene el perfil de *Ignacio Araya*. Con eso se puede entrenar cada perfil y comparar la dificultad entre ellos. Como los cuatro tienen 5 + 5 criterios, comprobar que la regla genérica se adapta a otra cantidad de criterios sigue pendiente.
+    Es la premisa del proyecto (multiperfil) y lo más barato de escalar: los embeddings de reseñas no dependen del perfil, así que un perfil nuevo solo necesita su JSON y la evaluación de Gemini de las mismas películas (la opción 3 solo hace falta si algún criterio tiene `frases_resenia`). En `perfiles.json` hay tres perfiles más con gustos contrastantes, cada uno con 5 afinidades, 5 filtros, `encabezado` y `regla_global`: *Matías Fuentes* (acción), *Valentina Soto* (comedia) y *Camila Rojas* (terror).
+
+    Se evaluaron con Gemini las mismas 130 películas de *Ignacio Araya* (con las instrucciones de la opción 6; los archivos de cada perfil quedaron en `src/loss/<perfil>/`) y se entrenó cada perfil sin frases de reseña (e5-base, pooling media, 129 películas con reseñas, 10 repeticiones de validación cruzada):
+
+    | Perfil | ρ | NDCG@10 | Precisión@10 | MAE | R² | Nota global (media ± desv.) |
+    |---|---|---|---|---|---|---|
+    | Camila Rojas | **0,828** ± 0,011 | 0,873 | 0,350 | 0,400 | 0,655 | 8,22 ± 0,86 |
+    | Ignacio Araya | **0,735** ± 0,012 | 0,960 | 0,330 | 0,973 | 0,493 | 8,05 ± 2,04 |
+    | Matías Fuentes | **0,639** ± 0,014 | 0,877 | 0,630 | 0,330 | 0,348 | 8,42 ± 0,56 |
+    | Valentina Soto | **0,533** ± 0,027 | 0,847 | 0,210 | 0,385 | 0,338 | 8,62 ± 0,62 |
+
+    Lectura:
+
+    * El ρ es la métrica para comparar perfiles. El MAE, el R² y el NDCG dependen de cuán abierto sea el rango de notas (la de Ignacio llega a 2,0 y las de los otros tres empiezan entre 6,2 y 6,5), y la precisión@10 es inestable por los empates en el tope.
+    * El método funciona bien con *Camila* e *Ignacio* y peor con *Matías* y *Valentina*. Una explicación compatible, no demostrada: las 130 películas son favoritas de Ignacio (cine de autor), así que casi ninguna tiene altas las afinidades principales de Matías o Valentina. Gemini puntuó sobre todo la calidad general de la película (notas entre 6 y 10, media cercana a 8,5) y el modelo aprendió casi una sola variable: en *Matías* la nota base depende de *Mundo Inmersivo* y *Carisma* (Coreografía de Acción Física pesa 0,05) y en *Valentina* casi solo de *Timing y Química Actoral* (Ingenio Verbal pesa 0,02), aunque el perfil declara esas afinidades como las más importantes.
+    * Con *Valentina*, la regla de la etapa 2 no supera a una regresión lineal sobre los puntajes reales (MAE 0,22 contra 0,19); con *Ignacio* sí (0,36 contra 0,41).
+    * Como los cuatro perfiles tienen 5 + 5 criterios, comprobar que la regla genérica se adapta a otra cantidad de criterios sigue pendiente.
+    * Por confirmar: con qué versión de las instrucciones se evaluó la Verdad Base de Ignacio. Si no fue la actual, la comparación con los otros tres no es del todo pareja.
+
+    **Qué rehacer.** La Verdad Base de los cuatro perfiles con instrucciones nuevas, para que Gemini se base en el perfil y no en la calidad de la película:
+
+    * Indicar que la nota global refleja cuánto le gustaría la película a ese perfil, aunque sea una obra maestra; que use todo el rango de 0 a 10; y que, si las afinidades más importantes son bajas, la nota sea baja.
+    * Agregar a `regla_global` un tope además del piso actual (por ejemplo, si las dos afinidades más importantes son bajas, la nota global no pasa de cierto valor).
+    * Dar 2 o 3 películas de ejemplo con su nota (alta, media y baja) como referencia.
+    * Probar primero con una tanda de 20 películas de Matías y ver si el rango de notas se abre; probar también con un chat nuevo por tanda, por si Gemini se ancla a sus respuestas anteriores.
+    * Sumar películas del terreno de cada perfil (acción para Matías, comedia para Valentina), para que sus afinidades principales tengan ejemplos altos.
+    * Conservar los resultados de la tabla como línea base. Si solo se cambian las instrucciones de algunos perfiles, la comparación entre perfiles deja de ser pareja.
 
 3. **Evaluar las 57 candidatas y completar reseñas** — *parcialmente hecho (1.4.3).*
 
     Evaluar con Gemini las candidatas que aún no tienen nota (opción 6) y descargar las reseñas de las películas evaluadas que no las tenían. El informe estimaba pasar de 101 a unas 167 películas de entrenamiento. En la 1.4.3 se incorporaron las reseñas de 28 de las 29 películas evaluadas que no las tenían (falta *Nickel Boys*); el changelog no registra la evaluación de las candidatas.
 
-4. **Validar contra las notas reales de la persona** — *pendiente; consistencia de Gemini parcial (1.4.2).*
 
-    La Verdad Base es la lectura que hace Gemini del perfil, no la nota de la persona. Falta compararla con su diario de Letterboxd y medir qué tan consistente es Gemini consigo mismo reevaluando unas 20 películas (si su propio ρ ronda 0,8, el modelo estaría cerca del techo). En la 1.4.2 se reevaluaron 9: ρ 0,95 en la nota global y 0,83 en los puntajes por criterio.
-
-5. **Experimentos de modelo** — *pendiente, con ganancia más incierta.*
+4. **Experimentos de modelo** — *pendiente, con ganancia más incierta.*
 
     * Modelos de embeddings más grandes, como `multilingual-e5-large` o `bge-m3` (unas 5 h en Actions).
     * Entrenar la etapa 2 optimizando el orden en vez del error.
 
+5. **Una Verdad Base por perfil en el código** — *pendiente.*
+
+    Hoy las rutas de `dataset_maestro.csv`, `matriz_perdida.csv`, `evaluaciones_adicionales.csv`, `pendientes_evaluar.csv` y del modelo están fijas en `src/config.py`: el programa trabaja con una sola Verdad Base a la vez y, para cambiar de perfil, hay que mover los archivos a mano a `src/loss/<perfil>/`. Que las rutas dependan del perfil elegido evitaría mezclar datos de perfiles sin darse cuenta. Hay que revisar que el workflow `analisis.yml`, que se dispara al cambiar `src/loss/dataset_maestro.csv`, siga funcionando para Ignacio.
+
 ### Problemas que motivan estos cambios
 
 * **La Verdad Base era una lista de películas preferidas.** Con media 8,63 y 93 de 110 películas con 8 o más, el modelo aprendía sobre todo a distinguir "muy buena" de "excelente", y los filtros casi nunca aplicaban. En la 1.4.2 la media bajó a 8,05.
+
+* **La Verdad Base de los perfiles adicionales sigue más la calidad de la película que el perfil.** Con las 130 películas de Ignacio, las notas globales de Matías, Valentina y Camila van de 6,2 a 10 con desviaciones de 0,56 a 0,86 (la de Ignacio, 2,04), y los modelos de Matías y Valentina aprenden casi una sola afinidad, que no es la más importante de su perfil. Su ρ (0,64 y 0,53) queda bajo el de Ignacio (0,74) y el de Camila (0,83).
 
 * **El cuello de botella es la etapa 1.** Con los puntajes reales de Gemini, la etapa 2 explica el 88 % de la varianza de la nota global (R²); con los puntajes que predice la etapa 1 desde las reseñas, el modelo completo explica el 39 %. Los filtros se predicen peor que las afinidades. Con la Verdad Base de la 1.4.3 el R² del modelo completo sube a 0,53 y el de los filtros a 0,34.
 
