@@ -172,6 +172,58 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
 
 
+## **Cambios pendientes**
+
+<small>*Nota: salen del informe (`docs/informe/informe.pdf`, versión 1.4 del 26-09-2026; secciones 5.2, 6 y 7). El estado de cada punto se contrastó con el changelog hasta la versión 1.4.3.*</small>
+
+### Pasos propuestos
+
+1. **Agregar películas que disgustan** — *parcialmente hecho (1.4.2).*
+
+    Evaluar con Gemini entre 30 y 50 películas que la persona rechaza o le resultan indiferentes, eligiendo a propósito casos de cada filtro (en especial *Camaradería Masculina Rancia*). Así se amplía el rango de notas, los filtros tienen ejemplos positivos y el ρ es más informativo. Conviene descargar sus reseñas con el scraper antes de evaluarlas. En la 1.4.2 se agregaron 20 películas; *Camaradería* subió de 1 a 3 películas con puntaje ≥ 6, todavía muy pocas para aprenderla.
+
+2. **Crear tres perfiles más** — *pendiente.*
+
+    Es la premisa del proyecto (multiperfil) y lo más barato de escalar: los embeddings de reseñas no dependen del perfil, así que un perfil nuevo solo necesita su JSON, la opción 3 y la evaluación de Gemini de las mismas películas. Permite comprobar que la regla genérica se adapta a perfiles con otra cantidad de criterios y comparar la dificultad entre perfiles. Lo ideal son gustos contrastantes (por ejemplo, uno que valore el cine de acción o la comedia).
+
+3. **Evaluar las 57 candidatas y completar reseñas** — *parcialmente hecho (1.4.3).*
+
+    Evaluar con Gemini las candidatas que aún no tienen nota (opción 6) y descargar las reseñas de las películas evaluadas que no las tenían. El informe estimaba pasar de 101 a unas 167 películas de entrenamiento. En la 1.4.3 se incorporaron las reseñas de 28 de las 29 películas evaluadas que no las tenían (falta *Nickel Boys*); el changelog no registra la evaluación de las candidatas.
+
+4. **Validar contra las notas reales de la persona** — *pendiente; consistencia de Gemini parcial (1.4.2).*
+
+    La Verdad Base es la lectura que hace Gemini del perfil, no la nota de la persona. Falta compararla con su diario de Letterboxd y medir qué tan consistente es Gemini consigo mismo reevaluando unas 20 películas (si su propio ρ ronda 0,8, el modelo estaría cerca del techo). En la 1.4.2 se reevaluaron 9: ρ 0,95 en la nota global y 0,83 en los puntajes por criterio.
+
+5. **Experimentos de modelo** — *pendiente, con ganancia más incierta.*
+
+    * Modelos de embeddings más grandes, como `multilingual-e5-large` o `bge-m3` (unas 5 h en Actions).
+    * Entrenar la etapa 2 optimizando el orden en vez del error.
+    * Agregar frases de reseña también a las afinidades.
+
+### Problemas que motivan estos cambios
+
+* **La Verdad Base era una lista de películas preferidas.** Con media 8,63 y 93 de 110 películas con 8 o más, el modelo aprendía sobre todo a distinguir "muy buena" de "excelente", y los filtros casi nunca aplicaban. En la 1.4.2 la media bajó a 8,05.
+
+* **El cuello de botella es la etapa 1.** Con los puntajes reales de Gemini, la etapa 2 explica el 88 % de la varianza de la nota global (R²); con los puntajes que predice la etapa 1 desde las reseñas, el modelo completo explica el 39 %. Los filtros se predicen peor que las afinidades. Con la Verdad Base de la 1.4.3 el R² del modelo completo sube a 0,53 y el de los filtros a 0,34.
+
+* **Dónde falla la etapa 1** (ejemplo *Manhattan*, sección 3 del informe):
+
+    * Afinidades: predice cerca de 7 casi siempre, porque Ridge aprende a quedarse cerca del promedio de una lista casi toda bien evaluada, aunque Gemini dé 2 o 3.
+    * Filtros: el rasgo de frase de *Insoportabilidad Prolongada* estaba en el percentil 95, pero la etapa 1 predijo 3,0, bajo el umbral de 5,6, y el descuento no se activó. Había solo 19 películas con ese filtro alto para que Ridge le diera peso al rasgo.
+    * *Camaradería Masculina Rancia*: en el informe tenía una sola película con el filtro alto, así que al sacarla del entrenamiento no quedaba ningún ejemplo.
+    * Los errores grandes se concentran en películas cuyo defecto, según el perfil, las reseñas no describen o describen en pocas reseñas (*Manhattan*, *Marty Supreme*, *Amélie*).
+
+* **El ruido de evaluación es del tamaño de las mejoras.** Una sola partición de la validación cruzada varía ±0,05 en ρ, y varias conclusiones tempranas (como la ventaja del percentil 90) se revirtieron al repetir. Toda decisión de modelo debe tomarse con comparaciones pareadas repetidas (10 repeticiones).
+
+* **La etapa 2 tiene óptimos locales parecidos.** Diferencias de redondeo pueden llevar al optimizador a otra solución con casi el mismo error; afecta al ρ en ~0,004.
+
+* **Las frases de reseña se eligieron después de leer reseñas** de algunas películas de la Verdad Base, así que su ganancia puede ser algo optimista. Conviene validarlas con películas nuevas.
+
+* **Idiomas.** Los chunks en otros idiomas (13 % de las reseñas) son el 35 % de los más similares a las frases (*hubness* del modelo multilingüe), pero usar solo inglés no cambió las correlaciones (±0,04): no requiere cambios por ahora.
+
+* **Privacidad (restricción a mantener).** El repositorio es público: las reseñas y las bases de embeddings (que contienen fragmentos de reseñas) solo van al release en borrador, y los resultados publicados son agregados e identificadores.
+
+
 ## **Changelog (historial de cambios)**
 <small>*Nota: Este changelog está en orden cronológico inverso.*</small>
 
