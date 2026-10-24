@@ -182,9 +182,9 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
     Evaluar con Gemini entre 30 y 50 películas que la persona rechaza o le resultan indiferentes, eligiendo a propósito casos de cada filtro (en especial *Camaradería Masculina Rancia*). Así se amplía el rango de notas, los filtros tienen ejemplos positivos y el ρ es más informativo. Conviene descargar sus reseñas con el scraper antes de evaluarlas. En la 1.4.2 se agregaron 20 películas; *Camaradería* subió de 1 a 3 películas con puntaje ≥ 6, todavía muy pocas para aprenderla.
 
-2. **Crear tres perfiles más** — *pendiente.*
+2. **Evaluar los perfiles adicionales** — *parcialmente hecho.*
 
-    Es la premisa del proyecto (multiperfil) y lo más barato de escalar: los embeddings de reseñas no dependen del perfil, así que un perfil nuevo solo necesita su JSON, la opción 3 y la evaluación de Gemini de las mismas películas. Permite comprobar que la regla genérica se adapta a perfiles con otra cantidad de criterios y comparar la dificultad entre perfiles. Lo ideal son gustos contrastantes (por ejemplo, uno que valore el cine de acción o la comedia).
+    Es la premisa del proyecto (multiperfil) y lo más barato de escalar: los embeddings de reseñas no dependen del perfil, así que un perfil nuevo solo necesita su JSON, la opción 3 y la evaluación de Gemini de las mismas películas. En `perfiles.json` ya hay tres perfiles más con gustos contrastantes, cada uno con 5 afinidades y 5 filtros: *Matías Fuentes* (acción), *Valentina Soto* (comedia) y *Camila Rojas* (terror). Los cuatro ya tienen `regla_global` (el texto con que la opción 6 le indica a Gemini cómo calcular la nota global). Falta generar sus embeddings (opción 3) y evaluar con Gemini las mismas películas, porque hoy `dataset_maestro.csv` solo tiene el perfil de *Ignacio Araya*. Con eso se puede entrenar cada perfil y comparar la dificultad entre ellos. Como los cuatro tienen 5 + 5 criterios, comprobar que la regla genérica se adapta a otra cantidad de criterios sigue pendiente.
 
 3. **Evaluar las 57 candidatas y completar reseñas** — *parcialmente hecho (1.4.3).*
 
@@ -198,7 +198,6 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
     * Modelos de embeddings más grandes, como `multilingual-e5-large` o `bge-m3` (unas 5 h en Actions).
     * Entrenar la etapa 2 optimizando el orden en vez del error.
-    * Agregar frases de reseña también a las afinidades.
 
 ### Problemas que motivan estos cambios
 
@@ -216,8 +215,6 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 * **El ruido de evaluación es del tamaño de las mejoras.** Una sola partición de la validación cruzada varía ±0,05 en ρ, y varias conclusiones tempranas (como la ventaja del percentil 90) se revirtieron al repetir. Toda decisión de modelo debe tomarse con comparaciones pareadas repetidas (10 repeticiones).
 
 * **La etapa 2 tiene óptimos locales parecidos.** Diferencias de redondeo pueden llevar al optimizador a otra solución con casi el mismo error; afecta al ρ en ~0,004.
-
-* **Las frases de reseña se eligieron después de leer reseñas** de algunas películas de la Verdad Base, así que su ganancia puede ser algo optimista. Conviene validarlas con películas nuevas.
 
 * **Idiomas.** Los chunks en otros idiomas (13 % de las reseñas) son el 35 % de los más similares a las frases (*hubness* del modelo multilingüe), pero usar solo inglés no cambió las correlaciones (±0,04): no requiere cambios por ahora.
 

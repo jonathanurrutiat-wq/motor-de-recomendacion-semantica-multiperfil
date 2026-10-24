@@ -227,7 +227,8 @@ __marimo__/
 # Bases de reseñas extraídas (pesadas; se distribuyen fuera del repo)
 src/db/raw/*.db
 src/db/raw/*.zip
-src/db/filtered/result/filtrado_reviews_*.csv
+# Reseñas filtradas (incluye las muestras "filtrado_base_de_datos_inicial_*")
+src/db/filtered/result/filtrado_*.csv
 
 # Datos de análisis generados por la opción 9
 analisis/
