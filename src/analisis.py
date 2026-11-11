@@ -1,0 +1,477 @@
+"""
+Ejecuta el pipeline completo (opciones 2 a 8) sin preguntas y guarda en
+analisis/<fecha_hora>/ los datos para analizar el modelo: métricas con
+validación cruzada, datos por película, ranking y similitud entre los
+términos del perfil. Compara el modelo de reglas (el de las opciones 7 y 8)
+con la regresión lineal anterior y con otras formas de resumir las reseñas.
+"""
+
+import json
+import time
+from collections import Counter
+from datetime import datetime
+
+import chromadb
+import numpy as np
+import pandas as pd
+from sklearn.linear_model import LinearRegression, RidgeCV
+from sklearn.metrics import mean_absolute_error
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.model_selection import KFold
+
+import src.procesing_profiles as procesamiento_perfiles
+import src.procesing_reviews as procesamiento_resenias
+from src.config import DIR_ANALISIS, DIR_CHROMA, EMBEDDING_MODEL_NAME, POOLING_RESENIAS, RUTA_GT, SLUG_MODELO
+from src.db.filtered import filter as filtro
+from src.loss.gt_matrix_pipeline import main as revisar_pendientes
+from src.loss.ingest_maestro import main as cargar_verdad_base
+from src.metricas import K_RANKING, metricas, metricas_linea_base
+from src.modelo_reglas import MODO_FRASES_POR_DEFECTO, SEMILLAS_EVALUACION, comparar_representaciones
+from src import pooling
+from src.normalizacion import canonicalizar_film_id, seleccionar_perfil
+from src.recommend import calcular_ranking
+from src.scoring import ETIQUETAS_TIPO, construir_features, entrenar_lineal
+from src.scoring import main as entrenar_y_guardar
+
+N_PARTICIONES = 5
+# Formas de resumir las reseñas de cada película y cuántas usar, que compara la opción 9.
+ESTRATEGIAS_POOLING = ["media", "p50", "p75", "p90", "p95", "media+similitud"]
+MAXIMOS_RESENIAS = [50, 100, None]
+# Las comparaciones de pooling y de frases de reseña se repiten con varias
+# particiones distintas: con ~100 películas, el MAE de una sola partición varía
+# ~0,02, lo mismo que las diferencias que se quieren medir.
+SEMILLAS_REPETICIONES = list(SEMILLAS_EVALUACION)
+# Intensidades de regularización que prueba Ridge (se elige la mejor en cada partición).
+ALFAS_RIDGE = np.logspace(-2, 3, 30)
+
+
+def encabezado(numero: int, total: int, titulo: str):
+    print("\n" + "=" * 72)
+    print(f"[{numero}/{total}] {titulo}")
+    print("=" * 72)
+
+
+def validacion_cruzada(similitudes, y, estructura):
+    # Predice cada película con un modelo que no la vio al entrenar. Las
+    # media y desviación para estandarizar se calculan solo con la parte de
+    # entrenamiento de cada partición, para no filtrar información.
+    n_particiones = min(N_PARTICIONES, len(y))
+    pred_modelo, pred_ridge, pred_base = np.empty(len(y)), np.empty(len(y)), np.empty(len(y))
+    particiones = KFold(n_particiones, shuffle=True, random_state=0).split(similitudes)
+    for numero, (entrenamiento, prueba) in enumerate(particiones, 1):
+        x_entrenamiento, _, escala = construir_features(similitudes[entrenamiento], estructura)
+        x_prueba, _, _ = construir_features(similitudes[prueba], estructura, escala)
+        modelo = LinearRegression().fit(x_entrenamiento, y[entrenamiento])
+        pred_modelo[prueba] = modelo.predict(x_prueba)
+        pred_ridge[prueba] = RidgeCV(alphas=ALFAS_RIDGE).fit(x_entrenamiento, y[entrenamiento]).predict(x_prueba)
+        pred_base[prueba] = y[entrenamiento].mean()
+        print(f"  Partición {numero}/{n_particiones}: entrena con {len(entrenamiento)}, prueba con {len(prueba)} "
+              f"| MAE modelo {mean_absolute_error(y[prueba], pred_modelo[prueba]):.3f} "
+              f"| MAE Ridge {mean_absolute_error(y[prueba], pred_ridge[prueba]):.3f} "
+              f"| MAE promedio {mean_absolute_error(y[prueba], pred_base[prueba]):.3f}")
+    return pred_modelo, pred_ridge, pred_base, n_particiones
+
+
+def contar_chunks_por_pelicula() -> Counter:
+    ids = chromadb.PersistentClient(path=str(DIR_CHROMA)).get_collection("resenias").get(include=[])["ids"]
+    return Counter(canonicalizar_film_id(i.split("::")[0]) for i in ids)
+
+
+def tabla_markdown(df: pd.DataFrame, decimales: int = 2) -> str:
+    filas = ["| " + " | ".join(df.columns) + " |", "|" + "---|" * len(df.columns)]
+    for fila in df.itertuples(index=False):
+        filas.append("| " + " | ".join(f"{v:.{decimales}f}" if isinstance(v, float) else str(v) for v in fila) + " |")
+    return "\n".join(filas)
+
+
+def comparar_con_repeticiones(perfil, df_gt, film_ids, variantes: dict, referencia: str):
+    # Promedia comparar_representaciones sobre SEMILLAS_REPETICIONES. Los Δ son
+    # la diferencia con la variante de referencia en las mismas particiones, que
+    # varía mucho menos que la métrica misma. Devuelve también las filas de cada
+    # repetición (con el R² de la etapa 1 de cada criterio).
+    corridas = []
+    for semilla in SEMILLAS_REPETICIONES:
+        print(f"\nParticiones con semilla {semilla}:")
+        corridas.append(comparar_representaciones(perfil, df_gt, film_ids, variantes, N_PARTICIONES, semilla))
+    # La métrica principal es ρ de Spearman: qué tan parecido es el orden de las
+    # películas al de Gemini, que es lo que importa para recomendar.
+    for corrida in corridas:
+        fila_referencia = corrida.set_index("representacion").loc[referencia]
+        corrida["Δ ρ"] = corrida["ρ Spearman"] - fila_referencia["ρ Spearman"]
+        corrida["Δ MAE"] = corrida["MAE"] - fila_referencia["MAE"]
+    todas = pd.concat(corridas, ignore_index=True)
+    todas["mejora ρ"] = todas["Δ ρ"] > 0
+    numericas = ["ρ Spearman", f"NDCG@{K_RANKING}", f"Precisión@{K_RANKING}", "MAE", "R²",
+                 "R² etapa 1 afinidades", "R² etapa 1 filtros", "Δ ρ", "Δ MAE"]
+    comparacion = todas.groupby("representacion", sort=False).agg(
+        dimensiones=("dimensiones", "first"), **{c: (c, "mean") for c in numericas},
+        **{"desv. Δ ρ": ("Δ ρ", "std"), "mejora ρ": ("mejora ρ", "sum"), "desv. Δ MAE": ("Δ MAE", "std")}).reset_index()
+    comparacion["mejora ρ"] = comparacion["mejora ρ"].astype(int).astype(str) + f"/{len(corridas)}"
+    comparacion.loc[comparacion["representacion"] == referencia, "mejora ρ"] = "referencia"
+    orden = ["representacion", "dimensiones", "ρ Spearman", "Δ ρ", "desv. Δ ρ", "mejora ρ", f"NDCG@{K_RANKING}",
+             f"Precisión@{K_RANKING}", "MAE", "Δ MAE", "desv. Δ MAE", "R²", "R² etapa 1 afinidades", "R² etapa 1 filtros"]
+    comparacion = comparacion[orden].sort_values("ρ Spearman", ascending=False, ignore_index=True)
+    return comparacion, todas
+
+
+def comparar_frases(nombre_perfil, perfil, df_gt, film_ids, chunks):
+    # Modelo de reglas con y sin los rasgos de frases_resenia del perfil. Como
+    # control se usan los mismos rasgos calculados solo con la descripción, para
+    # separar el aporte de las frases del de medir "cuántas reseñas hablan de".
+    coleccion = chromadb.PersistentClient(path=str(DIR_CHROMA)).get_collection("perfiles")
+    textos = pooling.textos_de_criterios(coleccion, nombre_perfil, perfil)
+    if not textos:
+        print("El perfil no tiene frases_resenia; se omite la comparación.")
+        return None, None
+    print(f"Criterios con frases de reseña: {len(textos)} "
+          f"({sum(len(nombres) - 1 for nombres, _ in textos.values())} frases).")
+    promedio = pooling.representar(chunks, film_ids, "media")
+    con_frases = pooling.rasgos_frases(chunks, film_ids, textos)
+    con_descripcion = pooling.rasgos_frases(chunks, film_ids, textos, solo_descripcion=True)
+    variantes = {
+        "promedio (sin frases)": promedio,
+        "promedio + frases de reseña": (promedio, con_frases, "concatenar"),
+        "promedio + frases de reseña, ponderadas": (promedio, con_frases, "ponderar"),
+        "solo frases de reseña": (promedio, con_frases, "solo_frases"),
+        "promedio + descripción (control)": (promedio, con_descripcion, "concatenar"),
+        "solo descripción (control)": (promedio, con_descripcion, "solo_frases"),
+    }
+    comparacion, todas = comparar_con_repeticiones(perfil, df_gt, film_ids, variantes, "promedio (sin frases)")
+    por_criterio = pd.DataFrame({
+        nombre: pd.DataFrame(list(grupo["r2_por_criterio"])).mean()
+        for nombre, grupo in todas.groupby("representacion", sort=False)})
+    por_criterio = por_criterio.loc[[c for c in textos if c in por_criterio.index]]
+    por_criterio.index = [c.replace("gt_cols_", "").replace("gt_afinidad_", "") for c in por_criterio.index]
+    return comparacion, por_criterio.rename_axis("criterio").reset_index()
+
+
+def guardar_analisis(nombre_perfil, resultado, pred_cv, pred_ridge, pred_base, n_particiones, ranking, resultado_reglas,
+                     comparacion, frases, tiempos):
+    # resultado: regresión lineal (comparación); resultado_reglas: modelo de las opciones 7 y 8.
+    carpeta = DIR_ANALISIS / f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}_{SLUG_MODELO}"
+    carpeta.mkdir(parents=True, exist_ok=True)
+
+    estructura, modelo = resultado["estructura"], resultado["modelo"]
+    etiquetas = [f"{ETIQUETAS_TIPO[tipo]} · {nombre}" for tipo, nombre in estructura["terminos"]]
+    y = resultado["y"]
+
+    # Por película: similitudes con cada término, notas y errores.
+    por_pelicula = resultado["embeddings_por_pelicula"]
+    film_ids = list(por_pelicula)
+    similitudes = cosine_similarity(np.array(list(por_pelicula.values())), resultado["embeddings_perfil"])
+    peliculas = pd.DataFrame(similitudes, columns=[f"sim · {e}" for e in etiquetas])
+    peliculas.insert(0, "film_id", film_ids)
+    chunks = contar_chunks_por_pelicula()
+    peliculas.insert(1, "n_chunks", [chunks.get(f, 0) for f in film_ids])
+
+    reglas, entradas = resultado_reglas["evaluacion"], resultado_reglas["entradas"]
+    modelo_reglas = reglas["modelo"]
+    puntajes_reglas = modelo_reglas.predecir_puntajes(entradas["X"], entradas["rasgos"]).add_prefix("pred · ")
+    puntajes_reglas.insert(0, "film_id", entradas["film_ids"])
+    peliculas = peliculas.merge(puntajes_reglas, on="film_id", how="left")
+
+    # La regresión lineal anterior, como comparación, para todas las películas.
+    x_todas, _, _ = construir_features(similitudes, estructura, resultado["escala"])
+    peliculas["nota_lineal"] = modelo.predict(x_todas)
+    ranking = ranking.merge(peliculas[["film_id", "nota_lineal"]], on="film_id", how="left")
+
+    entrenamiento = pd.DataFrame({
+        "film_id": resultado["film_ids"], "nota_gemini": y, "nota_lineal_entrenamiento": resultado["predicciones"],
+        "nota_lineal_cv": pred_cv, "error_lineal_cv": pred_cv - y,
+    })
+    cv_reglas = pd.DataFrame({"film_id": resultado_reglas["film_ids"], "nota_reglas_cv": reglas["pred_cv"]})
+    entrenamiento = entrenamiento.merge(cv_reglas, on="film_id", how="left")
+    entrenamiento["error_reglas_cv"] = entrenamiento["nota_reglas_cv"] - entrenamiento["nota_gemini"]
+    peliculas = (peliculas
+                 .merge(entrenamiento, on="film_id", how="left")
+                 .merge(ranking[["film_id", "nota_modelo"]], on="film_id", how="left"))
+    peliculas.insert(2, "evaluada", peliculas["nota_gemini"].notna())
+    peliculas.to_csv(carpeta / "peliculas.csv", index=False, encoding="utf-8")
+
+    pesos = pd.DataFrame({"variable": resultado["columnas"], "peso": modelo.coef_})
+    pesos = pesos.reindex(pesos["peso"].abs().sort_values(ascending=False).index)
+    pd.concat([pesos, pd.DataFrame({"variable": ["(sesgo)"], "peso": [modelo.intercept_]})]).to_csv(
+        carpeta / "pesos.csv", index=False, encoding="utf-8")
+
+    vectores = resultado["embeddings_perfil"]
+    pd.DataFrame(cosine_similarity(vectores, vectores), index=etiquetas, columns=etiquetas).round(4).to_csv(
+        carpeta / "similitud_perfil.csv", encoding="utf-8")
+
+    ranking.to_csv(carpeta / "ranking.csv", index=False, encoding="utf-8")
+    comparacion.to_csv(carpeta / "pooling.csv", index=False, encoding="utf-8")
+    frases_comparacion, frases_por_criterio = frases
+    if frases_comparacion is not None:
+        frases_comparacion.to_csv(carpeta / "frases_resenia.csv", index=False, encoding="utf-8")
+        frases_por_criterio.to_csv(carpeta / "frases_resenia_por_criterio.csv", index=False, encoding="utf-8")
+    (carpeta / "reglas.json").write_text(json.dumps({
+        "reglas": modelo_reglas.regla.describir(), "parametros": modelo_reglas.regla.parametros(),
+        "metricas": reglas["metricas"],
+    }, indent=2, ensure_ascii=False), encoding="utf-8")
+
+    df_gt = pd.read_csv(RUTA_GT)
+    sin_resenias = sorted(set(df_gt["film_id"].apply(canonicalizar_film_id)) - set(resultado["film_ids"]))
+    resumen = {
+        "fecha": datetime.now().isoformat(timespec="seconds"),
+        "perfil": nombre_perfil,
+        "modelo_embeddings": EMBEDDING_MODEL_NAME,
+        "pooling": POOLING_RESENIAS,
+        "parametros_filtrado": {
+            "min_caracteres_resenia": filtro.MIN_CARACTERES_RESENIA,
+            "max_resenias_por_pelicula": filtro.MAX_RESENIAS_POR_PELICULA,
+            "min_resenias_por_pelicula": filtro.MIN_RESENIAS_POR_PELICULA,
+        },
+        "datos": {
+            "peliculas_con_embeddings": len(film_ids),
+            "chunks_de_resenias": int(sum(chunks.values())),
+            "peliculas_en_verdad_base": int(len(df_gt)),
+            "peliculas_para_entrenar": int(len(y)),
+            "peliculas_candidatas": int((~ranking["evaluada"]).sum()),
+            "variables_regresion_lineal": len(resultado["columnas"]),
+            "frases_de_resenia": bool(resultado_reglas["textos"]),
+            "parametros": {
+                "regresion_lineal": len(resultado["columnas"]) + 1,
+                "reglas_etapa_1": modelo_reglas.n_parametros_etapa_1(),
+                "reglas_etapa_2": modelo_reglas.regla.n_parametros(),
+            },
+            "evaluadas_sin_resenias": sin_resenias,
+        },
+        "metricas": {
+            "entrenamiento": metricas(y, resultado["predicciones"]),
+            f"validacion_cruzada_{n_particiones}_particiones": metricas(y, pred_cv),
+            f"validacion_cruzada_ridge_{n_particiones}_particiones": metricas(y, pred_ridge),
+            "linea_base_promedio": metricas_linea_base(y, pred_base),
+            f"reglas_dos_etapas_{n_particiones}_particiones": reglas["metricas"]["completo"],
+        },
+        "tiempos_segundos": {paso: round(segundos, 1) for paso, segundos in tiempos.items()},
+    }
+    (carpeta / "resumen.json").write_text(json.dumps(resumen, indent=2, ensure_ascii=False), encoding="utf-8")
+
+    m = resumen["metricas"]
+    cv = m[f"validacion_cruzada_{n_particiones}_particiones"]
+    ridge = m[f"validacion_cruzada_ridge_{n_particiones}_particiones"]
+    mr = reglas["metricas"]
+    completo = mr["completo"]
+    fila = lambda nombre, x: (f"| {nombre} | {x['spearman']:.3f} | {x[f'ndcg@{K_RANKING}']:.3f} | "
+                              f"{x[f'precision@{K_RANKING}']:.3f} | {x['mae']:.3f} | {x['mse']:.3f} | {x['r2']:.3f} |")
+    encabezado_tabla = [f"| Evaluación | ρ Spearman | NDCG@{K_RANKING} | Precisión@{K_RANKING} | MAE | MSE | R² |",
+                        "|---|---|---|---|---|---|---|"]
+    etapa_1 = pd.DataFrame([{"criterio": c, "MAE": v["mae"], "R²": v["r2"]} for c, v in mr["etapa_1_por_criterio"].items()])
+    peores = entrenamiento.reindex(entrenamiento["error_reglas_cv"].abs().sort_values(ascending=False).index).head(10)
+    candidatas = ranking[~ranking["evaluada"]].head(10)
+    lineas = [
+        f"# Análisis del modelo — perfil {nombre_perfil}",
+        "",
+        f"Generado el {resumen['fecha']} con el modelo de embeddings `{EMBEDDING_MODEL_NAME}` "
+        f"y pooling `{POOLING_RESENIAS}` para los modelos principales.",
+        "",
+        "## Datos",
+        "",
+        f"- Películas con embeddings: {len(film_ids)} ({resumen['datos']['chunks_de_resenias']} chunks de reseñas).",
+        f"- Películas para entrenar (con reseñas y nota de Gemini): {len(y)} de {len(df_gt)} en la Verdad Base.",
+        f"- Evaluadas sin reseñas: {', '.join(sin_resenias) or 'ninguna'}.",
+        f"- Candidatas a recomendar (sin nota de Gemini): {resumen['datos']['peliculas_candidatas']}.",
+        f"- Modelo de las opciones 7 y 8: reglas en dos etapas, pooling `{POOLING_RESENIAS}`, "
+        f"{'con frases de reseña (' + MODO_FRASES_POR_DEFECTO + ')' if resultado_reglas['textos'] else 'sin frases de reseña'}.",
+        "",
+        "## Métricas",
+        "",
+        "La validación cruzada mide el error sobre películas que el modelo no vio al entrenar; es la que importa. "
+        "La línea base predice siempre el promedio: un modelo útil debe tener menos error que ella. "
+        "Las opciones 7 y 8 usan el modelo de reglas; la regresión lineal de las versiones anteriores (y su variante "
+        "con regularización Ridge) se incluye como comparación.",
+        "",
+        "Para recomendar importa más el orden que el error de la nota, así que la métrica principal es ρ de Spearman: "
+        "compara el orden de las películas según el modelo con el orden según Gemini (1 = mismo orden, 0 = sin relación). "
+        f"Como complemento, NDCG@{K_RANKING} vale 1 si las {K_RANKING} primeras según el modelo son las {K_RANKING} mejores "
+        f"según Gemini y en ese orden, y Precisión@{K_RANKING} es la fracción de esas {K_RANKING} que están entre las "
+        f"{K_RANKING} mejores (con empates en el corte entran todas las empatadas). "
+        "La línea base no ordena: sus valores son los esperados con un orden al azar.",
+        "",
+        *encabezado_tabla,
+        fila(f"**Modelo de reglas (opciones 7 y 8), validación cruzada ({n_particiones} particiones, promedio de "
+             f"{reglas['metricas']['repeticiones']} repeticiones)**", completo),
+        fila("Regresión lineal anterior, entrenamiento (optimista)", m["entrenamiento"]),
+        fila(f"Regresión lineal anterior, validación cruzada ({n_particiones} particiones)", cv),
+        fila("Regresión lineal anterior con Ridge, validación cruzada", ridge),
+        fila("Línea base (promedio)", m["linea_base_promedio"]),
+        "",
+        "## Modelo de reglas en dos etapas (opciones 7 y 8)",
+        "",
+        "Etapa 1: predice el puntaje de cada filtro y afinidad (y si aplica cada excepción) desde las reseñas; "
+        "los criterios con frases de reseña usan además cuántas reseñas se parecen a su descripción y a sus frases. "
+        "Etapa 2: calcula la nota global con la forma de la regla global, con pesos y umbrales aprendidos.",
+        "",
+        "### Reglas aprendidas (modelo final)",
+        "",
+        f"Parámetros: etapa 2 (la regla) {modelo_reglas.regla.n_parametros()}; etapa 1 "
+        f"{modelo_reglas.n_parametros_etapa_1()} (regresiones Ridge desde el embedding de {entradas['X'].shape[1]} dimensiones "
+        f"y los rasgos de frases, una por criterio). Regresión lineal anterior: {len(resultado['columnas']) + 1}.",
+        "",
+        *[f"- {linea}" for linea in modelo_reglas.regla.describir()],
+        "",
+        "### Etapa 2 por separado: ¿cuánto de la nota global explican los puntajes de Gemini?",
+        "",
+        *encabezado_tabla,
+        fila("Regla con condiciones", mr["etapa_2_regla"]),
+        fila("Regresión lineal sobre los puntajes", mr["etapa_2_lineal"]),
+        fila("Línea base (promedio)", mr["etapa_2_linea_base"]),
+        "",
+        "### Etapa 1: qué tan bien se predice cada puntaje desde las reseñas (validación cruzada)",
+        "",
+        tabla_markdown(etapa_1, 3) if len(etapa_1) else "Sin datos.",
+        "",
+        "## Comparación de pooling y número de reseñas (modelo de reglas, validación cruzada)",
+        "",
+        "Cómo se resumen los chunks de reseñas de cada película antes de la etapa 1: promedio (el actual), "
+        "percentil de cada dimensión del embedding, o promedio más los percentiles 50/75/90/máximo de la "
+        "similitud de los chunks con cada término del perfil. Las reseñas se toman en orden de likes. "
+        f"Promedios de {len(SEMILLAS_REPETICIONES)} repeticiones con particiones distintas; los Δ son la diferencia con "
+        f"«{pooling.nombre('media', None)}» en las mismas particiones (ρ: positiva = mejor; MAE: negativa = mejor), "
+        "y «mejora ρ» cuenta en cuántas repeticiones superó a esa referencia.",
+        "",
+        tabla_markdown(comparacion, 3),
+        "",
+        "## Frases de reseña (modelo de reglas, validación cruzada)",
+        "",
+        *(["El perfil no tiene frases_resenia."] if frases_comparacion is None else [
+            "Para los criterios con frases_resenia, la etapa 1 recibe además (o en vez del embedding promedio) "
+            "la fracción de chunks de cada película muy similares a cada frase (sobre el percentil 95 de todos los chunks) "
+            "y el percentil 90 de esa similitud. Los controles usan lo mismo pero solo con la descripción del perfil. "
+            f"Promedios de {len(SEMILLAS_REPETICIONES)} repeticiones con particiones distintas; los Δ son la diferencia con el "
+            "modelo sin frases en las mismas particiones (ρ: positiva = mejor; MAE: negativa = mejor), su desviación indica "
+            "cuánto varían entre repeticiones y «mejora ρ» cuenta en cuántas repeticiones superó al modelo sin frases.",
+            "",
+            tabla_markdown(frases_comparacion, 3),
+            "",
+            "R² de la etapa 1 de cada criterio con frases:",
+            "",
+            tabla_markdown(frases_por_criterio, 3),
+        ]),
+        "",
+        "## Variables con más peso (regresión lineal anterior)",
+        "",
+        tabla_markdown(pesos.head(10), 3),
+        "",
+        "## Películas peor predichas por el modelo de reglas (validación cruzada)",
+        "",
+        tabla_markdown(peores[["film_id", "nota_gemini", "nota_reglas_cv", "error_reglas_cv"]]),
+        "",
+        "## Mejores candidatas a recomendar",
+        "",
+        tabla_markdown(candidatas[["film_id", "nota_modelo", "nota_lineal"]]) if len(candidatas) else "No hay películas candidatas.",
+        "",
+        "## Archivos",
+        "",
+        "- `peliculas.csv`: una fila por película, con sus similitudes con cada término del perfil, los puntajes que predice el modelo de reglas, notas (`nota_modelo` es la del modelo de reglas, `nota_lineal` la de la regresión lineal anterior) y errores.",
+        "- `pesos.csv`: peso de cada variable de la regresión lineal anterior.",
+        "- `reglas.json`: reglas y parámetros aprendidos por el modelo de reglas, con sus métricas.",
+        "- `pooling.csv`: comparación de formas de resumir las reseñas y de cuántas usar.",
+        "- `frases_resenia.csv` y `frases_resenia_por_criterio.csv`: comparación con y sin las frases de reseña del perfil.",
+        "- `similitud_perfil.csv`: similitud entre los términos del perfil (valores altos entre un filtro y una afinidad indican que el modelo los confunde).",
+        "- `ranking.csv`: ranking completo de recomendaciones.",
+        "- `resumen.json`: estos datos en formato legible por programas.",
+        "",
+    ]
+    (carpeta / "resumen.md").write_text("\n".join(lineas), encoding="utf-8")
+    return carpeta, resumen, ranking
+
+
+def main():
+    try:
+        nombre_perfil, perfil = seleccionar_perfil()
+    except (FileNotFoundError, ValueError) as error:
+        print(f"[!] Error: {error}")
+        return
+
+    print(f"\nPerfil: {nombre_perfil}. El pipeline corre sin más preguntas y no borra datos: "
+          "los chunks antiguos o perfiles huérfanos solo se informan.")
+
+    pasos = [
+        ("Filtrado de reseñas crudas (opción 2)", filtro.main),
+        ("Embeddings del perfil (opción 3)", lambda: procesamiento_perfiles.main(nombre_perfil, eliminar_huerfanos=False)),
+        ("Embeddings de reseñas (opción 4)", lambda: procesamiento_resenias.main(eliminar_ids_antiguos=False)),
+        ("Verdad Base (opción 5)", lambda: cargar_verdad_base(nombre_perfil)),
+        ("Películas pendientes de evaluar (opción 6)", lambda: revisar_pendientes(nombre_perfil)),
+        ("Entrenamiento del modelo de reglas (opción 7)", lambda: entrenar_y_guardar(nombre_perfil)),
+    ]
+    total = len(pasos) + 4
+    tiempos, inicio_total, resultado = {}, time.time(), None
+
+    for numero, (titulo, paso) in enumerate(pasos, 1):
+        encabezado(numero, total, titulo)
+        inicio = time.time()
+        resultado = paso()
+        tiempos[titulo] = time.time() - inicio
+        print(f"\n--> {titulo}: {tiempos[titulo]:.1f} s")
+
+    resultado_reglas = resultado
+    if resultado_reglas is None:
+        print("\n[!] El entrenamiento no se completó; revisa los mensajes anteriores. No se generó el análisis.")
+        return
+
+    encabezado(total - 3, total, f"Regresión lineal anterior, como comparación ({N_PARTICIONES} particiones)")
+    inicio = time.time()
+    try:
+        resultado = entrenar_lineal(nombre_perfil, perfil)
+    except ValueError as error:
+        print(f"[!] Error: {error}")
+        return
+    pred_cv, pred_ridge, pred_base, n_particiones = validacion_cruzada(resultado["similitudes"], resultado["y"], resultado["estructura"])
+    tiempos["Regresión lineal (comparación)"] = time.time() - inicio
+
+    encabezado(total - 2, total, "Comparación de pooling y número de reseñas")
+    inicio = time.time()
+    df_gt = pd.read_csv(RUTA_GT)
+    df_gt["canon_id"] = df_gt["film_id"].apply(canonicalizar_film_id)
+    chunks = resultado_reglas["entradas"]["chunks"]
+    representaciones = {
+        pooling.nombre(estrategia, maximo): pooling.representar(
+            chunks, resultado["film_ids"], estrategia, maximo, resultado["embeddings_perfil"])
+        for estrategia in ESTRATEGIAS_POOLING for maximo in MAXIMOS_RESENIAS
+    }
+    comparacion, _ = comparar_con_repeticiones(perfil, df_gt, resultado["film_ids"], representaciones,
+                                               pooling.nombre("media", None))
+    tiempos["Comparación de pooling"] = time.time() - inicio
+
+    encabezado(total - 1, total, "Frases de reseña del perfil")
+    inicio = time.time()
+    frases = comparar_frases(nombre_perfil, perfil, df_gt, resultado["film_ids"], chunks)
+    tiempos["Frases de reseña"] = time.time() - inicio
+
+    encabezado(total, total, "Ranking (opción 8) y datos de análisis")
+    inicio = time.time()
+    try:
+        ranking = calcular_ranking()
+    except ValueError as error:
+        print(f"[!] Error: {error}")
+        return
+    carpeta, resumen, ranking = guardar_analisis(
+        nombre_perfil, resultado, pred_cv, pred_ridge, pred_base, n_particiones, ranking, resultado_reglas, comparacion,
+        frases, tiempos)
+    tiempos["Ranking y análisis"] = time.time() - inicio
+
+    m = resumen["metricas"]
+    cv = m[f"validacion_cruzada_{n_particiones}_particiones"]
+    print("\n| -- Resumen -- |")
+    print(f"Películas para entrenar: {resumen['datos']['peliculas_para_entrenar']} "
+          f"| candidatas: {resumen['datos']['peliculas_candidatas']}")
+    completo = m[f"reglas_dos_etapas_{n_particiones}_particiones"]
+    print(f"Modelo de reglas (opciones 7 y 8), validación cruzada: ρ {completo['spearman']:.3f} | MAE {completo['mae']:.3f} "
+          f"| R² {completo['r2']:.3f} | NDCG@{K_RANKING} {completo[f'ndcg@{K_RANKING}']:.3f} "
+          f"| Precisión@{K_RANKING} {completo[f'precision@{K_RANKING}']:.3f}")
+    ridge = m[f"validacion_cruzada_ridge_{n_particiones}_particiones"]
+    print(f"Regresión lineal anterior, validación cruzada: ρ {cv['spearman']:.3f} | MAE {cv['mae']:.3f} "
+          f"(con Ridge: ρ {ridge['spearman']:.3f}, MAE {ridge['mae']:.3f}) | línea base: MAE {m['linea_base_promedio']['mae']:.3f}")
+    for titulo, tabla in (("pooling", comparacion), ("variante con frases de reseña", frases[0])):
+        if tabla is not None:
+            mejor = tabla.iloc[0]
+            print(f"Mejor {titulo} según ρ: {mejor['representacion']} (ρ {mejor['ρ Spearman']:.3f}, "
+                  f"Δ {mejor['Δ ρ']:+.3f} ± {mejor['desv. Δ ρ']:.3f}, mejora en {mejor['mejora ρ']} | MAE {mejor['MAE']:.3f})")
+    print(f"Tiempo total: {time.time() - inicio_total:.1f} s")
+    print(f"\nDatos de análisis guardados en: {carpeta}")
+    for archivo in sorted(carpeta.iterdir()):
+        print(f"  - {archivo.name}")
+
+
+if __name__ == '__main__':
+    main()

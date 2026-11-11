@@ -1,0 +1,106 @@
+{
+    "Ignacio Araya": {
+        "restrictivos": {
+            "Camaradería Masculina Rancia": {
+                "encabezado": "Rancia",
+                "descripcion": "Dinámicas que validan el sexismo desde el cinismo o la burla, donde la mujer es un trofeo o un chiste.",
+                "nivel": 3.0,
+                "severidad": "Veto Absoluto",
+                "corrupcion_directa": ["Resistencia Femenina"],
+                "excepcion": "La protección masculina o la nostalgia, cuando la mirada de la película hacia el personaje femenino está construida desde la reverencia, el amor o la inocencia.",
+                "frases_resenia": [
+                    "sexist humor where women are only objects or jokes",
+                    "the women are just props for the men and their friendship",
+                    "humor machista y sexista, las mujeres son un chiste"
+                ]
+            },
+            "Insoportabilidad Prolongada": {
+                "encabezado": "Insoport.",
+                "descripcion": "Obligar al espectador a convivir excesivamente con personajes arrogantes, crueles o de una superioridad moral sofocante.",
+                "nivel": 3.0,
+                "severidad": "Veto Absoluto",
+                "corrupcion_directa": ["Ternura y Empatía Radical", "Humanismo Social"],
+                "excepcion": "El personaje sufre un desarme temprano y su ego es bajado a tierra rápidamente. La película combina alta contemplación inmersiva y empatía radical para hacernos entender que la toxicidad nace de un trauma o abuso sistémico.",
+                "frases_resenia": [
+                    "the main character is insufferable, arrogant and smug",
+                    "I couldn't stand the protagonist, he is a pretentious narcissist and a creep",
+                    "an unlikable, annoying character you have to spend the whole movie with",
+                    "un protagonista insoportable, arrogante y pedante"
+                ]
+            },
+            "Control Emocional Artificial": {
+                "encabezado": "Control",
+                "descripcion": "Perfección técnica fría, música manipuladora y montaje que clausura el temblor humano para dictar exactamente qué debes sentir.",
+                "nivel": 2.5,
+                "severidad": "Intermedio",
+                "corrupcion_directa": ["Humanismo Social", "Contemplación Inmersiva"],
+                "excepcion": null,
+                "frases_resenia": [
+                    "emotionally manipulative, the music tells you exactly what to feel",
+                    "so sweet, whimsical and quirky that it becomes saccharine and twee",
+                    "technically perfect but cold, calculated and polished",
+                    "Oscar bait designed to make you cry"
+                ]
+            },
+            "Personajes Diorama": {
+                "encabezado": "Diorama",
+                "descripcion": "Estética de vitrina. Cuadros visualmente hermosos y simétricos, habitados por personajes fríos y decorativos, distantes como figuras de museo.",
+                "nivel": 2.5,
+                "severidad": "Intermedio",
+                "corrupcion_directa": ["Ternura y Empatía Radical"],
+                "excepcion": null,
+                "frases_resenia": [
+                    "beautiful and symmetrical but emotionally hollow",
+                    "style over substance, the characters feel like dolls in a dollhouse",
+                    "the characters have no personality beyond their job or quirk"
+                ]
+            },
+            "Caos Asfixiante": {
+                "encabezado": "Caos",
+                "descripcion": "Caos hiperactivo, montaje frenético y una narrativa atropellada que entrega todas las respuestas masticadas.",
+                "nivel": 2.0,
+                "severidad": "Moderada",
+                "corrupcion_directa": ["Contemplación Inmersiva"],
+                "excepcion": null,
+                "frases_resenia": [
+                    "chaotic, frantic and exhausting, it never lets you breathe",
+                    "overstimulating, loud and relentless, too much happening at once",
+                    "caótica y agotadora, no da respiro"
+                ]
+            }
+        },
+        "afinidad": {
+            "Resistencia Femenina": {
+                "encabezado": "Resist. Fem.",
+                "descripcion": "Agencia y dignidad en la adversidad. Mujeres complejas, redes de apoyo, respuesta activa frente a injusticias, o la valentía de elegir el amor, la vulnerabilidad y el cuidado dentro de entornos hostiles o trágicos.",
+                "importancia_base": 10.0
+            },
+            "Contemplación Inmersiva": {
+                "encabezado": "Contemp.",
+                "descripcion": "La 'calma aterradora'. Ritmo paciente que da oxígeno para procesar conflictos y tragedias. El tiempo y el espacio narrativo respiran.",
+                "importancia_base": 9.0
+            },
+            "Ternura y Empatía Radical": {
+                "encabezado": "Ternura",
+                "descripcion": "La ética del cuidado. Empatía radical hacia lo roto, gestos mínimos, compasión genuina por las fallas humanas. Mirada sincera y afectuosa.",
+                "importancia_base": 10.0
+            },
+            "Humanismo Social": {
+                "encabezado": "Humanismo",
+                "descripcion": "Retrato crudo de la realidad. Naturalismo ético, comprensión del origen de la marginalidad, el trauma o la clase, observando a los afectados con respeto, cercanía y horizontalidad.",
+                "importancia_base": 8.0
+            },
+            "Vanguardia y Simbolismo": {
+                "encabezado": "Vanguardia",
+                "descripcion": "Riesgo y forma cinematográfica. Narrativas abiertas, pensamiento visual, significado que nace del desvío, la contradicción y la búsqueda de formas propias y arriesgadas.",
+                "importancia_base": 7.0
+            }
+        },
+        "regla_global": [
+            "La nota global NO es un promedio de los puntajes.",
+            "Si Resistencia Femenina llega a 9-10 (agencia, dignidad y complejidad), la nota global debe quedar alta (mínimo 7.5-8.0), aunque la película sea comercial o poco arriesgada formalmente.",
+            "Si aplica un filtro restrictivo sin que opere su excepción (sobre todo Camaradería Masculina Rancia, Insoportabilidad Prolongada, o una toxicidad enmarcada en Caos Asfixiante), la nota global puede desplomarse aunque la película tenga grandes virtudes formales.",
+            "En el resto de los casos, ponderar cualitativamente: las afinidades donde la película juega pesan más que las que le son ajenas."
+        ]
+    }
+}

@@ -1,6 +1,6 @@
 <h1 align="center">Motor de Recomendación Semántica Multiperfil</h1>
 
-<img src="https://img.shields.io/badge/version-0.0.0.1-blue" alt="version">
+<img src="https://img.shields.io/badge/version-1.0.0-blue" alt="version">
 
 [![Last Commit](https://img.shields.io/github/last-commit/jonathanurrutiat-wq/motor-de-recomendacion-semantica-multiperfil/main-dev?style=flat-square&logo=github&color=blue&cache_bust=1)](https://github.com/jonathanurrutiat-wq/motor-de-recomendacion-semantica-multiperfil/tree/main-dev)
 
@@ -11,6 +11,91 @@
 Este proyecto consiste en el desarrollo de un sistema híbrido de recomendación cinematográfica diseñado para superar las limitaciones de los algoritmos de filtrado colaborativo tradicionales. En lugar de basarse en metadatos genéricos o calificaciones numéricas masivas, el sistema evalúa obras cinematográficas analizando semánticamente cientos de reseñas críticas (texto libre) y contrastándolas contra un perfil de usuario dinámico y estructurado en lenguaje natural.
 La arquitectura es genérica: el modelo no está rígidamente programado para un solo usuario, sino que recibe el "Perfil Cinéfilo" como una entrada de datos (input), permitiendo procesar las preferencias de múltiples usuarios (Multiperfil).
 
+## **Documentación**
+
+* [`docs/informe/informe.pdf`](docs/informe/informe.pdf): informe del pipeline completo, con la estrategia elegida y la descartada en cada paso, un ejemplo guiado (*Manhattan*), cómo ejecutarlo, resultados con tablas y gráficos, observaciones y pasos propuestos. Los datos que necesitan la base de embeddings (predicciones por película, ejemplo guiado y curva de aprendizaje) los calcula `docs/informe/calculos.py`: el workflow de análisis lo corre con e5 al lanzarlo a mano con la opción *calcular también los datos del informe*, y los deja en `informe/` dentro de la carpeta del análisis. Se copian a `docs/informe/datos/` junto con los archivos del análisis de cada modelo, y el informe se regenera con `python docs/informe/figuras.py`, `python docs/informe/tablas.py` y `latexmk -pdf informe.tex` desde `docs/informe/`.
+
+## **¿Cómo ejecutar el programa?**
+
+* Instalar las dependencias (idealmente dentro de un entorno virtual):
+    `pip install -r requirements.txt`
+
+* (Opcional) Para partir con un perfil ya armado, copiar `src/db/profiles/perfiles.ejemplo.json` como `src/db/profiles/perfiles.json`. Contiene el perfil de Ignacio Araya, el mismo con que se evaluó `dataset_maestro.csv` y con que se generaron los embeddings incluidos en el repositorio.
+
+* Desde la raíz del repositorio, ejecutar:
+    `python src/main.py`
+
+    Las rutas se resuelven relativas a los archivos del proyecto, así que también funciona desde cualquier otro directorio indicando la ruta completa a `src/main.py`.
+
+* Variables de entorno opcionales (se definen antes de ejecutar, ej. `MODELO_EMBEDDINGS=... python src/main.py`):
+
+    * `MODELO_EMBEDDINGS`: modelo de embeddings. Por defecto `intfloat/multilingual-e5-base`, que predice y ordena mejor que el anterior (`sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`) a cambio de ser unas 3 veces más lento. Cada modelo guarda sus embeddings en su propia carpeta (`src/db/embeddings/chroma_<modelo>/`; MiniLM conserva `chroma/`), así que cambiar de modelo no mezcla vectores: para volver a MiniLM y a la base incluida en el repositorio basta con `MODELO_EMBEDDINGS=sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`.
+    * `MAX_RESENIAS_POR_PELICULA`: reseñas con más likes que se toman de cada película (por defecto 100; con 100 o 200 los modelos rinden igual).
+    * `POOLING_RESENIAS`: cómo se resumen las reseñas de cada película, `media` (por defecto) o `pXX`, el percentil XX de cada dimensión del embedding (ej. `p90`). El modelo entrenado recuerda con cuál se entrenó.
+
+* Embeddings con e5: generarlos en CPU (opciones 2 a 4, o la 9) tarda varias horas. El workflow de análisis publica la base ya generada en el release en borrador `datos-resenas` (visible solo para quienes tienen permiso de escritura) como `embeddings-multilingual-e5-base-100-<huella>.zip`. Para usarla, poner el `reviews.db` del mismo release en `src/db/raw/` y descomprimir el zip en la raíz del repositorio: crea `src/db/embeddings/chroma_multilingual-e5-base/` y el csv filtrado correspondiente en `src/db/filtered/result/`. Las opciones 2 y 4 reconocen que ya están procesados y no los duplican.
+
+## **Guía del menú principal**
+
+<small>*Nota: cada opción depende de que las anteriores ya se hayan corrido al menos una vez (ej. no se puede entrenar el modelo sin haber generado los embeddings y el Ground-truth antes). Si hay más de un perfil guardado, las opciones 6 y 7 preguntan cuál usar. El Ground-truth (`dataset_maestro.csv`) corresponde a un único perfil, así que se debe elegir ese mismo perfil al entrenar.*</small>
+
+* **1) Gestionar perfiles cinéfilos.**
+    Abre el menú de `profiles.py` para crear un perfil nuevo, o editar/eliminar uno existente (filtros restrictivos y afinidades). Se guarda en `perfiles.json`.
+
+* **2) Ejecutar pipeline ETL (filtrar CSVs crudos).**
+    Corre `filter.py` sobre los archivos crudos de `db/raw/` (extraídos desde Letterboxd) y guarda el resultado en `db/filtered/result/`. Omite los que ya fueron filtrados y no han cambiado.
+
+    * `.csv` (formato de `extract.ipynb`): limpia texto, descarta reseñas vacías o sin contenido real, y convierte la calificación en estrellas a un número.
+    * `reviews.db` (base SQLite del scraper, con tablas `films` y `reviews`): exporta, de las películas con al menos 20 reseñas, hasta 200 reseñas de al menos 100 caracteres por película, priorizando las con más likes. Los tres valores son constantes al inicio de `filter.py`. La base pesa más de 100 MB y no está en el repositorio: se descarga aparte y se deja en `src/db/raw/reviews.db`.
+
+* **3) Generar embeddings de un perfil.**
+    Pide el nombre de un perfil ya creado y genera los vectores semánticos de sus filtros y afinidades (`procesing_profiles.py`), persistiéndolos en la colección `perfiles` de ChromaDB. Cada filtro y afinidad se vectoriza solo con su nombre y descripción; cada excepción tiene su propio vector. Reemplaza por completo los embeddings anteriores de ese perfil y ofrece eliminar los de perfiles que ya no existen.
+
+* **4) Generar embeddings de los lotes de reseñas pendientes.**
+    Toma todos los `.csv` filtrados de `db/filtered/result/` que todavía no están en ChromaDB, chunkea el texto de cada reseña y genera sus embeddings (`procesing_reviews.py`), guardándolos en la colección `resenias`. Cada chunk se identifica como `pelicula::lote::review_N::chunk_M`, así que reseñas de lotes distintos no se pisan. De cada fuente (ej. `reviews.db`) solo se usa el filtrado más reciente, que trae todas sus reseñas: los chunks que ya estaban vectorizados en el lote anterior se reutilizan, solo se codifican los nuevos, y el lote anterior se elimina de la colección (`embeddings_previos.py`). Chroma no libera el espacio de lo eliminado: para achicar la base, cerrar el programa y correr `python src/compactar_chroma.py`.
+
+* **5) Cargar Ground-truth (dataset_maestro.csv).**
+    Lee `dataset_maestro.csv` (las notas que evaluó Gemini para un grupo de películas según el perfil), lo limpia y normaliza, y genera `matriz_perdida.csv`: el archivo liviano que usan las opciones 6, 7 y 8. Las columnas se asocian a los filtros y afinidades del perfil elegido: cada uno se busca en la planilla por su campo `encabezado` (la abreviatura usada al evaluar, ej. `"Insoport."`) o, si no lo tiene, por su nombre. La nota global se lee de la columna `Global`, y un asterisco junto al puntaje de un filtro (ej. `0*`) se guarda como excepción aplicada en la columna `gt_excepcion_*`. Además importa las películas ya evaluadas en `pendientes_evaluar.csv` (las que tienen `gt_nota_global`): las mueve a `evaluaciones_adicionales.csv`, que se suma a la Verdad Base en cada ejecución.
+
+* **6) Revisar películas pendientes de evaluar.**
+    Compara las películas que ya tienen reseña procesada contra las que ya están en `matriz_perdida.csv`, y muestra cuáles todavía no tienen nota de Gemini. Genera dos archivos a partir del perfil elegido:
+
+    * `pendientes_evaluar.csv`: plantilla con una fila por película pendiente y una columna por filtro, excepción (`gt_excepcion_*`, 1 si la excepción del filtro aplica), afinidad y nota global. Se puede editar en Excel (se aceptan `;` como separador y coma decimal).
+    * `instrucciones_evaluacion.md`: instrucciones para pedirle a Gemini la evaluación con el mismo criterio de la Verdad Base (descripción de cada filtro y afinidad, excepciones, regla global y formato de respuesta en CSV con las columnas de la plantilla). Su respuesta se pega en la plantilla.
+
+    Si la plantilla tiene evaluaciones aún sin importar, no la sobrescribe. En `docs/instrucciones_evaluacion.md` hay una versión de estas instrucciones para el perfil de ejemplo.
+
+* **7) Entrenar modelo predictivo (modelo de reglas).**
+    Entrena el modelo de reglas en dos etapas (`src/modelo_reglas.py`), que funciona con cualquier perfil sin importar cuántos filtros y afinidades tenga:
+
+    * Etapa 1: a partir de las reseñas de cada película (el promedio de sus embeddings, o el percentil que indique `POOLING_RESENIAS`), predice con una regresión Ridge el puntaje 0-10 de cada filtro y afinidad y si aplica la excepción de cada filtro. Los criterios con `frases_resenia` en el perfil reciben además cuántas reseñas se parecen mucho a su descripción y a cada una de sus frases.
+    * Etapa 2: calcula la nota global con la forma de la regla global, siguiendo la cadena **afinidad ← filtro ← excepción**: nota base con un peso por afinidad, menos un descuento por cada filtro que supera su umbral cuando su excepción no aplica. Pesos, umbrales y descuentos se aprenden de la Verdad Base.
+
+    Informa el desempeño con validación cruzada (películas que el modelo no vio al entrenar): ρ de Spearman (qué tan parecido es el orden de las películas al de Gemini, la métrica principal), NDCG@10, precisión@10 y el error de la nota (MAE). Muestra las reglas aprendidas y guarda el modelo en `src/loss/modelo_reglas_<modelo>.joblib`. Con e5 ordena bastante mejor que la regresión lineal que usaban las versiones anteriores (ρ 0,67 contra 0,55), que la opción 9 sigue calculando como comparación.
+
+* **8) Recomendar películas según el perfil.**
+    Carga el modelo guardado en la opción 7 (con el perfil, el pooling, las frases de reseña y los umbrales con que se entrenó) para estimar una nota a todas las películas con reseña procesada (tanto a las que ya evaluó Gemini, para comparar, como a las nuevas que todavía no tienen nota). Muestra todo en un único ranking ordenado de mayor a menor nota estimada.
+
+* **9) Ejecutar todo y generar datos de análisis.**
+    Pregunta el perfil una sola vez y ejecuta las opciones 2 a 8 en orden, sin más preguntas, mostrando cada paso con su duración (`src/analisis.py`). No borra datos: si hay chunks con formato antiguo o embeddings de perfiles huérfanos, solo lo informa (se limpian desde las opciones 3 y 4). Además evalúa el modelo con validación cruzada de 5 particiones (error sobre películas que el modelo no vio al entrenar) y lo compara con una línea base que predice siempre el promedio, con una regresión Ridge y con el **modelo de reglas en dos etapas** (`src/modelo_reglas.py`), que se arma desde el perfil para cualquier cantidad de filtros y afinidades:
+
+    * *Etapa 1*: predice el puntaje 0–10 de cada filtro y afinidad, y si aplica cada excepción, desde el embedding promedio de las reseñas (usa las columnas por criterio de la Verdad Base, no solo la nota global).
+    * *Etapa 2*: calcula la nota global con una regla simple, `nota = base + Σ peso·afinidad − Σ desplome·[filtro > umbral y su excepción no aplica]`, con pesos, umbrales y desplomes aprendidos de la Verdad Base. Tiene `1 + afinidades + 2 × filtros` parámetros (16 con 5 afinidades y 5 filtros) y se informa como reglas legibles. Opcionalmente (`usar_pisos`, `usar_corrupcion` en `ReglaGlobal`) admite pisos por afinidad y corrupción de afinidades, pero en validación cruzada no mejoraron la precisión (MAE 0,293 con 31 parámetros contra 0,294 con 16), así que están desactivados. Con los mismos 16 parámetros, la regla supera a una regresión lineal sobre los puntajes (MAE 0,294 contra 0,333).
+
+    Guarda los resultados en `analisis/<fecha_hora>/`:
+
+    * `resumen.md` y `resumen.json`: datos usados, métricas (entrenamiento, validación cruzada, Ridge y línea base), variables con más peso, películas peor predichas, mejores candidatas y tiempos.
+    * `peliculas.csv`: una fila por película con su número de chunks, su similitud con cada término del perfil, la nota de Gemini, la del modelo y el error en validación cruzada.
+    * `pesos.csv`: peso de cada variable del modelo (con las similitudes estandarizadas, así que son comparables entre sí).
+    * `similitud_perfil.csv`: similitud entre los términos del perfil.
+    * `ranking.csv`: ranking completo de recomendaciones, con la nota de la regresión lineal y la del modelo de reglas.
+    * `reglas.json`: reglas y parámetros aprendidos por el modelo de reglas, con sus métricas por etapa y por criterio.
+    * `pooling.csv`: comparación, con el modelo de reglas y validación cruzada, de formas de resumir los chunks de reseñas de cada película (`src/pooling.py`): promedio, percentil 50, 75, 90 o 95 de cada dimensión del embedding, o promedio más los percentiles 50/75/90/máximo de la similitud de los chunks con cada término del perfil; cada una con las 50, 100 o todas las reseñas con más likes, con 10 repeticiones de la validación cruzada. No requiere recalcular embeddings. La opción 9 usa como métrica principal ρ de Spearman (qué tan parecido es el orden de las películas al de Gemini), e informa además NDCG@10, precisión@10 y el error de la nota (MAE).
+
+    La opción 9 también se puede ejecutar en GitHub Actions con el workflow `.github/workflows/analisis.yml`, útil cuando no se tiene GPU o no se puede descargar el modelo de embeddings. Toma las reseñas del `.zip` adjunto al release en borrador `datos-resenas` (un borrador solo lo ven quienes tienen permiso de escritura en el repositorio), usa `perfiles.ejemplo.json` como perfil, parte de una base de embeddings vacía y publica la carpeta `analisis/` y el log completo en la rama `resultados-analisis`. Se lanza desde la pestaña *Actions* ("Run workflow", una vez que el archivo esté en la rama principal), al modificar el propio archivo del workflow, el perfil de ejemplo o el código de análisis (`analisis.py`, `modelo_reglas.py`, `pooling.py`). Corre en paralelo con tres modelos de embeddings (MiniLM, mpnet-base y e5-base). La primera vez tarda cerca de una hora (casi todo en generar los embeddings); los embeddings quedan en el caché de Actions, así que las siguientes corridas tardan unos minutos mientras no cambien las reseñas ni `filter.py`, `procesing_reviews.py` o `config.py`.
+
+* **10) Salir.**
+    Cierra el programa.
 
 ## **Librerias Utilizadas**
 
@@ -20,6 +105,10 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 * <code><b><span style="font-size:1.3em;">langchain_core.documents</span></b></code>
 * <code><b><span style="font-size:1.3em;">chromadb</span></b></code> 
 * <code><b><span style="font-size:1.3em;">numpy</span></b></code> 
+* <code><b><span style="font-size:1.3em;">Semchunk</span></b></code> 
+* <code><b><span style="font-size:1.3em;">pandas</span></b></code> 
+* <code><b><span style="font-size:1.3em;">scikit-learn</span></b></code> 
+* <code><b><span style="font-size:1.3em;">torch</span></b></code> 
 
 
 ## **Distribución de directorios**
@@ -27,20 +116,525 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
 * <code><b><span style="color: #23c523d4;">src/</span></b></code>: Directorio principal del código fuente. Contiene las funcionalidades clave del programa y la lógica central del mismo.
 
-    * <code><b><span style="color: #009dff;">main.py</span></b></code>: Archivo principal del programa.
+    * <code><b><span style="color: #23c523d4;">db/</span></b></code>: Módulo destinado al manejo de la base de datos del sistema.
+        
+        * <code><b><span style="color: #23c523d4;">filtered/</span></b></code>:
+            
+            * <code><b><span style="color: #23c523d4;">result/</span></b></code>: Directorio donde se almacenan los archivos (`.csv`) ya procesados, limpios y listos para trabajar.
 
-    
-    * <code><b><span style="color: #009dff;">embeddings.py</span></b></code>: Archivo encargado de las incrustaciones vectoriales.
+            * <code><b><span style="color: #009dff;">filter.py</span></b></code>: Contiene la lógica general de filtrado y limpieza de los archivos .csv de la base de datos.
+        
+        * <code><b><span style="color: #23c523d4;">raw/</span></b></code>: Carpeta donde se almacenan los archivos .csv crudos extraídos desde letterboxd.
 
-    * <code><b><span style="color: #009dff;">config.py</span></b></code>: Archivo de configuración centralizada del proyecto, contiene constantes reutilizadas por los distintos módulos.
+        * <code><b><span style="color: #009dff;">extract.ipynb</span></b></code>: Archivo encargado de extraer reseñas de letterboxd y serializarlas.
 
+        * <code><b><span style="color: #23c523d4;">embeddings/</span></b></code>: Carpeta donde se persisten los vectores generados a partir de los perfiles y las reseñas.
+
+            * <code><b><span style="color: #23c523d4;">chroma/</span></b></code>: Base de datos vectorial (ChromaDB) con las colecciones `perfiles` y `resenias`, generadas por `procesing_profiles.py` y `procesing_reviews.py` respectivamente, con el modelo MiniLM.
+
+            * <code><b><span style="color: #23c523d4;">chroma_&lt;modelo&gt;/</span></b></code>: Lo mismo para cualquier otro modelo de embeddings, como el por defecto (`chroma_multilingual-e5-base/`). No se sube al repositorio.
+
+    * <code><b><span style="color: #23c523d4;">loss/</span></b></code>: Módulo dedicado a construir y supervisar el entrenamiento del modelo matemático.
+        
+        * <code><b><span style="color: #009dff;">gt_matrix_pipeline.py</span></b></code>: Despachador de datos que administra la ingesta de archivos procesados y utiliza álgebra de conjuntos para garantizar evaluaciones únicas.
+
+        * <code><b><span style="color: #009dff;">ingest_maestro.py</span></b></code>: Encargado de preparar el archivo maestro de ground-truth para el sistema de recomendación. Lee el dataset, normaliza los títulos de las películas para crear identificadores más adecuados y convierte las métricas de evaluación a valores numéricos.
+        
+        * <code><b><span style="color: #009dff;">matrix.py</span></b></code>: Motor generador de la matriz de Verdad base, extrae la topología de los perfiles de usuario para crear el tensor objetivo ($Y$) contra el cual el Perceptrón Multicapa validará sus predicciones.
+
+        * <code><b><span style="color: #23c523d4;">dataset_maestro.csv</span></b></code>: Archivo de ground-truth evaluado a mano, insumo de `ingest_maestro.py`.
+
+        * <code><b><span style="color: #23c523d4;">matriz_perdida.csv</span></b></code>: <i>(generado)</i> Salida normalizada de `ingest_maestro.py`, usada como Verdad Base para comparar contra las predicciones del modelo.
+
+    * <code><b><span style="color: #009dff;">main.py</span></b></code>: Archivo principal del programa, orquesta el resto de los módulos a través de un menú central.
+
+    * <code><b><span style="color: #009dff;">profiles.py</span></b></code>: Encargado de crear, editar y eliminar perfiles cinéfilos de usuario, guardándolos en `perfiles.json`.
+
+    * <code><b><span style="color: #009dff;">visuals.py</span></b></code>: Centraliza los menús de texto que se muestran por consola, tanto los de `main.py` como los de `profiles.py`.
+
+    * <code><b><span style="color: #009dff;">procesing_profiles.py</span></b></code>: Genera los chunks y embeddings de un perfil cinéfilo puntual (recibido por nombre) y los persiste en ChromaDB.
+
+    * <code><b><span style="color: #009dff;">procesing_reviews.py</span></b></code>: Genera los chunks y embeddings de los lotes de reseñas filtradas que aún no están vectorizados y los persiste en ChromaDB.
+
+    * <code><b><span style="color: #009dff;">embeddings_previos.py</span></b></code>: Reutiliza los embeddings ya calculados al vectorizar una versión nueva de la base de reseñas: solo se codifican los chunks cuyo texto no está en ChromaDB.
+
+    * <code><b><span style="color: #009dff;">compactar_chroma.py</span></b></code>: Copia la base de ChromaDB del modelo actual a una base nueva para liberar el espacio de los chunks eliminados (se corre aparte, con el programa cerrado).
+
+    * <code><b><span style="color: #009dff;">normalizacion.py</span></b></code>: Funciones compartidas para normalizar y comparar el `film_id` entre las distintas fuentes de datos del proyecto (reseñas vs. ground-truth).
+
+    * <code><b><span style="color: #009dff;">config.py</span></b></code>: Archivo de configuración centralizada del proyecto: nombre del modelo de embeddings y todas las rutas del proyecto.
+
+    * <code><b><span style="color: #009dff;">scoring.py</span></b></code>: Entrena el modelo de reglas contra la Verdad Base y lo guarda en `src/loss/modelo_reglas_<modelo>.joblib` (opción 7). Conserva la regresión lineal anterior, que la opción 9 usa como comparación.
+
+    * <code><b><span style="color: #009dff;">recommend.py</span></b></code>: Carga el modelo entrenado y genera el ranking de recomendaciones.
+
+* <code><b><span style="color: #23c523d4;">perfiles.json</span></b></code>: <i>(en `src/db/profiles/`)</i> Almacena los perfiles cinéfilos creados desde `profiles.py`.
+
+
+
+## **Cambios pendientes**
+
+<small>*Nota: salen del informe (`docs/informe/informe.pdf`, versión 1.4 del 26-09-2026; secciones 5.2, 6 y 7). El estado de cada punto se contrastó con el changelog hasta la versión 1.4.3; el punto 2 se actualizó con las corridas de los cuatro perfiles del 24-10-2026.*</small>
+
+### Pasos propuestos
+
+1. **Agregar películas que disgustan** — *parcialmente hecho (1.4.2).*
+
+    Evaluar con Gemini entre 30 y 50 películas que la persona rechaza o le resultan indiferentes, eligiendo a propósito casos de cada filtro (en especial *Camaradería Masculina Rancia*). Así se amplía el rango de notas, los filtros tienen ejemplos positivos y el ρ es más informativo. Conviene descargar sus reseñas con el scraper antes de evaluarlas. En la 1.4.2 se agregaron 20 películas; *Camaradería* subió de 1 a 3 películas con puntaje ≥ 6, todavía muy pocas para aprenderla.
+
+2. **Evaluar los perfiles adicionales** — *hecho pero se tiene que volver a hacer cambiando la verdad base para todos los perfiles.*
+
+    Es la premisa del proyecto (multiperfil) y lo más barato de escalar: los embeddings de reseñas no dependen del perfil, así que un perfil nuevo solo necesita su JSON y la evaluación de Gemini de las mismas películas (la opción 3 solo hace falta si algún criterio tiene `frases_resenia`). En `perfiles.json` hay tres perfiles más con gustos contrastantes, cada uno con 5 afinidades, 5 filtros, `encabezado` y `regla_global`: *Matías Fuentes* (acción), *Valentina Soto* (comedia) y *Camila Rojas* (terror).
+
+    **Aclaración sobre Ignacio Araya.** Su Verdad Base ya no es la de los otros tres perfiles: después de esa corrida se evaluaron con Gemini las 58 candidatas del paso 3 (con las instrucciones que genera la opción 6) y pasó de 130 a 188 películas (187 con reseñas; falta *Nickel Boys*). Matías, Valentina y Camila siguen con las 130. Por eso la tabla trae dos filas de Ignacio: la de 130 es la línea base y la única comparable con los otros tres perfiles; la de 188 no lo es.
+
+    Además, las 58 se evaluaron en otra sesión de Gemini y con otra escala en los filtros: el porcentaje de películas con puntaje 0 bajó de 77 % a 7 % en *Camaradería Masculina Rancia* y de 58 % a 3 % en *Caos Asfixiante*, y la desviación de la nota global es 1,40 en las 58 contra 2,04 en las 130 anteriores. Con la Verdad Base ampliada, la regla aprendida dice "si *Caos Asfixiante* supera 0,0, resta hasta 0,54 puntos" y el ρ baja de 0,735 a 0,686. Cambiaron a la vez las películas y la calibración, así que la caída no se puede atribuir al método ni a las películas nuevas. Para separarlos hay que evaluar las 188 en una misma sesión (ver "Qué rehacer", más abajo).
+
+    Se evaluaron con Gemini las mismas 130 películas de *Ignacio Araya* (con las instrucciones de la opción 6; los archivos de cada perfil quedaron en `src/loss/<perfil>/`) y se entrenó cada perfil sin frases de reseña (e5-base, pooling media, 129 películas con reseñas, 10 repeticiones de validación cruzada):
+
+    | Perfil | ρ | NDCG@10 | Precisión@10 | MAE | R² | Nota global (media ± desv.) |
+    |---|---|---|---|---|---|---|
+    | Camila Rojas | **0,828** ± 0,011 | 0,873 | 0,350 | 0,400 | 0,655 | 8,22 ± 0,86 |
+    | Ignacio Araya (130 películas) | **0,735** ± 0,012 | 0,960 | 0,330 | 0,973 | 0,493 | 8,05 ± 2,04 |
+    | *Ignacio Araya (188 películas, ver aclaración)* | **0,686** ± 0,010 | 0,937 | 0,230 | 0,967 | 0,443 | 8,01 ± 1,86 |
+    | Matías Fuentes | **0,639** ± 0,014 | 0,877 | 0,630 | 0,330 | 0,348 | 8,42 ± 0,56 |
+    | Valentina Soto | **0,533** ± 0,027 | 0,847 | 0,210 | 0,385 | 0,338 | 8,62 ± 0,62 |
+
+    Lectura:
+
+    * El ρ es la métrica para comparar perfiles. El MAE, el R² y el NDCG dependen de cuán abierto sea el rango de notas (la de Ignacio llega a 2,0 y las de los otros tres empiezan entre 6,2 y 6,5), y la precisión@10 es inestable por los empates en el tope.
+    * El método funciona bien con *Camila* e *Ignacio* y peor con *Matías* y *Valentina*. Una explicación compatible, no demostrada: las 130 películas son favoritas de Ignacio (cine de autor), así que casi ninguna tiene altas las afinidades principales de Matías o Valentina. Gemini puntuó sobre todo la calidad general de la película (notas entre 6 y 10, media cercana a 8,5) y el modelo aprendió casi una sola variable: en *Matías* la nota base depende de *Mundo Inmersivo* y *Carisma* (Coreografía de Acción Física pesa 0,05) y en *Valentina* casi solo de *Timing y Química Actoral* (Ingenio Verbal pesa 0,02), aunque el perfil declara esas afinidades como las más importantes.
+    * Con *Valentina*, la regla de la etapa 2 no supera a una regresión lineal sobre los puntajes reales (MAE 0,22 contra 0,19); con *Ignacio* sí (0,36 contra 0,41).
+    * Como los cuatro perfiles tienen 5 + 5 criterios, comprobar que la regla genérica se adapta a otra cantidad de criterios sigue pendiente.
+    * Por confirmar: con qué versión de las instrucciones se evaluó la Verdad Base de Ignacio. Si no fue la actual, la comparación con los otros tres no es del todo pareja.
+
+    **Qué rehacer.** La Verdad Base de los cuatro perfiles con instrucciones nuevas, para que Gemini se base en el perfil y no en la calidad de la película:
+
+    * Indicar que la nota global refleja cuánto le gustaría la película a ese perfil, aunque sea una obra maestra; que use todo el rango de 0 a 10; y que, si las afinidades más importantes son bajas, la nota sea baja.
+    * Agregar a `regla_global` un tope además del piso actual (por ejemplo, si las dos afinidades más importantes son bajas, la nota global no pasa de cierto valor).
+    * Dar 2 o 3 películas de ejemplo con su nota (alta, media y baja) como referencia.
+    * Probar primero con una tanda de 20 películas de Matías y ver si el rango de notas se abre; probar también con un chat nuevo por tanda, por si Gemini se ancla a sus respuestas anteriores.
+    * Sumar películas del terreno de cada perfil (acción para Matías, comedia para Valentina), para que sus afinidades principales tengan ejemplos altos.
+    * Conservar los resultados de la tabla como línea base. Si solo se cambian las instrucciones de algunos perfiles, la comparación entre perfiles deja de ser pareja.
+
+3. **Evaluar las 58 candidatas y completar reseñas** — *parcialmente hecho: evaluadas solo para Ignacio (24-10-2026); el resto, pendiente.*
+
+    Evaluar con Gemini las candidatas que aún no tienen nota (opción 6) y descargar las reseñas de las películas evaluadas que no las tenían. Las candidatas son 58: las películas con reseñas procesadas que no están en la Verdad Base (todas con entre 69 y 100 reseñas). En la 1.4.3 se incorporaron las reseñas de 28 de las 29 películas evaluadas que no las tenían (falta *Nickel Boys*). Estado de cada parte:
+
+    * **Evaluar las 58 con Gemini, perfil Ignacio Araya** — *hecho (24-10-2026).* Se evaluaron con las instrucciones que genera la opción 6 y se importaron con la opción 5: su Verdad Base pasó de 130 a 188 películas (187 con reseñas, contra 129 antes) y el ρ bajó de 0,735 a 0,686 ± 0,010. Las 58 se evaluaron en otra sesión de Gemini y con otra escala en los filtros, así que ese ρ no es comparable con la línea base (ver la aclaración en el paso 2); la línea base de 130 películas sigue en `src/loss/ignacio/`.
+
+    * **Evaluar las 58 con Gemini, perfiles Matías Fuentes, Valentina Soto y Camila Rojas** — *pendiente (en espera).* Esos tres perfiles se hicieron con 130 películas y no con 188. Sin embargo, no se deben evaluar otra vez hasta recibir las instrucciones del profesor a cargo, para saber si vale la pena.
+
+    * **Descargar las reseñas de *Nickel Boys*** — *pendiente.* Es la única película de la Verdad Base sin reseñas procesadas, así que solo entrena la etapa 2. Su slug (`nickel-boys`) es el correcto en Letterboxd y está en `src/loss/pendientes_resenias.csv`. Hay que bajarlas con el scraper a `reviews.db`, correr las opciones 2 y 4 y reemplazar `reviews.zip` en el release en borrador. Conviene hacerlo cuando el contenido de `reviews.db` esté acordado con el compañero que agrega películas, porque las nuevas aparecerían como candidatas.
+
+    * **Rehacer la Verdad Base con instrucciones centradas en el perfil** — *pendiente.* Ver "Qué rehacer" en el paso 2. También corregiría la diferencia de escala entre las 130 y las 58, al evaluar las 188 en una misma sesión.
+
+
+4. **Experimentos de modelo** — *pendiente, con ganancia más incierta.*
+
+    * Modelos de embeddings más grandes, como `multilingual-e5-large` o `bge-m3` (unas 5 h en Actions).
+    * Entrenar la etapa 2 optimizando el orden en vez del error.
+
+5. **Una Verdad Base por perfil en el código** — *pendiente.*
+
+    Hoy las rutas de `dataset_maestro.csv`, `matriz_perdida.csv`, `evaluaciones_adicionales.csv`, `pendientes_evaluar.csv` y del modelo están fijas en `src/config.py`: el programa trabaja con una sola Verdad Base a la vez y, para cambiar de perfil, hay que mover los archivos a mano a `src/loss/<perfil>/`. Que las rutas dependan del perfil elegido evitaría mezclar datos de perfiles sin darse cuenta. Hay que revisar que el workflow `analisis.yml`, que se dispara al cambiar `src/loss/dataset_maestro.csv`, siga funcionando para Ignacio.
+
+### Problemas que motivan estos cambios
+
+* **La Verdad Base era una lista de películas preferidas.** Con media 8,63 y 93 de 110 películas con 8 o más, el modelo aprendía sobre todo a distinguir "muy buena" de "excelente", y los filtros casi nunca aplicaban. En la 1.4.2 la media bajó a 8,05.
+
+* **La Verdad Base de los perfiles adicionales sigue más la calidad de la película que el perfil.** Con las 130 películas de Ignacio, las notas globales de Matías, Valentina y Camila van de 6,2 a 10 con desviaciones de 0,56 a 0,86 (la de Ignacio, 2,04), y los modelos de Matías y Valentina aprenden casi una sola afinidad, que no es la más importante de su perfil. Su ρ (0,64 y 0,53) queda bajo el de Ignacio (0,74) y el de Camila (0,83).
+
+* **El cuello de botella es la etapa 1.** Con los puntajes reales de Gemini, la etapa 2 explica el 88 % de la varianza de la nota global (R²); con los puntajes que predice la etapa 1 desde las reseñas, el modelo completo explica el 39 %. Los filtros se predicen peor que las afinidades. Con la Verdad Base de la 1.4.3 el R² del modelo completo sube a 0,53 y el de los filtros a 0,34.
+
+* **Dónde falla la etapa 1** (ejemplo *Manhattan*, sección 3 del informe):
+
+    * Afinidades: predice cerca de 7 casi siempre, porque Ridge aprende a quedarse cerca del promedio de una lista casi toda bien evaluada, aunque Gemini dé 2 o 3.
+    * Filtros: el rasgo de frase de *Insoportabilidad Prolongada* estaba en el percentil 95, pero la etapa 1 predijo 3,0, bajo el umbral de 5,6, y el descuento no se activó. Había solo 19 películas con ese filtro alto para que Ridge le diera peso al rasgo.
+    * *Camaradería Masculina Rancia*: en el informe tenía una sola película con el filtro alto, así que al sacarla del entrenamiento no quedaba ningún ejemplo.
+    * Los errores grandes se concentran en películas cuyo defecto, según el perfil, las reseñas no describen o describen en pocas reseñas (*Manhattan*, *Marty Supreme*, *Amélie*).
+
+* **El ruido de evaluación es del tamaño de las mejoras.** Una sola partición de la validación cruzada varía ±0,05 en ρ, y varias conclusiones tempranas (como la ventaja del percentil 90) se revirtieron al repetir. Toda decisión de modelo debe tomarse con comparaciones pareadas repetidas (10 repeticiones).
+
+* **La etapa 2 tiene óptimos locales parecidos.** Diferencias de redondeo pueden llevar al optimizador a otra solución con casi el mismo error; afecta al ρ en ~0,004.
+
+* **Idiomas.** Los chunks en otros idiomas (13 % de las reseñas) son el 35 % de los más similares a las frases (*hubness* del modelo multilingüe), pero usar solo inglés no cambió las correlaciones (±0,04): no requiere cambios por ahora.
+
+* **Privacidad (restricción a mantener).** El repositorio es público: las reseñas y las bases de embeddings (que contienen fragmentos de reseñas) solo van al release en borrador, y los resultados publicados son agregados e identificadores.
 
 
 ## **Changelog (historial de cambios)**
 <small>*Nota: Este changelog está en orden cronológico inverso.*</small>
 
-### **Versión 0.0.1** (14-07-2026) 
-> Implementacion temprana de chunking para los perfiles de usuario
+### [1.4.3] - 18-10-2026
+> Embeddings de reseñas incrementales.
+
+* Cambios
+
+    * Al llegar una versión nueva de `reviews.db`, la opción 4 ya no vuelve a codificar todas las reseñas: reutiliza el vector de cada chunk cuyo texto ya está en la colección y solo codifica los nuevos. Después elimina el lote anterior de la misma fuente, que antes quedaba junto al nuevo y duplicaba sus reseñas en el promedio de cada película. La lógica está en `embeddings_previos.py`, con pruebas en `tests/test_embeddings_previos.py`.
+
+    * El workflow de análisis restaura la base de embeddings de la versión anterior de `reviews.zip` cuando la actual no está en caché (antes partía de cero, unas 2 horas), descomprime la base con fecha actual para que siempre se vuelva a filtrar, y la base publicada en el release solo incluye el filtrado vigente.
+
+    * `reviews.zip` actualizado con las reseñas de 28 de las 29 películas pendientes (falta *Nickel Boys*). En la primera corrida incremental, e5 codificó 7.117 chunks y reutilizó 55.685 (89 %), y el workflow bajó de 1 h 50 a 45 min.
+
+    * Chroma no libera espacio al eliminar el lote reemplazado, así que la base publicada de e5 quedó del doble de tamaño (540 MB). `compactar_chroma.py` copia la base a una nueva sin lo eliminado; el workflow la compacta después del análisis (así también el caché) y reemplaza en el release la base de la misma versión si la nueva es bastante más chica.
+
+* Resultados (e5, reglas con frases, 10 repeticiones)
+
+    * Películas evaluadas con reseñas: de 101 a 129. ρ de Spearman 0,674 ± 0,024 → 0,739 ± 0,012; R² 0,40 → 0,53; precisión@10 0,28 → 0,31. Etapa 1 (R² medio): afinidades 0,45 → 0,53, filtros 0,22 → 0,34.
+
+    * El MAE sube de 0,61 a 0,95 porque las notas ahora tienen mucha más dispersión (las películas que no gustan): la línea base que predice el promedio pasa de 0,86 a 1,53, así que el error relativo a ella baja de 72 % a 62 %.
+
+    * mpnet: ρ 0,721, MiniLM: ρ 0,718; e5 sigue siendo el mejor.
+
+    * Las frases de reseña casi dejaron de aportar: con e5, +0,004 ± 0,004 en ρ (mejor en 6 de 10 repeticiones; antes +0,008 en 10 de 10), y con MiniLM empeoran levemente. Mejoran la etapa 1 de Insoportabilidad, Control y Caos, y no ayudan en Camaradería ni Diorama.
+
+    * La curva de aprendizaje casi se aplana (ρ 0,63 con 26 películas, 0,71 con 52, 0,73 con 77 y 0,74 con 103): más películas parecidas a las actuales rendirán poco.
+
+    * `docs/informe/informe.pdf` actualizado con estos resultados. `docs/informe/calculos.py` calcula los datos del informe que necesitan la base de embeddings; el workflow de análisis lo corre con e5 al lanzarlo a mano con la opción `calculos_informe`.
+
+### [1.4.2] - 17-10-2026
+> Verdad Base ampliada con películas que no gustan.
+
+* Cambios
+
+    * `dataset_maestro.csv` pasa de 110 a 130 películas: 20 nuevas evaluadas por Gemini, la mayoría con notas bajas (Green Book, Bohemian Rhapsody, The Blind Side, Joker, American Sniper, entre otras), y nueva evaluación para 9 que ya estaban (Elvis, Marty Supreme, Oppenheimer, Frankenstein, etc.). La nota media baja de 8,63 a 8,05, las películas bajo 6 pasan de 6 a 18 y todos los filtros tienen más películas donde aplican con fuerza (puntaje ≥ 6: Control de 18 a 29, Diorama de 12 a 24, Caos de 14 a 19, Insoportabilidad de 19 a 23, Camaradería de 1 a 3).
+
+    * La ingesta (opción 5) acepta "REPROBADA" como nota global y le asigna `NOTA_REPROBADA = 2.0`, justo bajo la peor nota aprobada (2,5).
+
+    * `evaluaciones_anteriores.csv` guarda la evaluación anterior de las 9 películas reevaluadas y `explicaciones_gemini.csv` la explicación de Gemini de cada evaluación nueva. Entre ambas evaluaciones, la nota global tiene ρ 0,95 y los puntajes por criterio ρ 0,83 (los filtros varían más: 2,3 puntos en promedio en Insoportabilidad y 2,1 en Diorama).
+
+    * El workflow de análisis también corre al cambiar `dataset_maestro.csv`.
+
+* Pendiente
+
+    * Las 20 películas nuevas no tienen reseñas en `reviews.db` (o tienen menos de 20): por ahora solo entrenan la etapa 2 (la regla global). Para que entren a la etapa 1 hay que descargar sus reseñas con el scraper y reemplazar `reviews.zip` en el release en borrador. La opción 6 ahora genera `src/loss/pendientes_resenias.csv` con las películas evaluadas sin reseñas suficientes y su slug de Letterboxd (hoy 29: las 20 nuevas, 8 de las reevaluadas y *Nickel Boys*). Se completaron los slugs que faltaban en `dataset_maestro.csv` (solo *Nickel Boys* usa el que se deduce del título).
+
+### [1.4.1] - 26-09-2026
+> Informe del pipeline y pruebas automáticas.
+
+* Añadido
+
+    * Informe en LaTeX/PDF (`docs/informe/`), con sus datos agregados y los scripts que generan figuras y tablas.
+
+    * 30 pruebas unitarias con datos sintéticos (`tests/`, se corren con `python -m pytest tests`) y el workflow `tests.yml`, que las ejecuta junto con `pyflakes` en cada push y pull request.
+
+* Resultados
+
+    * Curva de aprendizaje con e5 y frases (validación cruzada, 10 repeticiones): ρ 0,45 con 20 películas de entrenamiento, 0,60 con 40, 0,65 con 61 y 0,675 con 81. Todavía sube, pero cada vez menos.
+
+### [1.4.0] - 26-09-2026
+> Las opciones 7 y 8 usan el modelo de reglas con frases de reseña.
+
+* Cambios
+
+    * La opción 7 entrena el modelo de reglas en dos etapas en vez de la regresión lineal, con las frases de reseña del perfil (modo `ponderar`: sus rasgos se agregan al embedding con la misma varianza total). Informa ρ de Spearman, NDCG@10, precisión@10 y MAE con validación cruzada y muestra las reglas aprendidas. El modelo se guarda en `modelo_reglas_<modelo>.joblib` junto con el pooling, las frases y sus umbrales de similitud; hay que volver a ejecutar la opción 7 antes de la 8.
+
+    * La opción 8 aplica ese modelo, preparando las películas igual que al entrenar.
+
+    * La opción 9 compara el modelo de reglas con la regresión lineal anterior (`nota_modelo` y `nota_lineal` en `ranking.csv` y `peliculas.csv`) y lista las películas peor predichas por el modelo de reglas.
+
+    * Las métricas del modelo de reglas son el promedio de 10 repeticiones de la validación cruzada, con su desviación: el ρ de una sola partición varía ~±0,05 con ~100 películas.
+
+* Resultados (validación cruzada, promedio de 10 repeticiones)
+
+    * Con e5, el modelo de las opciones 7 y 8 ordena las películas con ρ 0,674 ± 0,026 (0,667 sin frases de reseña; la regresión lineal anterior, 0,55) y se equivoca en la nota en 0,58 puntos (MAE; 0,82 prediciendo siempre el promedio). Con MiniLM, ρ 0,605; con mpnet-base, 0,651.
+
+### [1.3.0] - 26-09-2026
+> e5 como modelo de embeddings por defecto y métricas de ranking.
+
+* Cambios
+
+    * El modelo de embeddings por defecto pasa a ser `intfloat/multilingual-e5-base`, con sus embeddings en `src/db/embeddings/chroma_multilingual-e5-base/`. MiniLM conserva `chroma/` y se sigue pudiendo usar con `MODELO_EMBEDDINGS`. Hay que generar los embeddings de e5 (opciones 2 a 4, varias horas en CPU) o descargarlos del release en borrador `datos-resenas` (ver "¿Cómo ejecutar el programa?").
+
+    * `filter.py` toma por defecto 100 reseñas por película en vez de 200 (rinden igual y reducen a la mitad el tiempo de generar embeddings), y ya no crea un csv filtrado nuevo si el resultado es idéntico al anterior, para que la opción 4 no duplique embeddings.
+
+* Añadido
+
+    * Variable de entorno `POOLING_RESENIAS` para elegir cómo se resumen las reseñas de cada película (`media` por defecto, o `pXX`). El modelo guardado por la opción 7 recuerda con cuál se entrenó y la opción 8 usa el mismo.
+
+    * Métricas de ranking en la opción 9 (`src/metricas.py`): ρ de Spearman como métrica principal, más NDCG@10 y precisión@10, además del MAE. Las comparaciones de pooling y de frases se ordenan por ρ, con su diferencia contra la referencia en las mismas particiones y en cuántas de 10 repeticiones la superan.
+
+    * El workflow de análisis publica la base de embeddings de e5 en el release en borrador, una vez por cada versión de las reseñas.
+
+* Resultados con ρ de Spearman como métrica principal (modelo de reglas, promedio de 10 repeticiones de la validación cruzada; con un orden al azar ρ = 0)
+
+    * Modelos de embeddings: MiniLM ρ 0,60 (0,62 con 100 reseñas por película, que ordena mejor que 200 en las 10 repeticiones), mpnet-base 0,64 y e5-base 0,67.
+
+    * Con e5 ningún pooling ordena mejor que el promedio: los percentiles 50 y 90 empatan (Δ ρ ±0,001) y el 75 y el 95 empeoran.
+
+    * Con e5, las frases de reseña mejoran el orden en las 10 repeticiones: ρ 0,665 → 0,678 usando solo los rasgos de frases para los filtros, y 0,674 ponderadas junto al embedding (que además baja el MAE de 0,586 a 0,581). El control con solo la descripción sube menos (0,672). Con MiniLM y mpnet las frases no superan al control. Las frases se eligieron después de leer reseñas, así que la ganancia puede ser algo optimista.
+
+    * El modelo de reglas ordena mucho mejor que la regresión lineal de las opciones 7 y 8 (con e5, ρ 0,66 contra 0,55; con MiniLM, 0,64 contra 0,46).
+
+* Corregido
+
+    * El workflow de análisis tomaba el primer `.zip` del release: al agregarse la base de embeddings de e5, una corrida descargó esa en vez de `reviews.zip`, quedó sin reseñas y reemplazó la base publicada por una incompleta. Ahora descarga solo el zip de reseñas y no reemplaza una base publicada por otra de menos de la mitad del tamaño.
+
+### [1.2.0] - 26-09-2026
+> Frases de reseña en el perfil y experimentos sobre los filtros.
+
+* Añadido
+
+    * Campo opcional `frases_resenia` en cada filtro y afinidad del perfil: frases como las escribiría alguien en Letterboxd (ej. "Oscar bait designed to make you cry"). Se editan en la opción 1, la opción 3 las vectoriza y la opción 9 compara el modelo de reglas con y sin ellas (`frases_resenia.csv`), repitiendo con 5 particiones distintas. El perfil de ejemplo trae frases para sus 5 filtros.
+
+    * `src/experimentos/sondas_filtros.py` (workflow `sondas.yml`): mide qué tan bien detecta cada filtro su descripción y distintas frases sonda, con la correlación de Spearman entre la fracción de chunks muy similares y el puntaje de Gemini. Solo publica números e ids de chunks.
+
+* Resultados (MiniLM, 101 películas)
+
+    * Las frases detectan mejor los filtros que la descripción, escrita en otro registro: Insoportabilidad ρ 0,53 contra 0,39; Control Emocional 0,40 contra −0,04; Diorama 0,28 contra 0,03. En Caos gana la descripción (0,30) y Camaradería no se puede aprender (una sola película con nota ≥ 6).
+
+    * Agregadas al embedding en la etapa 1, suben el R² de los filtros de 0,119 a 0,135 (Insoportabilidad de 0,14 a 0,18), pero la nota global casi no cambia: MAE −0,003 ± 0,002 en 5 repeticiones. Usar solo las frases o darles más peso empeora el resultado. El modelo de reglas principal sigue sin frases.
+
+    * Repetir la validación cruzada con varias particiones muestra que el MAE del modelo de reglas es ~0,63; el 0,608 de una sola partición era optimista.
+
+    * Modelos de embeddings (modelo de reglas, promedio de 5 repeticiones, sin frases): MiniLM (384 dimensiones, 200 reseñas por película) MAE 0,629 y R² 0,29; `paraphrase-multilingual-mpnet-base-v2` (768, 100 reseñas) MAE 0,602 y R² 0,36; `intfloat/multilingual-e5-base` (768, 100 reseñas) MAE 0,592 y R² 0,38, el mejor sobre todo en filtros (R² etapa 1 0,19 contra 0,12). Los modelos grandes tardan unas 3 veces más por chunk en generar embeddings. Se eligen con la variable de entorno `MODELO_EMBEDDINGS`.
+
+    * Pooling (5 repeticiones, percentiles 50, 75, 90 y 95 por dimensión): ningún percentil mejora de forma consistente al promedio. El mejor cambia según el modelo y sus diferencias (≤ 0,008) son del tamaño de su variación entre repeticiones; con e5 el promedio es el mejor. La ventaja del percentil 90 que se veía con una sola partición (0,584 contra 0,606 con e5) era ruido. Usar solo 50 reseñas por película empeora con los tres modelos; 100 o 200 rinden igual.
+
+### [1.1.0] - 25-09-2026
+> Ejecución completa del pipeline en un paso y datos para analizar el modelo.
+
+* Añadido
+
+    * Opción 9 del menú (`src/analisis.py`): ejecuta las opciones 2 a 8 sin preguntas y guarda en `analisis/<fecha_hora>/` métricas con validación cruzada, datos por película, pesos, ranking y similitud entre los términos del perfil. "Salir" pasó a ser la opción 10.
+
+    * Modelo de reglas en dos etapas (`src/modelo_reglas.py`), evaluado en la opción 9 junto a la regresión lineal. Con los puntajes reales de Gemini, su etapa 2 explica la nota global con R² 0.89 en validación cruzada. Se compararon otras técnicas para esa etapa (regresión lineal, GAM, gradient boosting con y sin restricciones monótonas, random forest y una regla corregida con boosting): los árboles solos rinden peor con 110 películas, y el híbrido regla + boosting mejora apenas (MAE 0,280 contra 0,293) a cambio de perder legibilidad, así que se mantuvo la regla simple. Las opciones 7 y 8 siguen usando la regresión lineal hasta validar el modelo nuevo con embeddings reales.
+
+    * Las opciones 3 a 7 aceptan el perfil (y qué hacer con los datos antiguos) como parámetros, para poder ejecutarse sin preguntas; desde el menú siguen preguntando igual que antes.
+
+* Cambios
+
+    * `scoring.py` estandariza las similitudes antes de construir las interacciones. Como varían muy poco entre películas, los productos quedaban diminutos y la regresión les asignaba pesos de cientos de miles; ahora los pesos son comparables entre variables. El modelo guardado cambió de formato: hay que reentrenar (opción 7).
+
+    * `procesing_reviews.py` codifica todos los chunks en una sola pasada por tandas, con barra de progreso, en vez de llamar al modelo una vez por reseña.
+
+### [1.0.4] - 24-09-2026
+> Embeddings del perfil sin contaminación y excepciones incorporadas al modelo.
+
+* Arreglado
+
+    * `procesing_profiles.py` vectorizaba cada filtro junto con su nivel, severidad, afinidades corrompidas y excepción, lo que acercaba su vector a los conceptos opuestos (ej. "Camaradería Masculina Rancia" quedaba con similitud 0.65 con "Resistencia Femenina"). Ahora solo se vectoriza el nombre y la descripción; el resto queda como metadatos.
+
+    * `perfiles.ejemplo.json`: descripciones reescritas en positivo, porque los embeddings no distinguen bien las negaciones ("sin superioridad moral" acercaba "Humanismo Social" a "Insoportabilidad Prolongada"). La nota de "Camaradería Masculina Rancia" pasó a ser su excepción.
+
+* Añadido
+
+    * Cada excepción tiene su propio embedding, y `scoring.py` incorpora la cadena afinidad ← filtro ← excepción como términos de interacción de la regresión.
+
+    * Campo `regla_global` en el perfil (se edita desde la opción 1) con las instrucciones para calcular la nota global, que no es un promedio. La opción 6 genera con el perfil las instrucciones de evaluación para Gemini (`src/loss/instrucciones.py`).
+
+    * Columnas `gt_excepcion_*` en la Verdad Base y en la plantilla de pendientes, para registrar si la excepción de cada filtro aplica. En `dataset_maestro.csv` se obtienen del asterisco que acompaña al puntaje, que antes se descartaba.
+
+    * La opción 2 lee también `src/db/raw/reviews.db` (base del scraper de Letterboxd, fuera del repositorio) y exporta sus reseñas como un lote filtrado más. Con ella, 101 de las 110 películas evaluadas tienen reseñas para entrenar (antes eran 2).
+
+    * `procesing_reviews.py` guarda en ChromaDB en tandas de 5.000 chunks: un lote grande superaba el máximo por llamada de Chroma y fallaba.
+
+    * Columna `film_slug` en `dataset_maestro.csv` con el identificador de Letterboxd de cada película, usada como `film_id`. Antes el id se deducía del título, lo que fallaba con los títulos cortados en la planilla ("A Woman Under the...") y con tildes ("Cléo"). Con esto, 104 de las 110 películas evaluadas cruzan con la base de reseñas; las 6 restantes no tienen reseñas extraídas y quedan sin slug.
+
+    * Campo opcional `encabezado` en cada filtro/afinidad del perfil (se pide al crearlo o editarlo en la opción 1). `ingest_maestro.py` arma con él el mapeo de columnas de la planilla, en vez del diccionario `MAPEO_ENCABEZADOS` fijo en el código que solo servía para un perfil.
+
+* Cambios
+
+    * El modelo guardado incluye la estructura del perfil; un modelo de la versión anterior pide reentrenar (opción 7). Tras actualizar hay que volver a ejecutar las opciones 3 y 7.
+
+### [1.0.3] - 23-09-2026
+> Integridad de los embeddings en ChromaDB y cierre del ciclo de evaluación de películas pendientes.
+
+* Arreglado
+
+    * `procesing_reviews.py`: el id de cada chunk no incluía el lote, así que reseñas de lotes distintos en la misma fila se sobrescribían. Ahora el id incluye el lote, y se ofrece eliminar los chunks con el formato antiguo.
+
+    * La opción 4 solo vectorizaba el `.csv` filtrado más reciente; ahora procesa todos los lotes que aún no están en ChromaDB.
+
+    * `profiles.py`: al renombrar un perfil no se aplicaba `.title()`, y un perfil renombrado ya no se podía vectorizar ni eliminar. Los nombres se buscan ahora sin distinguir mayúsculas, y ya no se puede renombrar un perfil con el nombre de otro existente (antes lo sobrescribía).
+
+    * `procesing_profiles.py`: los embeddings de filtros eliminados y de perfiles borrados o renombrados quedaban en ChromaDB. Ahora cada perfil se reemplaza completo al vectorizarlo, y se ofrece limpiar los perfiles huérfanos.
+
+* Añadido
+
+    * `ingest_maestro.py` importa las evaluaciones completadas en `pendientes_evaluar.csv` hacia `evaluaciones_adicionales.csv`, que se une a la Verdad Base.
+
+    * `gt_matrix_pipeline.py` no sobrescribe `pendientes_evaluar.csv` si tiene evaluaciones sin importar.
+
+    * `src/db/profiles/perfiles.ejemplo.json`: perfil de Ignacio Araya reconstruido desde ChromaDB (reproduce exactamente los textos de sus embeddings), para poder correr el pipeline sin crear el perfil a mano.
+
+### [1.0.2] - 23-09-2026
+> Corrección del entrenamiento del modelo, soporte real para elegir perfil y rutas independientes del directorio de ejecución.
+
+* Arreglado
+
+    * `scoring.py` comparaba el id compuesto de cada chunk (`pelicula::review_N::chunk_M`) contra el `film_id` de la Verdad Base, así que la opción 7 nunca lograba cruzar datos. Ahora promedia los embeddings por película, igual que `recommend.py`.
+
+    * `scoring.py` y `recommend.py` buscaban el embedding de cada filtro solo por nombre, pudiendo tomar el de otro perfil que tuviera un filtro con el mismo nombre. Ahora filtran por persona.
+
+    * La opción 8 reentrenaba su propio modelo en vez de usar el de la opción 7. Ahora la opción 7 guarda el modelo (`modelo_regresion.joblib`) y la opción 8 lo carga.
+
+    * `procesing_profiles.py` fallaba con `TypeError` al ejecutarse directamente (llamaba `main(nombre)` con un `main()` sin parámetros).
+
+    * `ingest_maestro.py` fallaba con `KeyError` si al dataset maestro le faltaba alguna columna; ahora la omite con un aviso, y también avisa de columnas sin mapeo.
+
+    * `filter.py` volvía a filtrar todos los CSV crudos en cada ejecución, duplicando archivos en `result/`. Ahora omite los que ya fueron filtrados y no han cambiado (el nombre de salida incluye el nombre del crudo).
+
+* Cambios
+
+    * Las rutas se centralizan en `config.py` y se resuelven relativas a los archivos del proyecto, no a `Path.cwd()`: el programa ya no depende del directorio desde donde se ejecuta.
+
+    * `normalizacion.py`: `cargar_perfil_actual()` (que tomaba siempre el primer perfil de `perfiles.json`) se reemplazó por `seleccionar_perfil()`, que pregunta cuál usar cuando hay más de uno.
+
+    * `scoring.py` avisa cuando hay menos películas que filtros (modelo sobreajustado, métricas no confiables).
+
+* Añadido
+
+    * `requirements.txt` con las dependencias del proyecto.
+
+### [1.0.1] - 17-09-2026
+>Arreglos menores sobre verificación de datos por medio de los inputs para mantener el flujo de datos correcto y sin guardados fantasmas.
+
+* Arreglado
+
+    * Se agregaron verificaciones a las variables para los nombre en `procesing_profiles.py` para evitar cargar el modelo si no se introduce un nombre válido.
+
+    * En la gestión de perfiles de `profiles` se agregó verificaciones para que no se introduzcan valores nulos en afinidad y restriccion, además de que el guardado de datos se va a realizar una vez que pase todo el ingreso de datos sin problemas.
+
+* Cambios
+
+    * Se hicieron pequeños cambios de interfaces para que sea un poco más precisa la información que se muestra en pantalla por medio de la consola.
+
+### [1.0.0] - 17-09-2026
+> Corrección de bugs críticos de rutas y del pipeline de ground-truth, reorganización del menú principal, nuevo módulo de recomendaciones, y desacople del perfil activo en vez de mapeos fijos por código.
+
+* Arreglado
+
+    * `perfiles.json` apuntaba a la raíz del proyecto en `profiles.py`, `procesing_profiles.py` y `matrix.py`, pero el archivo real vive en `src/db/profiles/perfiles.json`. Corregidas las tres rutas.
+
+    * `src/loss/gt_matrix_pipeline.py` no tenía su lógica real: por error contenía una copia del menú de `main.py`, con un import que se importaba a sí mismo. Reescrito para cruzar (álgebra de conjuntos, con `film_id` canonicalizado) las películas con reseña procesada contra la Verdad Base, reportar los nombres de las pendientes y generar `pendientes_evaluar.csv`.
+
+    * `visuals.py` tenía `mostrar_menu_principal()` definida dos veces (código muerto); eliminada la duplicada.
+
+    * `procesing_profiles.py` y `procesing_reviews.py` forzaban `device="cuda"` sin verificar disponibilidad; ahora detectan automáticamente con `torch.cuda.is_available()` y usan CPU si no hay GPU.
+
+* Añadido
+
+    * `src/recommend.py`: nuevo módulo que aplica el modelo ya entrenado (regresión lineal) sobre las películas con reseña procesada que todavía no tienen nota de Gemini, y muestra un único ranking (evaluadas + candidatas) con columnas Película / Nota Modelo / Nota de Gemini (`NaN` cuando no hay nota de Gemini todavía).
+
+    * `src/normalizacion.py`: `cargar_perfil_actual()`, `obtener_filtros_del_perfil()` y `nombre_columna_gt()`, para armar dinámicamente el orden y los nombres de columna de los filtros/afinidades del perfil activo.
+
+    * Opción 8 del menú ("Recomendar películas según el perfil").
+
+    * Sección "Guía del menú principal" en este README, con la descripción de cada opción.
+
+* Cambios
+
+    * `main.py` y `visuals.py`: menú reorganizado — opción 6 ahora ejecuta el pipeline de pendientes, opción 7 el entrenamiento (regresión lineal), opción 8 las recomendaciones, y opción 9 pasó a ser "Salir".
+
+    * `scoring.py` y `recommend.py`: el diccionario fijo de filtros (`filterMapping`) fue reemplazado por las funciones dinámicas de `normalizacion.py`, para que agregar un perfil nuevo o cambiarle los filtros a uno existente no requiera editar código.
+
+    * Librerías utilizadas actualizadas: agregadas `pandas`, `scikit-learn` y `torch`, que ya se usaban en el código pero no estaban documentadas.
+
+### [0.2.0] - 20-08-2026
+> Sincronización completa de todos los módulos a través de `main.py`, con persistencia real de embeddings y corrección de bugs de integración entre archivos.
+
+* Añadido
+
+    * `src/normalizacion.py`: nuevo módulo compartido con `parse_film_id()` (migrada desde `ingest_maestro.py`) y la nueva `canonicalizar_film_id()`, para poder cruzar el `film_id` de las reseñas contra el del ground-truth sin importar si trae o no el año.
+
+    * Persistencia real de embeddings en **ChromaDB**: tanto los perfiles como las reseñas se guardan ahora en colecciones (`perfiles`, `resenias`) dentro de `src/db/embeddings/chroma/`, usando `upsert` para que reprocesar un perfil o un lote no genere duplicados.
+
+    * `procesing_reviews.py`: agregadas `obtener_csv_mas_reciente()`, `cargar_resenias()` (con validación de columnas requeridas) y `guardar_coleccion()`.
+
+    * `main.py`: nuevas opciones de menú para generar embeddings de reseñas y para revisar qué películas siguen pendientes de evaluación (la función de `gt_matrix_pipeline.py` ya estaba importada desde antes, pero nunca se usaba en ningún lado del menú).
+
+    * `visuals.py` ahora también centraliza los menús que antes vivían directamente dentro de `profiles.py`.
+
+* Cambios
+
+    * `profiles.py` reestructurado con una función `main()` y su guardia `if __name__ == '__main__':`, para poder importarse desde `main.py` sin que el menú se dispare automáticamente al hacer `import`.
+
+    * Unificados los nombres de campo del perfil (`descripcion_texto`/`excepcion_texto` → `descripcion`/`excepcion`) para que filtros restrictivos y afinidades usen el mismo esquema, tanto en `perfiles.json` como en `profiles.py`.
+
+    * `perfiles.json`: migrado el perfil real de Ignacio Araya (antes vivía hardcodeado dentro de `procesing_profiles.py`); se eliminaron los campos `descripcion_fragmentos`/`excepcion_fragmentos` por ser innecesarios, ya que los embeddings se generan a partir de la descripción completa.
+
+    * `procesing_profiles.py` ahora recibe el nombre del perfil como parámetro (`main(nombre_perfil)`) y lo lee desde `perfiles.json`, en vez de tener un perfil fijo hardcodeado dentro del propio archivo.
+
+    * `procesing_reviews.py`: reemplazado el recorrido por índice (`for i in range(len(...))`) por `iterrows()`, y el `.csv` fijo hardcodeado por selección dinámica del lote filtrado más reciente (según fecha real de modificación del archivo).
+
+    * `ingest_maestro.py` ahora importa `parse_film_id` desde `src/normalizacion.py` en vez de definirla localmente.
+
+    * `gt_matrix_pipeline.py`: la comparación de películas pendientes ahora canonicaliza el `film_id` antes de cruzarlo contra el ground-truth, y además reporta los nombres de las películas pendientes (antes solo mostraba el conteo).
+
+    * `main.py` reescrito por completo: el menú quedó reducido a las 7 acciones realmente funcionales hasta el momento, cada una con su mensaje de estado antes de ejecutarse.
+
+* Arreglado
+
+    * Bug en `procesing_profiles.py` que usaba f-strings con comillas dobles anidadas, sintaxis válida solo desde Python 3.12+ (impedía incluso importar el archivo en versiones anteriores).
+
+    * Bug en `profiles.py` donde `menu_afinidades()` dependía de la variable `es_nuevo` como si fuera global, sin recibirla como parámetro.
+
+    * Bug en `profiles.py` donde, al crear un perfil nuevo, `datos[nombre_perfil] = {"restrictivos": {}}` quedaba sobreescrito inmediatamente por `datos[nombre_perfil] = {"afinidad": {}}`.
+
+    * Bug de cruce de datos entre `gt_matrix_pipeline.py` y `ingest_maestro.py`: el `film_id` de las reseñas (a veces con sufijo de año, según si Letterboxd necesitó desambiguar el título) no coincidía con el del ground-truth (que siempre lo omite), generando falsos positivos de "película pendiente de evaluar".
+
+    * Ruta hardcodeada con backslashes de Windows en `procesing_reviews.py`, reemplazada por manejo de rutas con `pathlib` para que funcione en cualquier sistema operativo.
+
+    * Import roto en `main.py` (`import src.embeddings`, que apuntaba a un archivo inexistente).
+
+### [0.1.1] - 18-08-2026
+
+* Cambios
+    
+    * Reajustada selección de `.csv` utilizado como ground-truth.
+
+    * Archivo `main.py` refactorizado para acomodar las modificaciones realizadas.
+
+* Añadido
+    
+    * Archivo `ingest_maestro.py` para procesar el archivo de ground-truth `dataset_maestro.csv`
+
+### [0.1.0] - 03-08-2026
+> Conseguida versión funcional del programa con todas las funcionalidades principales.
+
+* Cambios
+    
+    * Añadido mecanismo básico de ingesta para el oráculo con `ingest_oraculo.py`.
+
+    * Concretada estructura base de la función `main.py` para acceder a las funcionalidades del programa.
+
+    * Implementada base de datos final utilizando sqlite3 para guardar las calificaciones (manuales) finales de las películas en `ground_truth.db`.
+
+    * Refactorizados archivos `embeddings.py` y `profiles.py` para definir una función maestra local (main) y así poder importar la misma a través del archivo principal del programa, `main.py`.
+
+    * Cambios generales para permitir sincronización y estabilidad con Google Colab: Adaptar localización de rutas con Path.cwd, acceder a sub-directorios de forma más explícita, etc.
+
+### **Versión 0.0.1** (14-07-2026)
+> Implementacion temprana de chunking para los perfiles de usuario.
+
+* Parche 0.0.5 (31-07-2026)
+    > Creado módulo `loss/` e implementadas funcionalidades principales de Ground truth:
+    
+    * Creación dinámica de la matriz de Verdad Base mediante `matrix.py`.
+
+    * Script despachador `gt_matrix_pipeline` para controlar el flujo de la base de datos.
+
+    * Utilizada álgebra de conjuntos en el *pipeline* para rastrear películas pendientes y obviar aquellas ya evaluadas.
+    * Implementación de sistema generador de chunks y embedings para las reseñas
+    * Correcion al sistema de generacion de usuarios
+
+* Parche 0.0.4 (31-07-2026)
+
+    * Añadido nuevo filtro para el procesado de la base de datos: ahora se eliminan reseñas con textos tanto completamente vacíos como con números (*presuntamente*) fuera de contexto, es decir, sin ningún tipo de texto además de los propios números.
+
+    * Actualizada serialización de archivos extraídos desde (`extract.ipynb`) de tal forma que los archivos csv resultantes sean guardados correctamente dentro de la carpeta (`raw`) y siguiendo la convención: **prefijo**_YY-MM-DD_HH-MM-SS.
+
+* Parche 0.0.3 (30-07-2026)
+    > Implementación de base de datos: extracción y filtrado.
+
+    * Estructuración inicial del módulo de base de datos (`db/`) para aislar la lógica de ingesta de la lógica de procesamiento.
+
+    * Implementación del archivo de extracción (`extract.ipynb`) para la captura y guardado automatizado dentro de la carpeta de archivos crudos (`raw`).
+
+    * Desarrollado motor de sanitización y normalización (`filter.py`) para depurar los datos extraídos, prepararlos para su vectorización y almacenarlos dentro de la carpeta de archivos procesados (`result`).
 
 * Parche 0.0.2
-  + Implementacion de sistema de embeddings para los perfiles de usuario
+    > Implementacion de sistema de embeddings para los perfiles de usuario.
+    * Creación y finalización de entorno de creación de perfiles cinéfilos de usuarios (nombre perfil, filtros, afinidades)

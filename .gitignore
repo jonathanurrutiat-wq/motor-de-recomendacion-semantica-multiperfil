@@ -217,3 +217,21 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Modelo entrenado (generado por scoring.py)
+*.joblib
+
+# Perfil de ejemplo versionado (perfiles.json sigue siendo local)
+!src/db/profiles/perfiles.ejemplo.json
+
+# Bases de reseñas extraídas (pesadas; se distribuyen fuera del repo)
+src/db/raw/*.db
+src/db/raw/*.zip
+# Reseñas filtradas (incluye las muestras "filtrado_base_de_datos_inicial_*")
+src/db/filtered/result/filtrado_*.csv
+
+# Datos de análisis generados por la opción 9
+analisis/
+
+# Embeddings de modelos alternativos (MODELO_EMBEDDINGS)
+src/db/embeddings/chroma_*/

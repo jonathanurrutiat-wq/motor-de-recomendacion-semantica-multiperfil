@@ -1,0 +1,252 @@
+name: Análisis completo (opción 9)
+
+# Corre el pipeline completo con embeddings reales, una vez por cada modelo de
+# embeddings de la matriz (en paralelo), y publica los datos de análisis en la
+# rama resultados-analisis. Las reseñas se toman del release en borrador
+# "datos-resenas" (solo visible para quienes tienen permiso de escritura) y
+# nunca se suben al repositorio.
+on:
+  workflow_dispatch:
+    inputs:
+      calculos_informe:
+        description: "Calcular también los datos del informe con e5 (curva de aprendizaje y ejemplo, ~30 min más)"
+        type: boolean
+        default: false
+  push:
+    branches: [feature/program-refinement]
+    # También al cambiar el perfil (sus embeddings se recalculan en cada corrida)
+    # o el código que solo afecta el análisis; con los embeddings de reseñas en
+    # caché, esas corridas tardan unos minutos.
+    paths:
+      - .github/workflows/analisis.yml
+      - src/db/profiles/perfiles.ejemplo.json
+      - src/loss/dataset_maestro.csv
+      - src/analisis.py
+      - src/modelo_reglas.py
+      - src/pooling.py
+
+permissions:
+  contents: write
+
+jobs:
+  analisis:
+    name: analisis (${{ matrix.modelo }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Modelo usado hasta la versión 1.2.0.
+          - modelo: sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+            max_resenias: 200
+            publicar_embeddings: false
+          # Modelos ~3 veces más lentos: hasta 100 reseñas por película (con MiniLM rinde igual que 200).
+          - modelo: sentence-transformers/paraphrase-multilingual-mpnet-base-v2
+            max_resenias: 100
+            publicar_embeddings: false
+          # Modelo por defecto: su base de embeddings se publica en el release en
+          # borrador para no tener que regenerarla localmente.
+          - modelo: intfloat/multilingual-e5-base
+            max_resenias: 100
+            publicar_embeddings: true
+    concurrency:
+      group: analisis-${{ matrix.modelo }}
+      cancel-in-progress: false
+    env:
+      MODELO_EMBEDDINGS: ${{ matrix.modelo }}
+      MAX_RESENIAS_POR_PELICULA: ${{ matrix.max_resenias }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias (torch para CPU)
+        run: |
+          pip install --index-url https://download.pytorch.org/whl/cpu torch
+          pip install -r requirements.txt
+
+      - name: Descargar las reseñas del release en borrador
+        id: datos
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: datos-resenas
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request
+          api = f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}"
+          cabeceras = {"Authorization": f"Bearer {os.environ['GH_TOKEN']}", "Accept": "application/vnd.github+json"}
+          with urllib.request.urlopen(urllib.request.Request(f"{api}/releases?per_page=100", headers=cabeceras)) as r:
+              releases = json.load(r)
+          release = next(r for r in releases if r["tag_name"] == os.environ["RELEASE_TAG"])
+          # El release también guarda las bases de embeddings publicadas (embeddings-*.zip).
+          zips = [a for a in release["assets"] if a["name"].endswith(".zip") and not a["name"].startswith("embeddings-")]
+          if len(zips) != 1:
+              raise SystemExit(f"Se esperaba un solo zip de reseñas en el release, hay {len(zips)}: {[a['name'] for a in zips]}")
+          archivo = zips[0]
+          pedido = urllib.request.Request(archivo["url"], headers={**cabeceras, "Accept": "application/octet-stream"})
+          with urllib.request.urlopen(pedido) as r, open("/tmp/resenias.zip", "wb") as salida:
+              salida.write(r.read())
+          print(f"Descargado {archivo['name']} ({archivo['size'] / 1e6:.1f} MB)")
+          PY
+          # -DD: la base queda con fecha de ahora, más nueva que los filtrados del
+          # caché, así que se vuelve a filtrar (si no cambió, filter.py no crea otro lote).
+          unzip -o -DD /tmp/resenias.zip -d src/db/raw/
+          ls -la src/db/raw/
+          echo "huella=$(sha256sum /tmp/resenias.zip | cut -c1-16)" >> "$GITHUB_OUTPUT"
+
+      - name: Preparar perfil y base de embeddings limpia
+        run: |
+          mkdir -p src/db/profiles
+          cp src/db/profiles/perfiles.ejemplo.json src/db/profiles/perfiles.json
+          rm -rf src/db/embeddings/chroma*
+
+      # Reutiliza los embeddings de corridas anteriores con el mismo modelo y
+      # cantidad de reseñas por película (evita horas de cómputo). Si cambiaron
+      # las reseñas, se restaura la base de la versión anterior y la opción 4
+      # solo codifica los chunks nuevos. Si se cambia cómo se filtran o se
+      # chunkean las reseñas, subir la versión (v1) de la clave. El caché es
+      # privado del repositorio.
+      - name: Restaurar embeddings de corridas anteriores
+        uses: actions/cache@v4
+        with:
+          path: |
+            src/db/embeddings
+            src/db/filtered/result
+          key: embeddings-v1-${{ matrix.modelo }}-${{ matrix.max_resenias }}-${{ steps.datos.outputs.huella }}
+          restore-keys: embeddings-v1-${{ matrix.modelo }}-${{ matrix.max_resenias }}-
+
+      - name: Verificar la integridad de la base de reseñas
+        run: |
+          python - <<'PY'
+          import glob, sqlite3, sys
+          for ruta in glob.glob("src/db/raw/*.db"):
+              try:
+                  resultado = sqlite3.connect(f"file:{ruta}?mode=ro", uri=True).execute("pragma quick_check").fetchone()[0]
+              except sqlite3.DatabaseError as error:
+                  resultado = str(error)
+              print(f"{ruta}: {resultado}")
+              if resultado != "ok":
+                  print(f"::error title=Base de reseñas dañada::{ruta}: {resultado[:300]}. "
+                        "Vuelve a copiarla con el scraper detenido y reemplaza el zip del release.")
+                  sys.exit(1)
+          PY
+
+      - name: Ejecutar la opción 9 (todo el pipeline y análisis)
+        run: |
+          set -o pipefail
+          if ! printf '9\n10\n' | python src/main.py 2>&1 | tee salida_opcion9.txt; then
+            echo "::error title=Falló la opción 9::$(tail -n 25 salida_opcion9.txt | sed ':a;N;$!ba;s/%/%25/g;s/\n/%0A/g')"
+            exit 1
+          fi
+          if [ -z "$(ls -d analisis/*/ 2>/dev/null)" ]; then
+            echo "::error title=No se generó el análisis::$(tail -n 25 salida_opcion9.txt | sed ':a;N;$!ba;s/%/%25/g;s/\n/%0A/g')"
+            exit 1
+          fi
+
+      # Datos del informe que necesitan la base de embeddings (docs/informe/calculos.py);
+      # quedan en la carpeta del análisis, en informe/.
+      - name: Calcular los datos del informe
+        if: matrix.publicar_embeddings && inputs.calculos_informe
+        run: |
+          carpeta=$(ls -d analisis/*/ | tail -1)
+          python docs/informe/calculos.py "${carpeta}informe" 2>&1 | tee -a salida_opcion9.txt
+
+      # Chroma no libera espacio al eliminar el lote de reseñas reemplazado: sin
+      # esto, la base (y el caché) crece con cada versión de reviews.zip.
+      - name: Compactar la base de embeddings
+        run: python src/compactar_chroma.py
+
+      # La base contiene fragmentos de reseñas: solo va al release en borrador,
+      # visible únicamente para quienes tienen permiso de escritura, igual que
+      # el zip de reseñas. Se sube una vez por cada versión de las reseñas.
+      - name: Publicar la base de embeddings en el release en borrador
+        if: matrix.publicar_embeddings
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: datos-resenas
+          HUELLA: ${{ steps.datos.outputs.huella }}
+        run: |
+          python - <<'PY'
+          import json, os, sys, urllib.request, zipfile
+          from pathlib import Path
+          sys.path.insert(0, "src")
+          from config import DIR_CHROMA, DIR_FILTRADOS, SLUG_MODELO
+          from db.filtered.filter import MAX_RESENIAS_POR_PELICULA
+          from embeddings_previos import ultimos_por_fuente
+
+          api = f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}"
+          cabeceras = {"Authorization": f"Bearer {os.environ['GH_TOKEN']}", "Accept": "application/vnd.github+json"}
+
+          def pedir(url, metodo="GET", datos=None, tipo=None):
+              extra = {"Content-Type": tipo} if tipo else {}
+              with urllib.request.urlopen(urllib.request.Request(url, data=datos, method=metodo, headers={**cabeceras, **extra})) as r:
+                  cuerpo = r.read()
+                  return json.loads(cuerpo) if cuerpo else None
+
+          release = next(r for r in pedir(f"{api}/releases?per_page=100") if r["tag_name"] == os.environ["RELEASE_TAG"])
+          prefijo = f"embeddings-{SLUG_MODELO}-"
+          nombre = f"{prefijo}{MAX_RESENIAS_POR_PELICULA}-{os.environ['HUELLA']}.zip"
+          anteriores = [a for a in release["assets"] if a["name"].startswith(prefijo)]
+
+          raiz = Path.cwd()
+          archivos = [p for p in DIR_CHROMA.rglob("*") if p.is_file()] + ultimos_por_fuente(DIR_FILTRADOS.glob("filtrado_*.csv"))
+          with zipfile.ZipFile("/tmp/embeddings.zip", "w", zipfile.ZIP_DEFLATED) as salida:
+              for archivo in archivos:
+                  salida.write(archivo, archivo.relative_to(raiz))
+          datos = Path("/tmp/embeddings.zip").read_bytes()
+          # Si esta versión ya está publicada, solo se reemplaza cuando la nueva es
+          # bastante más chica (la publicada quedó sin compactar).
+          mismo = next((a for a in anteriores if a["name"] == nombre), None)
+          if mismo is not None and mismo["size"] <= 1.2 * len(datos):
+              print(f"{nombre} ya está publicado.")
+              sys.exit(0)
+          # Resguardo: una base mucho más chica que la publicada indica que algo
+          # falló antes (ej. faltó la base de reseñas); no se reemplaza. Compactar
+          # puede reducirla a la mitad, así que el umbral es menor.
+          mayor_anterior = max((a["size"] for a in anteriores), default=0)
+          if len(datos) < 0.3 * mayor_anterior:
+              print(f"::warning title=Base de embeddings no publicada::{nombre} pesa {len(datos) / 1e6:.0f} MB, "
+                    f"menos del 30 % de la ya publicada ({mayor_anterior / 1e6:.0f} MB). Se mantiene la anterior.")
+              sys.exit(0)
+          # Con el mismo nombre ya publicado, se sube con otro nombre y se renombra
+          # al eliminar la anterior: nunca queda el release sin base.
+          nombre_subida = nombre if mismo is None else nombre.replace(".zip", "-nuevo.zip")
+          subida = release["upload_url"].split("{")[0] + f"?name={nombre_subida}"
+          nuevo = pedir(subida, "POST", datos, "application/zip")
+          print(f"Publicado {nombre} ({len(datos) / 1e6:.0f} MB, {len(archivos)} archivos).")
+          for anterior in anteriores:
+              pedir(f"{api}/releases/assets/{anterior['id']}", "DELETE")
+              print(f"Eliminado {anterior['name']} ({anterior['size'] / 1e6:.0f} MB, versión anterior).")
+          if nombre_subida != nombre:
+              pedir(f"{api}/releases/assets/{nuevo['id']}", "PATCH", json.dumps({"name": nombre}).encode(), "application/json")
+          PY
+
+      - name: Publicar resultados en la rama resultados-analisis
+        run: |
+          carpeta=$(ls -d analisis/*/ | tail -1)
+          cp salida_opcion9.txt "$carpeta"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git fetch --depth=1 origin resultados-analisis; then
+            git worktree add /tmp/resultados FETCH_HEAD
+            git -C /tmp/resultados checkout -B resultados-analisis
+          else
+            git worktree add --detach /tmp/resultados
+            git -C /tmp/resultados checkout --orphan resultados-analisis
+            git -C /tmp/resultados rm -rfq .
+          fi
+          mkdir -p /tmp/resultados/analisis
+          cp -r "$carpeta" /tmp/resultados/analisis/
+          cd /tmp/resultados
+          git add analisis
+          git commit -q -m "Análisis de $(basename "$carpeta") (commit ${GITHUB_SHA::7})"
+          # Los modelos corren en paralelo: si otro publicó antes, se integra y se reintenta.
+          for intento in 1 2 3 4 5; do
+            git push origin resultados-analisis && exit 0
+            git fetch --depth=10 origin resultados-analisis && git rebase FETCH_HEAD
+            sleep $((intento * 5))
+          done
+          exit 1

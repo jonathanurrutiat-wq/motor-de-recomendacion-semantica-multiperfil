@@ -1,0 +1,10 @@
+# Archivos auxiliares de LaTeX
+*.aux
+*.log
+*.toc
+*.out
+*.fls
+*.fdb_latexmk
+
+# Datos agregados del informe (el .gitignore de la raíz ignora los .json)
+!datos/*.json
