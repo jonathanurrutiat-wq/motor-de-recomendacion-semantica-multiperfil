@@ -44,4 +44,10 @@ POOLING_RESENIAS = os.environ.get("POOLING_RESENIAS", "media").strip().lower()
 if not (POOLING_RESENIAS == "media" or (POOLING_RESENIAS[:1] == "p" and POOLING_RESENIAS[1:].isdigit()
                                          and 0 <= int(POOLING_RESENIAS[1:]) <= 100)):
     raise ValueError(f"POOLING_RESENIAS debe ser 'media' o 'pXX' (percentil 0-100), no '{POOLING_RESENIAS}'.")
+# Rasgos de similitud (pooling.rasgos_frases): para cada película, qué fracción de
+# los chunks de sus reseñas se parece mucho a un criterio del perfil y cuánto
+# vale el percentil 90 de esa similitud. Con "1" (por defecto) se calculan para
+# todos los filtros y afinidades, con su descripción y, si las tienen, sus
+# frases_resenia; con "0", solo para los criterios que tienen frases_resenia.
+RASGOS_DESCRIPCION = os.environ.get("RASGOS_DESCRIPCION", "1").strip() != "0"
 RUTA_MODELO = LOSS_DIR / f"modelo_reglas{_SUFIJO}.joblib"

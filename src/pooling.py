@@ -72,10 +72,12 @@ def nombre(estrategia: str, max_resenias: int | None) -> str:
     return f"{descripcion}, {'todas las' if max_resenias is None else f'hasta {max_resenias}'} reseñas"
 
 
-def textos_de_criterios(coleccion_perfiles, nombre_perfil: str, perfil: dict) -> dict:
-    # Para cada criterio con frases_resenia en el perfil: columna de la Verdad
-    # Base -> (nombres de los textos, embeddings). El primer texto es la
-    # descripción del perfil y los demás, sus frases de reseña.
+def textos_de_criterios(coleccion_perfiles, nombre_perfil: str, perfil: dict,
+                        incluir_sin_frases: bool = True) -> dict:
+    # Para cada filtro y afinidad del perfil: columna de la Verdad Base ->
+    # (nombres de los textos, embeddings). El primer texto es la descripción del
+    # criterio y los demás, sus frases de reseña (si tiene). Con
+    # incluir_sin_frases=False solo se incluyen los criterios que tienen frases.
     datos = coleccion_perfiles.get(where={"persona": nombre_perfil}, include=["embeddings", "metadatas"])
     descripciones, frases = {}, {}
     for meta, vector in zip(datos["metadatas"], datos["embeddings"]):
@@ -83,19 +85,24 @@ def textos_de_criterios(coleccion_perfiles, nombre_perfil: str, perfil: dict) ->
             descripciones[(meta["tipo"], meta["filtro"])] = vector
         elif meta["tipo"] == "frase_resenia":
             frases.setdefault((meta["categoria"], meta["filtro"]), []).append((meta["indice"], vector))
+    if not descripciones:
+        print(f"[!] Aviso: no hay embeddings del perfil '{nombre_perfil}'; no se calculan rasgos de similitud. "
+              "Ejecuta el módulo 3.")
+        return {}
 
     textos = {}
     for tipo in ("restrictivos", "afinidad"):
         for nombre_criterio, datos_criterio in perfil.get(tipo, {}).items():
             clave = (tipo, nombre_criterio)
-            if not datos_criterio.get("frases_resenia"):
+            frases_perfil = datos_criterio.get("frases_resenia") or []
+            if not frases_perfil and not incluir_sin_frases:
                 continue
-            if clave not in descripciones or len(frases.get(clave, [])) != len(datos_criterio["frases_resenia"]):
-                print(f"[!] Aviso: faltan embeddings de las frases de reseña de '{nombre_criterio}'; se omiten. "
-                      "Vuelve a ejecutar el módulo 3 si editaste el perfil.")
+            if clave not in descripciones or len(frases.get(clave, [])) != len(frases_perfil):
+                print(f"[!] Aviso: los embeddings de '{nombre_criterio}' (descripción o frases de reseña) no coinciden "
+                      "con el perfil; se omite. Vuelve a ejecutar el módulo 3 si editaste el perfil.")
                 continue
-            vectores = [descripciones[clave]] + [v for _, v in sorted(frases[clave], key=lambda par: par[0])]
-            nombres = ["descripción"] + list(datos_criterio["frases_resenia"])
+            vectores = [descripciones[clave]] + [v for _, v in sorted(frases.get(clave, []), key=lambda par: par[0])]
+            nombres = ["descripción"] + list(frases_perfil)
             textos[nombre_columna_gt(tipo, nombre_criterio)] = (nombres, np.array(vectores, dtype=np.float32))
     return textos
 

@@ -41,6 +41,12 @@ MODOS_FRASES = ("concatenar", "ponderar", "solo_frases")
 # El que usan las opciones 7 y 8: con e5, mejoró el orden (ρ de Spearman) en las
 # 10 repeticiones de la validación cruzada y además bajó el MAE.
 MODO_FRASES_POR_DEFECTO = "ponderar"
+# Cuando ningún criterio tiene frases_resenia, los rasgos se calculan solo con la
+# descripción. En esa variante lo medido (control de la opción 9, e5) es que
+# agregarlos al embedding no cambia el orden (Δρ ≈ 0,000) y que usarlos en vez
+# del embedding lo empeora; "ponderar" no se midió para ese caso, y con las
+# frases bajó el R² de los criterios donde los rasgos no ayudaban.
+MODO_DESCRIPCION_POR_DEFECTO = "concatenar"
 # El ρ de una sola partición de la validación cruzada varía ~±0,05 con ~100
 # películas; se informa el promedio de varias particiones distintas.
 SEMILLAS_EVALUACION = tuple(range(10))
