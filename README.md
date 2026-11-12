@@ -171,13 +171,13 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
     * <code><b><span style="color: #009dff;">recommend.py</span></b></code>: Carga el modelo entrenado y genera el ranking de recomendaciones.
 
-* <code><b><span style="color: #23c523d4;">perfiles.json</span></b></code>: <i>(en `src/db/profiles/`)</i> Almacena los perfiles cinéfilos creados desde `profiles.py`.
+* <code><b><span style="color: #23c523d4;">perfiles.json</span></b></code>: <i>(en `src/db/profiles/`)</i> Almacena los perfiles cinéfilos creados desde `profiles.py`. Se versiona en el repositorio (desde el 12-11-2026).
 
 
 
 ## **Cambios pendientes**
 
-<small>*Nota: salen del informe (`docs/informe/informe.pdf`, versión 1.4 del 26-09-2026; secciones 5.2, 6 y 7). El estado de cada punto se contrastó con el changelog hasta la versión 1.4.4; el punto 2 se actualizó con las corridas de los cuatro perfiles del 24-10-2026 y con las 60 películas nuevas del 11-11-2026.*</small>
+<small>*Nota: salen del informe (`docs/informe/informe.pdf`, versión 1.4 del 26-09-2026; secciones 5.2, 6 y 7). El estado de cada punto se contrastó con el changelog hasta la versión 1.4.4; el punto 2 se actualizó con las corridas de los cuatro perfiles del 24-10-2026 y con las 60 películas nuevas del 11-11-2026 (resultados de Matías, Valentina y Camila del 12-11-2026).*</small>
 
 ### Pasos propuestos
 
@@ -220,18 +220,27 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
     * Sumar películas del terreno de cada perfil (acción para Matías, comedia para Valentina), para que sus afinidades principales tengan ejemplos altos.
     * Conservar los resultados de la tabla como línea base. Si solo se cambian las instrucciones de algunos perfiles, la comparación entre perfiles deja de ser pareja.
 
-    **Actualización (11-11-2026): 60 películas nuevas.** Se sumó a la Verdad Base una tanda de 60 películas nuevas (ver 1.4.4), evaluadas con Gemini en 3 tandas de 20 por perfil. Con ellas se acotan los perfiles que ya tienen la matriz rehecha y se agrega rango de notas, que era lo que faltaba:
+    **Actualización (11-11-2026 y 12-11-2026): 60 películas nuevas.** Se sumó a la Verdad Base una tanda de 60 películas nuevas (ver 1.4.4), evaluadas con Gemini en 3 tandas de 20 por perfil. Con ellas se acotan los perfiles y se agrega rango de notas, que era lo que faltaba. Validación cruzada con e5-base, modelo de reglas, pooling media y 10 repeticiones; entre paréntesis, el valor que daría un orden al azar con las mismas notas:
 
-    | Perfil | Películas en la Verdad Base | Estado |
-    |---|---|---|
-    | Ignacio Araya | 248 (188 + 60) | Evaluado y entrenado: ρ 0,756, R² 0,617, MAE 1,054 (línea base 1,755) |
-    | Matías Fuentes | 190 (130 + 60) | Evaluado y entrenado con rasgos de similitud. Métricas: por anotar |
-    | Valentina Soto | 130 | Tandas de las 60 películas listas para Gemini; pendiente |
-    | Camila Rojas | 130 | Tandas de las 60 películas listas para Gemini; pendiente |
+    | Perfil | Películas en la Verdad Base | ρ | NDCG@10 | Precisión@10 | MAE (línea base) | R² |
+    |---|---|---|---|---|---|---|
+    | Ignacio Araya | 248 (188 + 60) | **0,756** ± 0,007 | 0,948 (0,731) | 0,190 (0,057) | 1,054 (1,755) | 0,617 |
+    | Camila Rojas | 190 (130 + 60) | **0,694** ± 0,010 | 0,953 (0,702) | 0,420 (0,074) | 1,170 (1,70) | 0,543 |
+    | Matías Fuentes | 190 (130 + 60) | **0,520** ± 0,017 | 0,886 (0,788) | 0,320 (0,053) | 0,787 (0,93) | 0,284 |
+    | Valentina Soto | 190 (130 + 60) | **0,450** ± 0,020 | 0,912 (0,792) | 0,060 (0,068) | 1,340 (1,50) | 0,243 |
 
-    * Las notas de las 60 nuevas de Matías abren el rango: media 7,03 (mínimo 2,0, máximo 9,8; 26 de 60 con 8 o más), contra 8,42 (mínimo 6,5) de sus 130 anteriores. Es justo lo que buscaba "Qué rehacer", pero también implica que se evaluaron en otra sesión de Gemini: como pasó con las 58 de Ignacio, parte del cambio puede ser de calibración y no de las películas.
-    * Las filas de Ignacio (248) y Matías (190) no son comparables con la tabla de 130 películas ni entre sí (distinta cantidad de películas y de sesiones de Gemini). La línea base de las 130 sigue siendo la única comparable entre los cuatro perfiles.
-    * Al terminar los cuatro perfiles con las mismas 60 películas, volver a armar una tabla comparable.
+    * La línea base de MAE de Camila, Matías y Valentina es el error de predecir siempre el promedio de sus 190 notas, calculado sobre toda la muestra (el programa la mide con validación cruzada y puede diferir levemente). El valor al azar usa la misma fórmula que `metricas.al_azar`.
+    * Las notas de las 60 nuevas abren el rango en los tres perfiles (media y mínimo de las 60 nuevas contra las 130 anteriores): Matías 7,03 y 2,0 contra 8,42 y 6,5; Valentina 5,64 y 1,0 contra 8,62 y 6,2; Camila 4,95 y 1,0 contra 8,22 y 6,5. Es justo lo que buscaba "Qué rehacer", pero también implica que se evaluaron en otra sesión de Gemini: como pasó con las 58 de Ignacio, parte del cambio puede ser de calibración y no de las películas.
+    * Camila, Matías y Valentina comparten las mismas 190 películas, los mismos embeddings y la misma estructura (5 + 5 criterios), así que son comparables entre sí. Las filas de Ignacio (248 películas) no lo son con ellos (distinta cantidad de películas y de sesiones de Gemini), y ninguna de las cuatro lo es con la tabla de 130 películas.
+    * Orden por ρ: Camila > Matías > Valentina, el mismo que con 130 películas (0,828; 0,639; 0,533). El ρ de los tres bajó con las 60 nuevas (−0,134; −0,119; −0,083), pero no se puede atribuir a las películas ni a la calibración, porque cambiaron las dos cosas a la vez.
+    * Camila se predice mejor: su precisión@10 es unas 6 veces la del azar, y su mayor dispersión de notas (desviación 2,32, contra 1,36 de Matías y 1,97 de Valentina) probablemente favorece ρ y R². Matías tiene una precisión@10 también unas 6 veces la del azar; la de Ignacio (0,190) es unas 3 veces la del azar (0,057, sobre sus 247 películas con reseñas).
+    * Con Valentina, la precisión@10 (0,060) es igual a la del azar (0,068), pero su NDCG@10 (0,912) sí supera al azar (0,792): el modelo pone arriba películas con notas altas, aunque no exactamente las 10 mejores. Sus notas altas están apiñadas (13 películas empatan o superan la décima nota y 102 de 190 tienen 8,5 o más), lo que hace muy difícil acertar el top 10.
+    * Reglas aprendidas (etapa 2) y afinidad principal de cada perfil:
+        * Valentina: *Ingenio Verbal* pasó de pesar 0,02 con 130 películas a 0,35, el mayor peso, con correlación 0,88 con la nota global. Es compatible con la explicación de la tabla de 130 películas (poco rango y pocos ejemplos de sus afinidades principales). Solo 3 de sus 5 filtros aparecen en la regla (faltan *Improvisación Sin Estructura* y *Referencias Vacías*).
+        * Matías: *Coreografía de Acción Física* sigue casi sin peso (0,02; antes 0,05), y pesan más *Mundo Inmersivo y Épico* (0,34) y *Carisma y Química de Reparto* (0,21). Es poco frecuente (11 películas con 9 o más y 125 con 3 o menos; correlación 0,39 con la nota). El piso del perfil sí se cumple, porque esas 11 películas tienen notas de 8,6 a 9,8, pero una suma ponderada no captura un piso. Opciones: sumar películas de acción (ver "Qué rehacer") y probar los pisos por afinidad (`usar_pisos`, hoy desactivados).
+        * Camila: *Atmósfera y Dread* pesa 0,03, *Horror Psicológico* 0,02 y *Subtexto Social* 0,45. Es colinealidad y no rareza: *Atmósfera y Dread* es frecuente (37 películas con 9 o más, todas con notas de 8,5 a 10) y se correlaciona 0,91 con *Horror Psicológico* y 0,86 con *Tensión Sostenida*. *Sustos Baratos* (veto absoluto) no aparece en la regla: solo 15 películas tienen puntaje mayor que 0, con máximo 3.
+    * Etapa 2 con los puntajes reales de Gemini (MAE de la regla contra regresión lineal sobre los puntajes, promedio de las 5 particiones): Matías 0,34 contra 0,33, Camila 0,46 contra 0,47, Ignacio 0,40 contra 0,42 (la regla gana en 3 de las 5 particiones) y Valentina 0,56 contra 0,55 (la regla gana en 2 de las 5), un empate técnico en los cuatro. El error del modelo completo es mucho mayor (0,79, 1,17, 1,05 y 1,34), así que la limitación sigue en la etapa 1 (predecir los puntajes desde las reseñas).
+    * Hecho el 12-11-2026: tabla comparable de Camila, Matías y Valentina con las mismas 60 películas nuevas. Ignacio queda aparte con 248, porque además tiene las 58 candidatas del paso 3.
 
 3. **Evaluar las 58 candidatas y completar reseñas** — *parcialmente hecho: evaluadas solo para Ignacio (24-10-2026); el resto, pendiente.*
 
@@ -239,7 +248,7 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
     * **Evaluar las 58 con Gemini, perfil Ignacio Araya** — *hecho (24-10-2026).* Se evaluaron con las instrucciones que genera la opción 6 y se importaron con la opción 5: su Verdad Base pasó de 130 a 188 películas (187 con reseñas, contra 129 antes) y el ρ bajó de 0,735 a 0,686 ± 0,010. Las 58 se evaluaron en otra sesión de Gemini y con otra escala en los filtros, así que ese ρ no es comparable con la línea base (ver la aclaración en el paso 2); la línea base de 130 películas sigue en `src/loss/ignacio/`.
 
-    * **Evaluar las 58 con Gemini, perfiles Matías Fuentes, Valentina Soto y Camila Rojas** — *pendiente (en espera).* Esos tres perfiles se hicieron con 130 películas y no con 188. Sin embargo, no se deben evaluar otra vez hasta recibir las instrucciones del profesor a cargo, para saber si vale la pena. Las 60 películas nuevas de la 1.4.4 son otras y no son estas 58: Matías ya las tiene evaluadas (190 películas), Valentina y Camila no.
+    * **Evaluar las 58 con Gemini, perfiles Matías Fuentes, Valentina Soto y Camila Rojas** — *pendiente (en espera).* Esos tres perfiles se hicieron con 130 películas y no con 188. Sin embargo, no se deben evaluar otra vez hasta recibir las instrucciones del profesor a cargo, para saber si vale la pena. Las 60 películas nuevas de la 1.4.4 son otras y no son estas 58: Matías, Valentina y Camila ya las tienen evaluadas (190 películas cada uno).
 
     * **Descargar las reseñas de *Nickel Boys*** — *pendiente.* Es la única película de la Verdad Base sin reseñas procesadas, así que solo entrena la etapa 2. Su slug (`nickel-boys`) es el correcto en Letterboxd y está en `src/loss/pendientes_resenias.csv`. Hay que bajarlas con el scraper a `reviews.db`, correr las opciones 2 y 4 y reemplazar `reviews.zip` en el release en borrador. Conviene hacerlo cuando el contenido de `reviews.db` esté acordado con el compañero que agrega películas, porque las nuevas aparecerían como candidatas.
 
@@ -299,15 +308,23 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
     * Las 60 películas nuevas se evaluaron con Gemini por perfil, en 3 tandas de 20 con las instrucciones de la opción 6 (`instrucciones_evaluacion_<perfil>.md`). Antes de agregarlas, las respuestas se validaron: 17 valores por fila (5 filtros, 5 excepciones, 5 afinidades y la nota global), mismo orden y mismos ids canónicos que la plantilla, ninguna película repetida o ya evaluada, excepciones solo 0 o 1 y puntajes entre 0 y 10.
 
-    * **Ignacio Araya**: 188 → 248 películas (opción 5 sobre `pendientes_evaluar.csv`; la plantilla quedó vacía). **Matías Fuentes**: 130 → 190 películas; sus archivos se actualizaron directamente en `src/loss/matias/` (`evaluaciones_adicionales.csv`, `evaluacion_gemini_matias.csv` y `matriz_perdida.csv`), con las 130 filas anteriores intactas. **Valentina Soto** y **Camila Rojas**: pendientes (130 películas).
+    * **Ignacio Araya**: 188 → 248 películas (opción 5 sobre `pendientes_evaluar.csv`; la plantilla quedó vacía). **Matías Fuentes**: 130 → 190 películas; sus archivos se actualizaron directamente en `src/loss/matias/` (`evaluaciones_adicionales.csv`, `evaluacion_gemini_matias.csv` y `matriz_perdida.csv`), con las 130 filas anteriores intactas. **Valentina Soto** y **Camila Rojas**: 130 → 190 películas (12-11-2026); sus archivos (`evaluacion_gemini_<perfil>.csv`, `evaluaciones_adicionales.csv` y `matriz_perdida.csv`) se reemplazaron directamente en `src/loss/valentina/` y `src/loss/camila/`, con las 130 filas anteriores intactas.
 
     * Cada perfil guarda su Verdad Base en `src/loss/<perfil>/`; para entrenar uno hay que copiar su `matriz_perdida.csv` a `src/loss/` y ejecutar antes la opción 3 con su nombre (ver el punto 5 de "Cambios pendientes").
 
+    * `.gitignore`: ahora se versionan `src/db/profiles/perfiles.json` (antes lo excluía la regla `*.json`) y los modelos `src/loss/**/*.joblib` (antes los excluía `*.joblib`; pesan unos 400 KB cada uno y, en el de Matías que se revisó, solo hay parámetros y nombres de columnas, sin texto de reseñas). Siguen excluidos las bases de reseñas, los csv filtrados y los embeddings `chroma_*/`.
+
 * Resultados (e5, modelo de reglas, validación cruzada)
 
-    * Ignacio (248 películas): ρ de Spearman 0,756, R² 0,617 y MAE 1,054 (la línea base que predice el promedio da 1,755, así que el error relativo a ella es de 60 %). Con 188 películas era ρ 0,686 ± 0,010.
+    * Ignacio (248 películas, 247 con reseñas): ρ de Spearman 0,756 ± 0,007, NDCG@10 0,948, precisión@10 0,190, R² 0,617 y MAE 1,054 (la línea base que predice el promedio da 1,755, así que el error relativo a ella es de 60 %). Con 188 películas era ρ 0,686 ± 0,010.
 
-    * Matías (190 películas): entrenado con rasgos de similitud en sus 10 criterios; sus métricas están por anotar. Sus 60 notas nuevas tienen media 7,03 (mínimo 2,0, máximo 9,8; 26 de 60 con 8 o más), contra 8,42 (mínimo 6,5) de las 130 anteriores.
+    * Matías (190 películas, 189 con reseñas): ρ 0,520 ± 0,017, NDCG@10 0,886, precisión@10 0,320, MAE 0,787 (línea base 0,93) y R² 0,284; entrenado con rasgos de similitud en sus 10 criterios. Sus 60 notas nuevas tienen media 7,03 (mínimo 2,0, máximo 9,8; 26 de 60 con 8 o más), contra 8,42 (mínimo 6,5) de las 130 anteriores.
+
+    * Valentina (190 películas, 189 con reseñas): ρ 0,450 ± 0,020, NDCG@10 0,912, precisión@10 0,060, MAE 1,340 (línea base 1,50) y R² 0,243. Sus 60 notas nuevas tienen media 5,64 (mínimo 1,0), contra 8,62 (mínimo 6,2) de las 130 anteriores.
+
+    * Camila (190 películas, 189 con reseñas): ρ 0,694 ± 0,010, NDCG@10 0,953, precisión@10 0,420, MAE 1,170 (línea base 1,70) y R² 0,543. Sus 60 notas nuevas tienen media 4,95 (mínimo 1,0), contra 8,22 (mínimo 6,5) de las 130 anteriores.
+
+    * La comparación de los tres perfiles, con las reglas aprendidas, está en el punto 2 de "Cambios pendientes".
 
 * Limitación conocida: 60 películas sin orden por likes
 
