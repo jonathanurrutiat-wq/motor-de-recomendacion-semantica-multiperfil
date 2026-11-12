@@ -226,11 +226,13 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
     |---|---|---|
     | Ignacio Araya | 248 (188 + 60) | Evaluado y entrenado: ρ 0,756, R² 0,617, MAE 1,054 (línea base 1,755) |
     | Matías Fuentes | 190 (130 + 60) | Evaluado y entrenado con rasgos de similitud. Métricas: por anotar |
-    | Valentina Soto | 130 | Tandas de las 60 películas listas para Gemini; pendiente |
-    | Camila Rojas | 130 | Tandas de las 60 películas listas para Gemini; pendiente |
+    | Valentina Soto | 190 (130 + 60) | Evaluado con Gemini (12-11-2026); falta entrenarlo. Métricas: por anotar |
+    | Camila Rojas | 190 (130 + 60) | Evaluado con Gemini (12-11-2026); falta entrenarlo. Métricas: por anotar |
 
     * Las notas de las 60 nuevas de Matías abren el rango: media 7,03 (mínimo 2,0, máximo 9,8; 26 de 60 con 8 o más), contra 8,42 (mínimo 6,5) de sus 130 anteriores. Es justo lo que buscaba "Qué rehacer", pero también implica que se evaluaron en otra sesión de Gemini: como pasó con las 58 de Ignacio, parte del cambio puede ser de calibración y no de las películas.
-    * Las filas de Ignacio (248) y Matías (190) no son comparables con la tabla de 130 películas ni entre sí (distinta cantidad de películas y de sesiones de Gemini). La línea base de las 130 sigue siendo la única comparable entre los cuatro perfiles.
+    * Las notas de las 60 nuevas de Camila tienen media 4,95 (mínimo 1,0, máximo 9,8; 12 de 60 con 8 o más), contra 8,22 (mínimo 6,5) de sus 130 anteriores; las de Valentina, media 5,64 (mínimo 1,0, máximo 9,5; 16 de 60 con 8 o más), contra 8,62 (mínimo 6,2). Igual que con Matías e Ignacio, parte del cambio puede ser de calibración de otra sesión de Gemini y no de las películas.
+    * Varias de las 60 películas quedaron en el piso de la escala: 11 de Camila con nota 1,0 (casi todas comedias o musicales sin relación con el terror; en 8 de ellas todos los puntajes son 0) y 3 de Valentina con nota de 1,5 o menos (*Fifty Shades of Grey*, *The Room* y *Transformers: Revenge of the Fallen*). Esos empates aportan poca información para ordenar entre ellas y pueden afectar un poco el ρ de Spearman.
+    * Las filas de Ignacio (248) y de los otros tres perfiles (190) no son comparables con la tabla de 130 películas, y la de Ignacio tampoco con las demás (distinta cantidad de películas). Matías, Valentina y Camila comparten las mismas 190 películas, pero cada perfil se evaluó en sesiones de Gemini distintas. La línea base de las 130 sigue siendo la única comparable entre los cuatro perfiles.
     * Al terminar los cuatro perfiles con las mismas 60 películas, volver a armar una tabla comparable.
 
 3. **Evaluar las 58 candidatas y completar reseñas** — *parcialmente hecho: evaluadas solo para Ignacio (24-10-2026); el resto, pendiente.*
@@ -239,7 +241,7 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
     * **Evaluar las 58 con Gemini, perfil Ignacio Araya** — *hecho (24-10-2026).* Se evaluaron con las instrucciones que genera la opción 6 y se importaron con la opción 5: su Verdad Base pasó de 130 a 188 películas (187 con reseñas, contra 129 antes) y el ρ bajó de 0,735 a 0,686 ± 0,010. Las 58 se evaluaron en otra sesión de Gemini y con otra escala en los filtros, así que ese ρ no es comparable con la línea base (ver la aclaración en el paso 2); la línea base de 130 películas sigue en `src/loss/ignacio/`.
 
-    * **Evaluar las 58 con Gemini, perfiles Matías Fuentes, Valentina Soto y Camila Rojas** — *pendiente (en espera).* Esos tres perfiles se hicieron con 130 películas y no con 188. Sin embargo, no se deben evaluar otra vez hasta recibir las instrucciones del profesor a cargo, para saber si vale la pena. Las 60 películas nuevas de la 1.4.4 son otras y no son estas 58: Matías ya las tiene evaluadas (190 películas), Valentina y Camila no.
+    * **Evaluar las 58 con Gemini, perfiles Matías Fuentes, Valentina Soto y Camila Rojas** — *pendiente (en espera).* Esos tres perfiles se hicieron con 130 películas y no con 188. Sin embargo, no se deben evaluar otra vez hasta recibir las instrucciones del profesor a cargo, para saber si vale la pena. Las 60 películas nuevas de la 1.4.4 son otras y no son estas 58: Matías, Valentina y Camila ya las tienen evaluadas (190 películas cada uno).
 
     * **Descargar las reseñas de *Nickel Boys*** — *pendiente.* Es la única película de la Verdad Base sin reseñas procesadas, así que solo entrena la etapa 2. Su slug (`nickel-boys`) es el correcto en Letterboxd y está en `src/loss/pendientes_resenias.csv`. Hay que bajarlas con el scraper a `reviews.db`, correr las opciones 2 y 4 y reemplazar `reviews.zip` en el release en borrador. Conviene hacerlo cuando el contenido de `reviews.db` esté acordado con el compañero que agrega películas, porque las nuevas aparecerían como candidatas.
 
@@ -299,7 +301,7 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
     * Las 60 películas nuevas se evaluaron con Gemini por perfil, en 3 tandas de 20 con las instrucciones de la opción 6 (`instrucciones_evaluacion_<perfil>.md`). Antes de agregarlas, las respuestas se validaron: 17 valores por fila (5 filtros, 5 excepciones, 5 afinidades y la nota global), mismo orden y mismos ids canónicos que la plantilla, ninguna película repetida o ya evaluada, excepciones solo 0 o 1 y puntajes entre 0 y 10.
 
-    * **Ignacio Araya**: 188 → 248 películas (opción 5 sobre `pendientes_evaluar.csv`; la plantilla quedó vacía). **Matías Fuentes**: 130 → 190 películas; sus archivos se actualizaron directamente en `src/loss/matias/` (`evaluaciones_adicionales.csv`, `evaluacion_gemini_matias.csv` y `matriz_perdida.csv`), con las 130 filas anteriores intactas. **Valentina Soto** y **Camila Rojas**: pendientes (130 películas).
+    * **Ignacio Araya**: 188 → 248 películas (opción 5 sobre `pendientes_evaluar.csv`; la plantilla quedó vacía). **Matías Fuentes**: 130 → 190 películas; sus archivos se actualizaron directamente en `src/loss/matias/` (`evaluaciones_adicionales.csv`, `evaluacion_gemini_matias.csv` y `matriz_perdida.csv`), con las 130 filas anteriores intactas. **Valentina Soto** y **Camila Rojas**: 130 → 190 películas cada una; sus archivos se actualizaron directamente en `src/loss/valentina/` y `src/loss/camila/` (`evaluaciones_adicionales.csv`, `evaluacion_gemini_<perfil>.csv` y `matriz_perdida.csv`), con las 130 filas anteriores intactas. Falta entrenarlas (opciones 3 y 7).
 
     * Cada perfil guarda su Verdad Base en `src/loss/<perfil>/`; para entrenar uno hay que copiar su `matriz_perdida.csv` a `src/loss/` y ejecutar antes la opción 3 con su nombre (ver el punto 5 de "Cambios pendientes").
 
