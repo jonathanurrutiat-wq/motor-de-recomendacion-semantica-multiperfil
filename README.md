@@ -147,6 +147,8 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
         * <code><b><span style="color: #23c523d4;">matriz_perdida.csv</span></b></code>: <i>(generado)</i> Salida normalizada de `ingest_maestro.py`, usada como Verdad Base para comparar contra las predicciones del modelo.
 
+        * <code><b><span style="color: #23c523d4;">&lt;perfil&gt;/</span></b></code>: (`ignacio/`, `matias/`, `valentina/` y `camila/`) Copia guardada de la Verdad Base de cada perfil: su `matriz_perdida.csv`, sus `evaluaciones_adicionales.csv` y, cuando ya se entrenó, su modelo `.joblib`. El código lee siempre los archivos de la raíz de `src/loss/`, así que para trabajar con un perfil hay que copiar ahí los suyos (ver el punto 5 de "Cambios pendientes").
+
     * <code><b><span style="color: #009dff;">main.py</span></b></code>: Archivo principal del programa, orquesta el resto de los módulos a través de un menú central.
 
     * <code><b><span style="color: #009dff;">profiles.py</span></b></code>: Encargado de crear, editar y eliminar perfiles cinéfilos de usuario, guardándolos en `perfiles.json`.
@@ -175,7 +177,7 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
 ## **Cambios pendientes**
 
-<small>*Nota: salen del informe (`docs/informe/informe.pdf`, versión 1.4 del 26-09-2026; secciones 5.2, 6 y 7). El estado de cada punto se contrastó con el changelog hasta la versión 1.4.3; el punto 2 se actualizó con las corridas de los cuatro perfiles del 24-10-2026.*</small>
+<small>*Nota: salen del informe (`docs/informe/informe.pdf`, versión 1.4 del 26-09-2026; secciones 5.2, 6 y 7). El estado de cada punto se contrastó con el changelog hasta la versión 1.4.4; el punto 2 se actualizó con las corridas de los cuatro perfiles del 24-10-2026 y con las 60 películas nuevas del 11-11-2026.*</small>
 
 ### Pasos propuestos
 
@@ -218,13 +220,26 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
     * Sumar películas del terreno de cada perfil (acción para Matías, comedia para Valentina), para que sus afinidades principales tengan ejemplos altos.
     * Conservar los resultados de la tabla como línea base. Si solo se cambian las instrucciones de algunos perfiles, la comparación entre perfiles deja de ser pareja.
 
+    **Actualización (11-11-2026): 60 películas nuevas.** Se sumó a la Verdad Base una tanda de 60 películas nuevas (ver 1.4.4), evaluadas con Gemini en 3 tandas de 20 por perfil. Con ellas se acotan los perfiles que ya tienen la matriz rehecha y se agrega rango de notas, que era lo que faltaba:
+
+    | Perfil | Películas en la Verdad Base | Estado |
+    |---|---|---|
+    | Ignacio Araya | 248 (188 + 60) | Evaluado y entrenado: ρ 0,756, R² 0,617, MAE 1,054 (línea base 1,755) |
+    | Matías Fuentes | 190 (130 + 60) | Evaluado y entrenado con rasgos de similitud. Métricas: por anotar |
+    | Valentina Soto | 130 | Tandas de las 60 películas listas para Gemini; pendiente |
+    | Camila Rojas | 130 | Tandas de las 60 películas listas para Gemini; pendiente |
+
+    * Las notas de las 60 nuevas de Matías abren el rango: media 7,03 (mínimo 2,0, máximo 9,8; 26 de 60 con 8 o más), contra 8,42 (mínimo 6,5) de sus 130 anteriores. Es justo lo que buscaba "Qué rehacer", pero también implica que se evaluaron en otra sesión de Gemini: como pasó con las 58 de Ignacio, parte del cambio puede ser de calibración y no de las películas.
+    * Las filas de Ignacio (248) y Matías (190) no son comparables con la tabla de 130 películas ni entre sí (distinta cantidad de películas y de sesiones de Gemini). La línea base de las 130 sigue siendo la única comparable entre los cuatro perfiles.
+    * Al terminar los cuatro perfiles con las mismas 60 películas, volver a armar una tabla comparable.
+
 3. **Evaluar las 58 candidatas y completar reseñas** — *parcialmente hecho: evaluadas solo para Ignacio (24-10-2026); el resto, pendiente.*
 
     Evaluar con Gemini las candidatas que aún no tienen nota (opción 6) y descargar las reseñas de las películas evaluadas que no las tenían. Las candidatas son 58: las películas con reseñas procesadas que no están en la Verdad Base (todas con entre 69 y 100 reseñas). En la 1.4.3 se incorporaron las reseñas de 28 de las 29 películas evaluadas que no las tenían (falta *Nickel Boys*). Estado de cada parte:
 
     * **Evaluar las 58 con Gemini, perfil Ignacio Araya** — *hecho (24-10-2026).* Se evaluaron con las instrucciones que genera la opción 6 y se importaron con la opción 5: su Verdad Base pasó de 130 a 188 películas (187 con reseñas, contra 129 antes) y el ρ bajó de 0,735 a 0,686 ± 0,010. Las 58 se evaluaron en otra sesión de Gemini y con otra escala en los filtros, así que ese ρ no es comparable con la línea base (ver la aclaración en el paso 2); la línea base de 130 películas sigue en `src/loss/ignacio/`.
 
-    * **Evaluar las 58 con Gemini, perfiles Matías Fuentes, Valentina Soto y Camila Rojas** — *pendiente (en espera).* Esos tres perfiles se hicieron con 130 películas y no con 188. Sin embargo, no se deben evaluar otra vez hasta recibir las instrucciones del profesor a cargo, para saber si vale la pena.
+    * **Evaluar las 58 con Gemini, perfiles Matías Fuentes, Valentina Soto y Camila Rojas** — *pendiente (en espera).* Esos tres perfiles se hicieron con 130 películas y no con 188. Sin embargo, no se deben evaluar otra vez hasta recibir las instrucciones del profesor a cargo, para saber si vale la pena. Las 60 películas nuevas de la 1.4.4 son otras y no son estas 58: Matías ya las tiene evaluadas (190 películas), Valentina y Camila no.
 
     * **Descargar las reseñas de *Nickel Boys*** — *pendiente.* Es la única película de la Verdad Base sin reseñas procesadas, así que solo entrena la etapa 2. Su slug (`nickel-boys`) es el correcto en Letterboxd y está en `src/loss/pendientes_resenias.csv`. Hay que bajarlas con el scraper a `reviews.db`, correr las opciones 2 y 4 y reemplazar `reviews.zip` en el release en borrador. Conviene hacerlo cuando el contenido de `reviews.db` esté acordado con el compañero que agrega películas, porque las nuevas aparecerían como candidatas.
 
@@ -239,6 +254,14 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 5. **Una Verdad Base por perfil en el código** — *pendiente.*
 
     Hoy las rutas de `dataset_maestro.csv`, `matriz_perdida.csv`, `evaluaciones_adicionales.csv`, `pendientes_evaluar.csv` y del modelo están fijas en `src/config.py`: el programa trabaja con una sola Verdad Base a la vez y, para cambiar de perfil, hay que mover los archivos a mano a `src/loss/<perfil>/`. Que las rutas dependan del perfil elegido evitaría mezclar datos de perfiles sin darse cuenta. Hay que revisar que el workflow `analisis.yml`, que se dispara al cambiar `src/loss/dataset_maestro.csv`, siga funcionando para Ignacio.
+
+    Mientras tanto, el procedimiento manual para entrenar otro perfil es:
+
+    * Copiar `src/loss/<perfil>/matriz_perdida.csv` a `src/loss/matriz_perdida.csv` (la opción 7 solo necesita ese archivo). Antes, comprobar que la matriz de Ignacio esté guardada en `src/loss/ignacio/`.
+    * Ejecutar la opción 3 con el nombre exacto del perfil (con tilde, ej. `Matías Fuentes`): la opción 7 usa los embeddings del perfil para los rasgos de similitud y, si no existen, entrena sin ellos y avisa. Los embeddings de reseñas (opción 4) no dependen del perfil y no hay que rehacerlos.
+    * Ejecutar la opción 7 y copiar el `modelo_reglas_<modelo>.joblib` generado a `src/loss/<perfil>/`.
+    * **No ejecutar la opción 5** con los archivos de otro perfil en la raíz: arma la matriz con el `dataset_maestro.csv` de la raíz (el de Ignacio) más las `evaluaciones_adicionales.csv`, y mezclaría perfiles. La matriz de cada perfil se mantiene en su carpeta.
+    * Para sumar películas nuevas a un perfil: opción 2 (si hay datos crudos) u 4 para vectorizar el csv filtrado; opción 6 con ese perfil, que genera `pendientes_evaluar.csv` y las instrucciones para Gemini; pegar la respuesta de Gemini (conviene en tandas de 20) en la plantilla; opción 5 para importarla; y guardar los archivos resultantes en `src/loss/<perfil>/`.
 
 ### Problemas que motivan estos cambios
 
@@ -266,6 +289,45 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
 ## **Changelog (historial de cambios)**
 <small>*Nota: Este changelog está en orden cronológico inverso.*</small>
+
+### [1.4.4] - 11-11-2026
+> Verdad Base ampliada con 60 películas nuevas.
+
+* Cambios
+
+    * Nuevo csv filtrado unificado, `filtrado_reviews_2026-11-11_21-50-36.csv` en `src/db/filtered/result/` (25.839 reseñas de 240 películas): contiene las películas del filtrado anterior (`filtrado_reviews_2026-10-18_23-28-49.csv`) más las 60 películas nuevas, con las mismas columnas (`film_id, film_title, director, rating, lang, likes, review_text`). La opción 4 lo toma como el lote más reciente de la fuente `reviews`: reutiliza los embeddings de los chunks idénticos, vectoriza solo lo nuevo y elimina el lote anterior (`embeddings_previos.py`). Los embeddings de reseñas no dependen del perfil, así que se generan una sola vez para los cuatro.
+
+    * Las 60 películas nuevas se evaluaron con Gemini por perfil, en 3 tandas de 20 con las instrucciones de la opción 6 (`instrucciones_evaluacion_<perfil>.md`). Antes de agregarlas, las respuestas se validaron: 17 valores por fila (5 filtros, 5 excepciones, 5 afinidades y la nota global), mismo orden y mismos ids canónicos que la plantilla, ninguna película repetida o ya evaluada, excepciones solo 0 o 1 y puntajes entre 0 y 10.
+
+    * **Ignacio Araya**: 188 → 248 películas (opción 5 sobre `pendientes_evaluar.csv`; la plantilla quedó vacía). **Matías Fuentes**: 130 → 190 películas; sus archivos se actualizaron directamente en `src/loss/matias/` (`evaluaciones_adicionales.csv`, `evaluacion_gemini_matias.csv` y `matriz_perdida.csv`), con las 130 filas anteriores intactas. **Valentina Soto** y **Camila Rojas**: pendientes (130 películas).
+
+    * Cada perfil guarda su Verdad Base en `src/loss/<perfil>/`; para entrenar uno hay que copiar su `matriz_perdida.csv` a `src/loss/` y ejecutar antes la opción 3 con su nombre (ver el punto 5 de "Cambios pendientes").
+
+* Resultados (e5, modelo de reglas, validación cruzada)
+
+    * Ignacio (248 películas): ρ de Spearman 0,756, R² 0,617 y MAE 1,054 (la línea base que predice el promedio da 1,755, así que el error relativo a ella es de 60 %). Con 188 películas era ρ 0,686 ± 0,010.
+
+    * Matías (190 películas): entrenado con rasgos de similitud en sus 10 criterios; sus métricas están por anotar. Sus 60 notas nuevas tienen media 7,03 (mínimo 2,0, máximo 9,8; 26 de 60 con 8 o más), contra 8,42 (mínimo 6,5) de las 130 anteriores.
+
+* Limitación conocida: 60 películas sin orden por likes
+
+    * El csv de las 60 películas nuevas no traía las reseñas ordenadas por likes y no se alcanzó a reordenarlas, así que en el csv unificado quedaron en el orden de su archivo original (las películas anteriores conservan el orden por likes que les dejó `filter.py`).
+
+    * `pooling.cargar_chunks`, que usa `scoring.py` (en `entradas_peliculas`) al entrenar y al recomendar, le asigna a cada reseña un rango dentro de su película a partir del orden del lote y supone que el rango 0 es la reseña con más likes. Para esas 60 películas el rango no refleja los likes.
+
+    * Hoy no cambia ningún resultado: `scoring.py` y la opción 9 usan todas las reseñas de cada película (`max_resenias=None`), y `likes`, `lang` y `rating` solo se usan en `filter.py`. Sí afectaría a cualquier experimento que se limite a las N reseñas con más likes (parámetro `max_resenias` de `pooling.representar` y `pooling.rasgos_frases`): en esas 60 películas tomaría N reseñas sin criterio.
+
+    * Para corregirlo: ordenar por `likes` descendente las reseñas de cada película nueva en el csv unificado y volver a ejecutar la opción 4, que reutiliza los embeddings y solo reemplaza el lote.
+
+* Problema del informe del 26-09-2026 resuelto en el código
+
+    * Problema: los embeddings de las reseñas se promediaban en un solo vector por película y la similitud de coseno con los filtros se calculaba contra ese promedio, que diluye el rasgo cuando solo algunas reseñas hablan de él. Lo que debía hacerse es calcular, para cada filtro, la similitud con todos los embeddings de la película y quedarse con un percentil.
+
+    * Solución (`pooling.rasgos_frases`, usada por `scoring.py` y `recommend.py`): para cada criterio (filtro o afinidad) se mide la similitud de coseno de **cada chunk** de las reseñas de la película con su descripción y con sus `frases_resenia`, y de esa distribución se guardan dos rasgos: la fracción de chunks cuya similitud supera el percentil 95 de esa similitud entre todos los chunks (el umbral se calcula con una muestra de 20.000 chunks de todas las películas, sin usar notas, y se guarda con el modelo para medir igual al recomendar) y el percentil 90 de la similitud de la película. Se calculan para todos los criterios (`RASGOS_DESCRIPCION=1`, por defecto) y se entregan a la etapa 1 junto con el embedding promedio, que sigue como entrada base.
+
+    * Esto exige haber ejecutado la opción 3 para el perfil: sin sus embeddings, el modelo se entrena sin rasgos de similitud y avisa. En la opción 9, `pooling.csv` compara además el promedio con la variante "promedio + percentiles 50/75/90/máximo de la similitud con cada término del perfil".
+
+    * Efecto medido (1.4.3, e5): aportan poco, +0,004 ± 0,004 de ρ con frases de reseña, y mejoran la etapa 1 de algunos filtros (Insoportabilidad, Control y Caos), no de otros. Que el cálculo ya sea el correcto no garantiza que el cuello de botella de la etapa 1 esté resuelto (ver "Problemas que motivan estos cambios").
 
 ### [1.4.3] - 18-10-2026
 > Embeddings de reseñas incrementales.

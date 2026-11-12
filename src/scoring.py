@@ -17,9 +17,20 @@ from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.metrics.pairwise import cosine_similarity
 
 from src import pooling as resumen_resenias
-from src.config import DIR_CHROMA, POOLING_RESENIAS, RASGOS_DESCRIPCION, RUTA_GT, RUTA_MODELO
+from src.config import (
+    DIR_CHROMA,
+    POOLING_RESENIAS,
+    RASGOS_DESCRIPCION,
+    RUTA_GT,
+    RUTA_MODELO,
+)
 from src.metricas import K_RANKING
-from src.modelo_reglas import MODO_DESCRIPCION_POR_DEFECTO, MODO_FRASES_POR_DEFECTO, evaluar, subconjunto_rasgos
+from src.modelo_reglas import (
+    MODO_DESCRIPCION_POR_DEFECTO,
+    MODO_FRASES_POR_DEFECTO,
+    evaluar,
+    subconjunto_rasgos,
+)
 from src.normalizacion import (
     canonicalizar_film_id,
     nombre_columna_gt,
