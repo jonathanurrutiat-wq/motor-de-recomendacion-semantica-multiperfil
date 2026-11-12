@@ -17,11 +17,23 @@ from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.metrics.pairwise import cosine_similarity
 
 from src import pooling as resumen_resenias
-from src.config import DIR_CHROMA, POOLING_RESENIAS, RUTA_GT, RUTA_MODELO
+from src.config import (
+    DIR_CHROMA,
+    POOLING_RESENIAS,
+    RASGOS_DESCRIPCION,
+    RUTA_GT,
+    RUTA_MODELO,
+)
 from src.metricas import K_RANKING
-from src.modelo_reglas import MODO_FRASES_POR_DEFECTO, evaluar, subconjunto_rasgos
+from src.modelo_reglas import (
+    MODO_DESCRIPCION_POR_DEFECTO,
+    MODO_FRASES_POR_DEFECTO,
+    evaluar,
+    subconjunto_rasgos,
+)
 from src.normalizacion import (
     canonicalizar_film_id,
+    nombre_columna_gt,
     obtener_filtros_del_perfil,
     seleccionar_perfil,
 )
@@ -172,17 +184,28 @@ def entrenar_lineal(nombre_perfil: str, perfil: dict) -> dict:
     }
 
 
-def textos_del_perfil(cliente, nombre_perfil: str, perfil: dict) -> dict:
-    # Descripción y frases de reseña de los criterios que tienen frases (vacío si no hay).
-    if not any(datos.get("frases_resenia") for tipo in ("restrictivos", "afinidad")
-               for datos in perfil.get(tipo, {}).values()):
+def hay_frases_de_resenia(perfil: dict) -> bool:
+    return any(datos.get("frases_resenia") for tipo in ("restrictivos", "afinidad")
+               for datos in perfil.get(tipo, {}).values())
+
+
+def textos_del_perfil(cliente, nombre_perfil: str, perfil: dict, todos_los_criterios: bool = RASGOS_DESCRIPCION) -> dict:
+    # Textos contra los que se mide la similitud de los chunks de reseñas: la
+    # descripción de cada filtro y afinidad y, si las tiene, sus frases de reseña.
+    # Con todos_los_criterios=False solo los criterios que tienen frases (vacío si no hay).
+    if not todos_los_criterios and not hay_frases_de_resenia(perfil):
         return {}
     try:
         coleccion = cliente.get_collection(name="perfiles")
     except Exception:
-        print("[!] Aviso: no hay embeddings del perfil; se entrena sin frases de reseña. Ejecuta el módulo 3.")
+        print("[!] Aviso: no hay embeddings del perfil; se entrena sin rasgos de similitud. Ejecuta el módulo 3.")
         return {}
-    return resumen_resenias.textos_de_criterios(coleccion, nombre_perfil, perfil)
+    return resumen_resenias.textos_de_criterios(coleccion, nombre_perfil, perfil, incluir_sin_frases=todos_los_criterios)
+
+
+def modo_de_rasgos(perfil: dict) -> str:
+    # Con frases de reseña, el modo validado con ellas; con solo la descripción, el neutro.
+    return MODO_FRASES_POR_DEFECTO if hay_frases_de_resenia(perfil) else MODO_DESCRIPCION_POR_DEFECTO
 
 
 def entradas_peliculas(cliente, textos: dict, pooling: str, umbrales=None) -> dict:
@@ -226,12 +249,14 @@ def entrenar_reglas(nombre_perfil: str, perfil: dict) -> dict:
                          f"se necesitan al menos {MINIMO_PELICULAS}. Evalúa más películas (módulo 6).")
 
     film_ids = [entradas["film_ids"][i] for i in indices]
+    modo_frases = modo_de_rasgos(perfil)
     print(f"Entrenando el modelo de reglas con {len(film_ids)} películas "
-          f"({'con' if textos else 'sin'} frases de reseña, pooling {POOLING_RESENIAS})...")
+          f"({f'con rasgos de similitud en {len(textos)} criterios, modo {modo_frases}' if textos else 'sin rasgos de similitud'}, "
+          f"pooling {POOLING_RESENIAS})...")
     evaluacion = evaluar(perfil, df_gt, film_ids, entradas["X"][indices], N_PARTICIONES,
-                         rasgos=subconjunto_rasgos(entradas["rasgos"], indices), modo_frases=MODO_FRASES_POR_DEFECTO)
+                         rasgos=subconjunto_rasgos(entradas["rasgos"], indices), modo_frases=modo_frases)
     return {"perfil": nombre_perfil, "film_ids": film_ids, "textos": textos, "entradas": entradas,
-            "evaluacion": evaluacion}
+            "evaluacion": evaluacion, "modo_frases": modo_frases}
 
 
 def main(perfil_elegido: str | None = None):
@@ -260,9 +285,13 @@ def main(perfil_elegido: str | None = None):
     print(f"NDCG@{K_RANKING}: {cv[f'ndcg@{K_RANKING}']:.3f} | Precisión@{K_RANKING}: {cv[f'precision@{K_RANKING}']:.3f}")
     print(f"Error absoluto medio de la nota (MAE): {cv['mae']:.3f} | R²: {cv['r2']:.3f}")
     if textos:
-        con_frases = [nombre for tipo in ("restrictivos", "afinidad")
-                      for nombre, datos in perfil.get(tipo, {}).items() if datos.get("frases_resenia")]
-        print(f"Frases de reseña usadas en: {', '.join(con_frases)}.")
+        criterios = [(nombre, datos) for tipo in ("restrictivos", "afinidad")
+                     for nombre, datos in perfil.get(tipo, {}).items() if nombre_columna_gt(tipo, nombre) in textos]
+        print(f"Rasgos de similitud con las reseñas (modo {resultado['modo_frases']}) en: "
+              f"{', '.join(nombre for nombre, _ in criterios)}.")
+        con_frases = [nombre for nombre, datos in criterios if datos.get("frases_resenia")]
+        if con_frases:
+            print(f"Con frases de reseña además de la descripción: {', '.join(con_frases)}.")
 
     print("\n| -- Reglas aprendidas -- |")
     for linea in modelo.regla.describir():
