@@ -1,0 +1,13 @@
+,filtro · Camaradería Masculina Rancia,filtro · Insoportabilidad Prolongada,filtro · Control Emocional Artificial,filtro · Personajes Diorama,filtro · Caos Asfixiante,afinidad · Resistencia Femenina,afinidad · Contemplación Inmersiva,afinidad · Ternura y Empatía Radical,afinidad · Humanismo Social,afinidad · Vanguardia y Simbolismo,excepción · Camaradería Masculina Rancia,excepción · Insoportabilidad Prolongada
+filtro · Camaradería Masculina Rancia,1.0,0.8456,0.8286,0.8366,0.8435,0.8531,0.848,0.8475,0.8572,0.8462,0.8722,0.8278
+filtro · Insoportabilidad Prolongada,0.8456,1.0,0.8478,0.8519,0.88,0.8337,0.8624,0.8443,0.8556,0.8464,0.8569,0.8704
+filtro · Control Emocional Artificial,0.8286,0.8478,1.0,0.8428,0.8717,0.8467,0.8763,0.8689,0.8572,0.8243,0.8388,0.8539
+filtro · Personajes Diorama,0.8366,0.8519,0.8428,1.0,0.8419,0.8381,0.8485,0.8556,0.861,0.8611,0.8428,0.8243
+filtro · Caos Asfixiante,0.8435,0.88,0.8717,0.8419,1.0,0.8402,0.8779,0.8426,0.8434,0.848,0.8387,0.8736
+afinidad · Resistencia Femenina,0.8531,0.8337,0.8467,0.8381,0.8402,1.0,0.8541,0.879,0.8819,0.8448,0.8607,0.8485
+afinidad · Contemplación Inmersiva,0.848,0.8624,0.8763,0.8485,0.8779,0.8541,1.0,0.8754,0.8706,0.8673,0.8356,0.8737
+afinidad · Ternura y Empatía Radical,0.8475,0.8443,0.8689,0.8556,0.8426,0.879,0.8754,1.0,0.9007,0.8494,0.8467,0.8725
+afinidad · Humanismo Social,0.8572,0.8556,0.8572,0.861,0.8434,0.8819,0.8706,0.9007,1.0,0.8642,0.8535,0.8755
+afinidad · Vanguardia y Simbolismo,0.8462,0.8464,0.8243,0.8611,0.848,0.8448,0.8673,0.8494,0.8642,1.0,0.872,0.8637
+excepción · Camaradería Masculina Rancia,0.8722,0.8569,0.8388,0.8428,0.8387,0.8607,0.8356,0.8467,0.8535,0.872,1.0,0.8634
+excepción · Insoportabilidad Prolongada,0.8278,0.8704,0.8539,0.8243,0.8736,0.8485,0.8737,0.8725,0.8755,0.8637,0.8634,1.0
