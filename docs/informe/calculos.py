@@ -25,6 +25,7 @@ import pandas as pd  # noqa: E402
 from scipy.stats import spearmanr  # noqa: E402
 from sklearn.model_selection import KFold  # noqa: E402
 
+from src.config import rutas_perfil  # noqa: E402
 from src.modelo_reglas import (PENDIENTE, ModeloDosEtapas, criterios_del_perfil,  # noqa: E402
                                matrices_puntajes, sigmoide, subconjunto_rasgos)
 from src.normalizacion import canonicalizar_film_id, nombre_columna_gt  # noqa: E402
@@ -45,7 +46,7 @@ def main(salida: Path):
     pos = {f: i for i, f in enumerate(e["film_ids"])}
     idx = [pos[f] for f in res["film_ids"]]
     X, rasgos = e["X"][idx], subconjunto_rasgos(e["rasgos"], idx)
-    gt = pd.read_csv(RAIZ / "src" / "loss" / "matriz_perdida.csv")
+    gt = pd.read_csv(rutas_perfil(NOMBRE_PERFIL).gt)
     gt["canon_id"] = gt["film_id"].apply(canonicalizar_film_id)
     ig = {c: i for i, c in enumerate(gt["canon_id"])}
     punt = gt.iloc[[ig[f] for f in res["film_ids"]]].reset_index(drop=True)

@@ -21,8 +21,7 @@ from src.config import (
     DIR_CHROMA,
     POOLING_RESENIAS,
     RASGOS_DESCRIPCION,
-    RUTA_GT,
-    RUTA_MODELO,
+    rutas_perfil,
 )
 from src.metricas import K_RANKING
 from src.modelo_reglas import (
@@ -136,8 +135,9 @@ def entrenar_lineal(nombre_perfil: str, perfil: dict) -> dict:
     # modelo de las versiones anteriores; la opción 9 la usa como comparación).
     # Cruza las películas con reseñas vectorizadas contra la Verdad Base.
     # Lanza ValueError si faltan datos.
-    if not RUTA_GT.exists():
-        raise ValueError("No se encontró matriz_perdida.csv. Ejecuta el módulo 5 primero.")
+    ruta_gt = rutas_perfil(nombre_perfil).gt
+    if not ruta_gt.exists():
+        raise ValueError(f"No se encontró {ruta_gt}. Ejecuta el módulo 5 primero con este perfil.")
 
     estructura = construir_estructura(perfil)
 
@@ -148,7 +148,7 @@ def entrenar_lineal(nombre_perfil: str, perfil: dict) -> dict:
     )
     embeddings_por_pelicula = cargar_embeddings_peliculas(cliente)
 
-    df_gt = pd.read_csv(RUTA_GT)
+    df_gt = pd.read_csv(ruta_gt)
     df_gt['canon_id'] = df_gt['film_id'].apply(canonicalizar_film_id)
 
     film_ids, embeddings_entrenamiento, y_entrenamiento = [], [], []
@@ -230,15 +230,16 @@ def entradas_peliculas(cliente, textos: dict, pooling: str, umbrales=None) -> di
 def entrenar_reglas(nombre_perfil: str, perfil: dict) -> dict:
     # Valida con validación cruzada y entrena con todas las películas evaluadas
     # el modelo de reglas. Lanza ValueError si faltan datos.
-    if not RUTA_GT.exists():
-        raise ValueError("No se encontró matriz_perdida.csv. Ejecuta el módulo 5 primero.")
+    ruta_gt = rutas_perfil(nombre_perfil).gt
+    if not ruta_gt.exists():
+        raise ValueError(f"No se encontró {ruta_gt}. Ejecuta el módulo 5 primero con este perfil.")
 
     print("Conectando con la base de datos vectorial ChromaDB...")
     cliente = chromadb.PersistentClient(path=str(DIR_CHROMA))
     textos = textos_del_perfil(cliente, nombre_perfil, perfil)
     entradas = entradas_peliculas(cliente, textos, POOLING_RESENIAS)
 
-    df_gt = pd.read_csv(RUTA_GT)
+    df_gt = pd.read_csv(ruta_gt)
     df_gt["canon_id"] = df_gt["film_id"].apply(canonicalizar_film_id)
     # En el orden de la Verdad Base, el mismo que usan las comparaciones de la opción 9.
     posicion = {film_id: i for i, film_id in enumerate(entradas["film_ids"])}
@@ -271,10 +272,12 @@ def main(perfil_elegido: str | None = None):
     modelo = evaluacion["modelo"]
     # Se guarda todo lo necesario para que la opción 8 prepare las películas
     # igual que al entrenar: pooling, frases y sus umbrales de similitud.
+    ruta_modelo = rutas_perfil(nombre_perfil).modelo
+    ruta_modelo.parent.mkdir(parents=True, exist_ok=True)
     joblib.dump({
         "tipo": "reglas", "modelo": modelo, "perfil": nombre_perfil, "pooling": POOLING_RESENIAS,
         "textos": textos, "umbrales": resultado["entradas"]["umbrales"],
-    }, RUTA_MODELO)
+    }, ruta_modelo)
 
     cv = evaluacion["metricas"]["completo"]
     print("\n| -- Modelo de reglas: validación cruzada (películas que el modelo no vio) -- |")
@@ -298,7 +301,7 @@ def main(perfil_elegido: str | None = None):
         print(f" - {linea}")
     print(f"\nParámetros: {modelo.regla.n_parametros()} en la regla (etapa 2) y "
           f"{modelo.n_parametros_etapa_1()} en las regresiones Ridge de la etapa 1.")
-    print(f"\nModelo guardado en: {RUTA_MODELO}")
+    print(f"\nModelo guardado en: {ruta_modelo}")
     return resultado
 
 

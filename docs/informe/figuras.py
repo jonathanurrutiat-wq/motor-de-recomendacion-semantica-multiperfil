@@ -39,7 +39,7 @@ def guardar(figura, nombre):
 
 
 def distribucion_verdad_base():
-    gt = pd.read_csv(RAIZ / "src" / "loss" / "matriz_perdida.csv")
+    gt = pd.read_csv(RAIZ / "src" / "loss" / "perfil_ignacio_araya" / "matriz_perdida.csv")
     figura, (izq, der) = plt.subplots(1, 2, figsize=(6.4, 2.4), gridspec_kw={"width_ratios": [1.1, 1]})
     izq.hist(gt["gt_nota_global"], bins=np.arange(1.75, 10.5, 0.5), color=AZUL, edgecolor="white", linewidth=1)
     izq.axvline(gt["gt_nota_global"].mean(), color=TINTA_2, linewidth=1, linestyle="--")

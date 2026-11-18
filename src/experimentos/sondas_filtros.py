@@ -23,7 +23,7 @@ import pandas as pd
 from scipy.stats import spearmanr
 from sentence_transformers import SentenceTransformer
 
-from src.config import DIR_ANALISIS, DIR_CHROMA, DIR_FILTRADOS, EMBEDDING_MODEL_NAME, PREFIJO_EMBEDDINGS, RUTA_GT, SRC_DIR
+from src.config import DIR_ANALISIS, DIR_CHROMA, DIR_FILTRADOS, EMBEDDING_MODEL_NAME, PREFIJO_EMBEDDINGS, SRC_DIR, rutas_perfil
 from src.normalizacion import canonicalizar_film_id, nombre_columna_gt
 
 SONDAS = {
@@ -88,9 +88,9 @@ def idiomas_de_chunks(ids):
 
 
 def main():
-    perfil = json.loads((SRC_DIR / "db" / "profiles" / "perfiles.ejemplo.json").read_text(encoding="utf-8"))
-    perfil = next(iter(perfil.values()))
-    gt = pd.read_csv(RUTA_GT)
+    perfiles = json.loads((SRC_DIR / "db" / "profiles" / "perfiles.ejemplo.json").read_text(encoding="utf-8"))
+    nombre_perfil, perfil = next(iter(perfiles.items()))
+    gt = pd.read_csv(rutas_perfil(nombre_perfil).gt)
     gt["canon"] = gt["film_id"].apply(canonicalizar_film_id)
 
     print(f"Cargando chunks de {DIR_CHROMA}...")

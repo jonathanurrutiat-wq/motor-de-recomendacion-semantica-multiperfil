@@ -1,10 +1,12 @@
 import os
 import re
+import unicodedata
 from pathlib import Path
+from typing import NamedTuple
 
 # e5-base predice y ordena mejor que MiniLM (ver el changelog 1.2.0 del README),
 # a cambio de embeddings unas 3 veces más lentos de generar.
-MODELO_POR_DEFECTO = "intfloat/multilingual-e5-base"
+MODELO_POR_DEFECTO = "BAAI/bge-m3"
 # Modelo usado hasta la versión 1.2.0; su base de embeddings está en chroma/.
 MODELO_ANTERIOR = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 # Se puede cambiar con la variable de entorno MODELO_EMBEDDINGS para comparar modelos.
@@ -26,13 +28,53 @@ DIR_FILTRADOS = DB_DIR / "filtered" / "result"
 _SUFIJO = "" if EMBEDDING_MODEL_NAME == MODELO_ANTERIOR else f"_{SLUG_MODELO}"
 DIR_CHROMA = DB_DIR / "embeddings" / f"chroma{_SUFIJO}"
 
-RUTA_DATASET_MAESTRO = LOSS_DIR / "dataset_maestro.csv"
-RUTA_GT = LOSS_DIR / "matriz_perdida.csv"
-RUTA_PENDIENTES = LOSS_DIR / "pendientes_evaluar.csv"
-# Películas de la Verdad Base sin reseñas suficientes: hay que descargarlas con el scraper.
-RUTA_SIN_RESENIAS = LOSS_DIR / "pendientes_resenias.csv"
-RUTA_ADICIONALES = LOSS_DIR / "evaluaciones_adicionales.csv"
-RUTA_INSTRUCCIONES = LOSS_DIR / "instrucciones_evaluacion.md"
+
+
+# Cada perfil guarda su Verdad Base y su modelo en su propia carpeta,
+# src/loss/perfil_<nombre>/ (ej. perfil_ignacio_araya). El programa deduce las
+# rutas desde el nombre del perfil elegido, así que cambiar de perfil no obliga
+# a mover archivos.
+class RutasPerfil(NamedTuple):
+    carpeta: Path
+    # Planilla con las notas de Gemini. Es opcional: un perfil puede tener toda
+    # su Verdad Base en evaluaciones_adicionales.csv.
+    dataset_maestro: Path
+    # Evaluaciones importadas con la opción 5 (se suman a la planilla).
+    adicionales: Path
+    # Plantilla de la opción 6 con las películas pendientes de evaluar y las
+    # instrucciones para Gemini que genera.
+    pendientes: Path
+    instrucciones: Path
+    # Películas de la Verdad Base sin reseñas suficientes: hay que descargarlas con el scraper.
+    sin_resenias: Path
+    # Verdad Base ligera que arma la opción 5 y usan las opciones 7, 8 y 9.
+    gt: Path
+    # Modelo entrenado por la opción 7, que usa la opción 8.
+    modelo: Path
+
+
+def slug_perfil(nombre_perfil: str) -> str:
+    # "Matías Fuentes" -> "matias_fuentes": sin tildes, en minúsculas y con "_" entre palabras.
+    sin_tildes = unicodedata.normalize("NFKD", nombre_perfil).encode("ascii", "ignore").decode("ascii")
+    return re.sub(r"[^a-z0-9]+", "_", sin_tildes.lower()).strip("_")
+
+
+def rutas_perfil(nombre_perfil: str) -> RutasPerfil:
+    slug = slug_perfil(nombre_perfil)
+    if not slug:
+        raise ValueError(f"No se puede armar la carpeta del perfil '{nombre_perfil}': su nombre no tiene letras ni números.")
+    carpeta = LOSS_DIR / f"perfil_{slug}"
+    return RutasPerfil(
+        carpeta=carpeta,
+        dataset_maestro=carpeta / "dataset_maestro.csv",
+        adicionales=carpeta / "evaluaciones_adicionales.csv",
+        pendientes=carpeta / "pendientes_evaluar.csv",
+        instrucciones=carpeta / "instrucciones_evaluacion.md",
+        sin_resenias=carpeta / "pendientes_resenias.csv",
+        gt=carpeta / "matriz_perdida.csv",
+        modelo=carpeta / f"modelo_reglas{_SUFIJO}.joblib",
+    )
+
 
 DIR_ANALISIS = SRC_DIR.parent / "analisis"
 
@@ -50,4 +92,3 @@ if not (POOLING_RESENIAS == "media" or (POOLING_RESENIAS[:1] == "p" and POOLING_
 # todos los filtros y afinidades, con su descripción y, si las tienen, sus
 # frases_resenia; con "0", solo para los criterios que tienen frases_resenia.
 RASGOS_DESCRIPCION = os.environ.get("RASGOS_DESCRIPCION", "1").strip() != "0"
-RUTA_MODELO = LOSS_DIR / f"modelo_reglas{_SUFIJO}.joblib"

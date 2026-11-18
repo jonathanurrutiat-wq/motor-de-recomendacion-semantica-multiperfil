@@ -57,7 +57,7 @@ def tabla_etapa_2():
         x = m[clave]
         filas.append(rf"{nombre} & {f3(x['spearman'])} & {f3(x['r2'])} & {f3(x['mae'])} \\")
     completo = json.load(open(DATOS / "e5_resumen.json"))["metricas"]["reglas_dos_etapas_5_particiones"]
-    n_gemini = int(pd.read_csv(RAIZ / "src" / "loss" / "matriz_perdida.csv")["gt_nota_global"].notna().sum())
+    n_gemini = int(pd.read_csv(RAIZ / "src" / "loss" / "perfil_ignacio_araya" / "matriz_perdida.csv")["gt_nota_global"].notna().sum())
     filas.append(r"\midrule")
     filas.append(rf"Modelo completo (etapa 1 desde reseñas + regla), e5 & {f3(completo['spearman'])} & {f3(completo['r2'])} & {f3(completo['mae'])} \\")
     escribir("tabla_etapa_2", "\n".join([

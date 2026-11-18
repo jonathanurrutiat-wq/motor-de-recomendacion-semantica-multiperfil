@@ -20,7 +20,7 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 * Instalar las dependencias (idealmente dentro de un entorno virtual):
     `pip install -r requirements.txt`
 
-* (Opcional) Para partir con un perfil ya armado, copiar `src/db/profiles/perfiles.ejemplo.json` como `src/db/profiles/perfiles.json`. Contiene el perfil de Ignacio Araya, el mismo con que se evaluó `dataset_maestro.csv` y con que se generaron los embeddings incluidos en el repositorio.
+* (Opcional) Para partir con un perfil ya armado, copiar `src/db/profiles/perfiles.ejemplo.json` como `src/db/profiles/perfiles.json`. Contiene el perfil de Ignacio Araya, el mismo con que se evaluó `src/loss/perfil_ignacio_araya/dataset_maestro.csv` y con que se generaron los embeddings incluidos en el repositorio.
 
 * Desde la raíz del repositorio, ejecutar:
     `python src/main.py`
@@ -38,7 +38,7 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
 ## **Guía del menú principal**
 
-<small>*Nota: cada opción depende de que las anteriores ya se hayan corrido al menos una vez (ej. no se puede entrenar el modelo sin haber generado los embeddings y el Ground-truth antes). Si hay más de un perfil guardado, las opciones 6 y 7 preguntan cuál usar. El Ground-truth (`dataset_maestro.csv`) corresponde a un único perfil, así que se debe elegir ese mismo perfil al entrenar.*</small>
+<small>*Nota: cada opción depende de que las anteriores ya se hayan corrido al menos una vez (ej. no se puede entrenar el modelo sin haber generado los embeddings y el Ground-truth antes). Si hay más de un perfil guardado, las opciones 5 a 8 preguntan cuál usar (la 9, una sola vez) y leen y escriben solo en la carpeta de ese perfil, `src/loss/perfil_<nombre>/`, así que para cambiar de perfil no hay que mover archivos.*</small>
 
 * **1) Gestionar perfiles cinéfilos.**
     Abre el menú de `profiles.py` para crear un perfil nuevo, o editar/eliminar uno existente (filtros restrictivos y afinidades). Se guarda en `perfiles.json`.
@@ -55,14 +55,15 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 * **4) Generar embeddings de los lotes de reseñas pendientes.**
     Toma todos los `.csv` filtrados de `db/filtered/result/` que todavía no están en ChromaDB, chunkea el texto de cada reseña y genera sus embeddings (`procesing_reviews.py`), guardándolos en la colección `resenias`. Cada chunk se identifica como `pelicula::lote::review_N::chunk_M`, así que reseñas de lotes distintos no se pisan. De cada fuente (ej. `reviews.db`) solo se usa el filtrado más reciente, que trae todas sus reseñas: los chunks que ya estaban vectorizados en el lote anterior se reutilizan, solo se codifican los nuevos, y el lote anterior se elimina de la colección (`embeddings_previos.py`). Chroma no libera el espacio de lo eliminado: para achicar la base, cerrar el programa y correr `python src/compactar_chroma.py`.
 
-* **5) Cargar Ground-truth (dataset_maestro.csv).**
-    Lee `dataset_maestro.csv` (las notas que evaluó Gemini para un grupo de películas según el perfil), lo limpia y normaliza, y genera `matriz_perdida.csv`: el archivo liviano que usan las opciones 6, 7 y 8. Las columnas se asocian a los filtros y afinidades del perfil elegido: cada uno se busca en la planilla por su campo `encabezado` (la abreviatura usada al evaluar, ej. `"Insoport."`) o, si no lo tiene, por su nombre. La nota global se lee de la columna `Global`, y un asterisco junto al puntaje de un filtro (ej. `0*`) se guarda como excepción aplicada en la columna `gt_excepcion_*`. Además importa las películas ya evaluadas en `pendientes_evaluar.csv` (las que tienen `gt_nota_global`): las mueve a `evaluaciones_adicionales.csv`, que se suma a la Verdad Base en cada ejecución.
+* **5) Cargar Ground-truth.**
+    Pide el perfil y lee los archivos de su carpeta `src/loss/perfil_<nombre>/`: `dataset_maestro.csv` (opcional; las notas que evaluó Gemini para un grupo de películas según el perfil) y `evaluaciones_adicionales.csv`. Los limpia y normaliza y genera en la misma carpeta `matriz_perdida.csv`, el archivo liviano que usan las opciones 6, 7 y 8. Si el perfil no tiene `dataset_maestro.csv`, la matriz se arma solo con `evaluaciones_adicionales.csv`; si no tiene ninguno de los dos, avisa dónde dejarlos. Las columnas se asocian a los filtros y afinidades del perfil elegido: cada uno se busca en la planilla por su campo `encabezado` (la abreviatura usada al evaluar, ej. `"Insoport."`) o, si no lo tiene, por su nombre. La nota global se lee de la columna `Global`, y un asterisco junto al puntaje de un filtro (ej. `0*`) se guarda como excepción aplicada en la columna `gt_excepcion_*`. Además importa las películas ya evaluadas en `pendientes_evaluar.csv` (las que tienen `gt_nota_global`): las mueve a `evaluaciones_adicionales.csv`, que se suma a la Verdad Base en cada ejecución (todo dentro de la carpeta del perfil).
 
 * **6) Revisar películas pendientes de evaluar.**
-    Compara las películas que ya tienen reseña procesada contra las que ya están en `matriz_perdida.csv`, y muestra cuáles todavía no tienen nota de Gemini. Genera dos archivos a partir del perfil elegido:
+    Compara las películas que ya tienen reseña procesada contra las que ya están en `matriz_perdida.csv`, y muestra cuáles todavía no tienen nota de Gemini. Pide el perfil y genera en su carpeta:
 
     * `pendientes_evaluar.csv`: plantilla con una fila por película pendiente y una columna por filtro, excepción (`gt_excepcion_*`, 1 si la excepción del filtro aplica), afinidad y nota global. Se puede editar en Excel (se aceptan `;` como separador y coma decimal).
     * `instrucciones_evaluacion.md`: instrucciones para pedirle a Gemini la evaluación con el mismo criterio de la Verdad Base (descripción de cada filtro y afinidad, excepciones, regla global y formato de respuesta en CSV con las columnas de la plantilla). Su respuesta se pega en la plantilla.
+    * `pendientes_resenias.csv`: películas ya evaluadas que todavía no tienen reseñas procesadas. Es uno por perfil, porque cada perfil puede tener evaluadas películas distintas.
 
     Si la plantilla tiene evaluaciones aún sin importar, no la sobrescribe. En `docs/instrucciones_evaluacion.md` hay una versión de estas instrucciones para el perfil de ejemplo.
 
@@ -72,10 +73,10 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
     * Etapa 1: a partir de las reseñas de cada película (el promedio de sus embeddings, o el percentil que indique `POOLING_RESENIAS`), predice con una regresión Ridge el puntaje 0-10 de cada filtro y afinidad y si aplica la excepción de cada filtro. Cada filtro y afinidad recibe además cuántas reseñas se parecen mucho a su descripción y, si las tiene, a cada una de sus `frases_resenia` (si ningún criterio tiene frases, los rasgos se agregan al embedding sin ponderar; si alguno las tiene, se ponderan; ver `RASGOS_DESCRIPCION`).
     * Etapa 2: calcula la nota global con la forma de la regla global, siguiendo la cadena **afinidad ← filtro ← excepción**: nota base con un peso por afinidad, menos un descuento por cada filtro que supera su umbral cuando su excepción no aplica. Pesos, umbrales y descuentos se aprenden de la Verdad Base.
 
-    Informa el desempeño con validación cruzada (películas que el modelo no vio al entrenar): ρ de Spearman (qué tan parecido es el orden de las películas al de Gemini, la métrica principal), NDCG@10, precisión@10 y el error de la nota (MAE). Muestra las reglas aprendidas y guarda el modelo en `src/loss/modelo_reglas_<modelo>.joblib`. Con e5 ordena bastante mejor que la regresión lineal que usaban las versiones anteriores (ρ 0,67 contra 0,55), que la opción 9 sigue calculando como comparación.
+    Informa el desempeño con validación cruzada (películas que el modelo no vio al entrenar): ρ de Spearman (qué tan parecido es el orden de las películas al de Gemini, la métrica principal), NDCG@10, precisión@10 y el error de la nota (MAE). Muestra las reglas aprendidas y guarda el modelo en `src/loss/perfil_<nombre>/modelo_reglas_<modelo>.joblib`. Con e5 ordena bastante mejor que la regresión lineal que usaban las versiones anteriores (ρ 0,67 contra 0,55), que la opción 9 sigue calculando como comparación.
 
 * **8) Recomendar películas según el perfil.**
-    Carga el modelo guardado en la opción 7 (con el perfil, el pooling, las frases de reseña y los umbrales con que se entrenó) para estimar una nota a todas las películas con reseña procesada (tanto a las que ya evaluó Gemini, para comparar, como a las nuevas que todavía no tienen nota). Muestra todo en un único ranking ordenado de mayor a menor nota estimada.
+    Pide el perfil y carga el modelo que la opción 7 guardó para él (con el perfil, el pooling, las frases de reseña y los umbrales con que se entrenó) para estimar una nota a todas las películas con reseña procesada (tanto a las que ya evaluó Gemini, para comparar, como a las nuevas que todavía no tienen nota). Muestra todo en un único ranking ordenado de mayor a menor nota estimada. Si el modelo guardado se entrenó con otro perfil, lo rechaza y avisa.
 
 * **9) Ejecutar todo y generar datos de análisis.**
     Pregunta el perfil una sola vez y ejecuta las opciones 2 a 8 en orden, sin más preguntas, mostrando cada paso con su duración (`src/analisis.py`). No borra datos: si hay chunks con formato antiguo o embeddings de perfiles huérfanos, solo lo informa (se limpian desde las opciones 3 y 4). Además evalúa el modelo con validación cruzada de 5 particiones (error sobre películas que el modelo no vio al entrenar) y lo compara con una línea base que predice siempre el promedio, con una regresión Ridge y con el **modelo de reglas en dos etapas** (`src/modelo_reglas.py`), que se arma desde el perfil para cualquier cantidad de filtros y afinidades:
@@ -93,7 +94,7 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
     * `reglas.json`: reglas y parámetros aprendidos por el modelo de reglas, con sus métricas por etapa y por criterio.
     * `pooling.csv`: comparación, con el modelo de reglas y validación cruzada, de formas de resumir los chunks de reseñas de cada película (`src/pooling.py`): promedio, percentil 50, 75, 90 o 95 de cada dimensión del embedding, o promedio más los percentiles 50/75/90/máximo de la similitud de los chunks con cada término del perfil; cada una con las 50, 100 o todas las reseñas con más likes, con 10 repeticiones de la validación cruzada. No requiere recalcular embeddings. La opción 9 usa como métrica principal ρ de Spearman (qué tan parecido es el orden de las películas al de Gemini), e informa además NDCG@10, precisión@10 y el error de la nota (MAE).
 
-    La opción 9 también se puede ejecutar en GitHub Actions con el workflow `.github/workflows/analisis.yml`, útil cuando no se tiene GPU o no se puede descargar el modelo de embeddings. Toma las reseñas del `.zip` adjunto al release en borrador `datos-resenas` (un borrador solo lo ven quienes tienen permiso de escritura en el repositorio), usa `perfiles.ejemplo.json` como perfil, parte de una base de embeddings vacía y publica la carpeta `analisis/` y el log completo en la rama `resultados-analisis`. Se lanza desde la pestaña *Actions* ("Run workflow", una vez que el archivo esté en la rama principal), al modificar el propio archivo del workflow, el perfil de ejemplo o el código de análisis (`analisis.py`, `modelo_reglas.py`, `pooling.py`). Corre en paralelo con tres modelos de embeddings (MiniLM, mpnet-base y e5-base). La primera vez tarda cerca de una hora (casi todo en generar los embeddings); los embeddings quedan en el caché de Actions, así que las siguientes corridas tardan unos minutos mientras no cambien las reseñas ni `filter.py`, `procesing_reviews.py` o `config.py`.
+    La opción 9 también se puede ejecutar en GitHub Actions con el workflow `.github/workflows/analisis.yml`, útil cuando no se tiene GPU o no se puede descargar el modelo de embeddings. Toma las reseñas del `.zip` adjunto al release en borrador `datos-resenas` (un borrador solo lo ven quienes tienen permiso de escritura en el repositorio), usa `perfiles.ejemplo.json` como perfil (Ignacio Araya, con los datos de `src/loss/perfil_ignacio_araya/`), parte de una base de embeddings vacía y publica la carpeta `analisis/` y el log completo en la rama `resultados-analisis`. Se lanza desde la pestaña *Actions* ("Run workflow", una vez que el archivo esté en la rama principal), al modificar el propio archivo del workflow, el perfil de ejemplo, el `dataset_maestro.csv` de Ignacio o el código de análisis (`analisis.py`, `modelo_reglas.py`, `pooling.py`). Corre en paralelo con tres modelos de embeddings (MiniLM, mpnet-base y e5-base). La primera vez tarda cerca de una hora (casi todo en generar los embeddings); los embeddings quedan en el caché de Actions, así que las siguientes corridas tardan unos minutos mientras no cambien las reseñas ni `filter.py`, `procesing_reviews.py` o `config.py`.
 
 * **10) Salir.**
     Cierra el programa.
@@ -143,11 +144,14 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
         
         * <code><b><span style="color: #009dff;">matrix.py</span></b></code>: Motor generador de la matriz de Verdad base, extrae la topología de los perfiles de usuario para crear el tensor objetivo ($Y$) contra el cual el Perceptrón Multicapa validará sus predicciones.
 
-        * <code><b><span style="color: #23c523d4;">dataset_maestro.csv</span></b></code>: Archivo de ground-truth evaluado a mano, insumo de `ingest_maestro.py`.
-
-        * <code><b><span style="color: #23c523d4;">matriz_perdida.csv</span></b></code>: <i>(generado)</i> Salida normalizada de `ingest_maestro.py`, usada como Verdad Base para comparar contra las predicciones del modelo.
-
-        * <code><b><span style="color: #23c523d4;">&lt;perfil&gt;/</span></b></code>: (`ignacio/`, `matias/`, `valentina/` y `camila/`) Copia guardada de la Verdad Base de cada perfil: su `matriz_perdida.csv`, sus `evaluaciones_adicionales.csv` y, cuando ya se entrenó, su modelo `.joblib`. El código lee siempre los archivos de la raíz de `src/loss/`, así que para trabajar con un perfil hay que copiar ahí los suyos (ver el punto 5 de "Cambios pendientes").
+        * <code><b><span style="color: #23c523d4;">perfil_&lt;nombre&gt;/</span></b></code>: Una carpeta por perfil (`perfil_ignacio_araya/`, `perfil_matias_fuentes/`, `perfil_valentina_soto/` y `perfil_camila_rojas/`), con el nombre del perfil sin tildes, en minúsculas y con `_` (`rutas_perfil()` en `config.py`). Guarda su Verdad Base y su modelo, y las opciones 5 a 8 solo leen y escriben ahí:
+            * `dataset_maestro.csv`: (opcional) archivo de ground-truth evaluado a mano, insumo de `ingest_maestro.py`. Hoy solo lo tiene Ignacio.
+            * `evaluaciones_adicionales.csv`: evaluaciones de Gemini que se suman a la Verdad Base.
+            * `pendientes_evaluar.csv` e `instrucciones_evaluacion.md`: plantilla e instrucciones para evaluar con Gemini las películas pendientes (opción 6).
+            * `pendientes_resenias.csv`: películas evaluadas sin reseñas procesadas, una lista por perfil.
+            * `matriz_perdida.csv`: <i>(generado)</i> salida normalizada de `ingest_maestro.py`, usada como Verdad Base para comparar contra las predicciones del modelo.
+            * `modelo_reglas_<modelo>.joblib`: <i>(generado)</i> modelo guardado por la opción 7.
+            * `evaluacion_gemini_<perfil>.csv`: (solo Matías, Valentina y Camila) evaluación de Gemini con que se armó el perfil; el código no lo lee.
 
     * <code><b><span style="color: #009dff;">main.py</span></b></code>: Archivo principal del programa, orquesta el resto de los módulos a través de un menú central.
 
@@ -167,7 +171,7 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
     * <code><b><span style="color: #009dff;">config.py</span></b></code>: Archivo de configuración centralizada del proyecto: nombre del modelo de embeddings y todas las rutas del proyecto.
 
-    * <code><b><span style="color: #009dff;">scoring.py</span></b></code>: Entrena el modelo de reglas contra la Verdad Base y lo guarda en `src/loss/modelo_reglas_<modelo>.joblib` (opción 7). Conserva la regresión lineal anterior, que la opción 9 usa como comparación.
+    * <code><b><span style="color: #009dff;">scoring.py</span></b></code>: Entrena el modelo de reglas contra la Verdad Base del perfil y lo guarda en `src/loss/perfil_<nombre>/modelo_reglas_<modelo>.joblib` (opción 7). Conserva la regresión lineal anterior, que la opción 9 usa como comparación.
 
     * <code><b><span style="color: #009dff;">recommend.py</span></b></code>: Carga el modelo entrenado y genera el ranking de recomendaciones.
 
@@ -177,7 +181,7 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
 ## **Cambios pendientes**
 
-<small>*Nota: salen del informe (`docs/informe/informe.pdf`, versión 1.4 del 26-09-2026; secciones 5.2, 6 y 7). El estado de cada punto se contrastó con el changelog hasta la versión 1.4.4; el punto 2 se actualizó con las corridas de los cuatro perfiles del 24-10-2026 y con las 60 películas nuevas del 11-11-2026 (resultados de Matías, Valentina y Camila del 12-11-2026).*</small>
+<small>*Nota: salen del informe (`docs/informe/informe.pdf`, versión 1.4 del 26-09-2026; secciones 5.2, 6 y 7). El estado de cada punto se contrastó con el changelog hasta la versión 1.4.6; el punto 2 se actualizó con las corridas de los cuatro perfiles del 24-10-2026 y con las 60 películas nuevas del 11-11-2026 (resultados de Matías, Valentina y Camila del 12-11-2026) y con Ignacio entrenado con las mismas 190 películas que los otros tres (17-11-2026).*</small>
 
 ### Pasos propuestos
 
@@ -193,7 +197,7 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
     Además, las 58 se evaluaron en otra sesión de Gemini y con otra escala en los filtros: el porcentaje de películas con puntaje 0 bajó de 77 % a 7 % en *Camaradería Masculina Rancia* y de 58 % a 3 % en *Caos Asfixiante*, y la desviación de la nota global es 1,40 en las 58 contra 2,04 en las 130 anteriores. Con la Verdad Base ampliada, la regla aprendida dice "si *Caos Asfixiante* supera 0,0, resta hasta 0,54 puntos" y el ρ baja de 0,735 a 0,686. Cambiaron a la vez las películas y la calibración, así que la caída no se puede atribuir al método ni a las películas nuevas. Para separarlos hay que evaluar las 188 en una misma sesión (ver "Qué rehacer", más abajo).
 
-    Se evaluaron con Gemini las mismas 130 películas de *Ignacio Araya* (con las instrucciones de la opción 6; los archivos de cada perfil quedaron en `src/loss/<perfil>/`) y se entrenó cada perfil sin frases de reseña (e5-base, pooling media, 129 películas con reseñas, 10 repeticiones de validación cruzada):
+    Se evaluaron con Gemini las mismas 130 películas de *Ignacio Araya* (con las instrucciones de la opción 6; los archivos de cada perfil quedaron en `src/loss/perfil_<nombre>/`) y se entrenó cada perfil sin frases de reseña (e5-base, pooling media, 129 películas con reseñas, 10 repeticiones de validación cruzada):
 
     | Perfil | ρ | NDCG@10 | Precisión@10 | MAE | R² | Nota global (media ± desv.) |
     |---|---|---|---|---|---|---|
@@ -231,7 +235,7 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
     * La línea base de MAE de Camila, Matías y Valentina es el error de predecir siempre el promedio de sus 190 notas, calculado sobre toda la muestra (el programa la mide con validación cruzada y puede diferir levemente). El valor al azar usa la misma fórmula que `metricas.al_azar`.
     * Las notas de las 60 nuevas abren el rango en los tres perfiles (media y mínimo de las 60 nuevas contra las 130 anteriores): Matías 7,03 y 2,0 contra 8,42 y 6,5; Valentina 5,64 y 1,0 contra 8,62 y 6,2; Camila 4,95 y 1,0 contra 8,22 y 6,5. Es justo lo que buscaba "Qué rehacer", pero también implica que se evaluaron en otra sesión de Gemini: como pasó con las 58 de Ignacio, parte del cambio puede ser de calibración y no de las películas.
-    * Camila, Matías y Valentina comparten las mismas 190 películas, los mismos embeddings y la misma estructura (5 + 5 criterios), así que son comparables entre sí. Las filas de Ignacio (248 películas) no lo son con ellos (distinta cantidad de películas y de sesiones de Gemini), y ninguna de las cuatro lo es con la tabla de 130 películas.
+    * Camila, Matías y Valentina comparten las mismas 190 películas, los mismos embeddings y la misma estructura (5 + 5 criterios), así que son comparables entre sí. Las filas de Ignacio (248 películas) no lo son con ellos (distinta cantidad de películas y de sesiones de Gemini), y ninguna de las cuatro lo es con la tabla de 130 películas. La actualización del 17-11-2026 (más abajo) deja a Ignacio con las mismas 190 películas.
     * Orden por ρ: Camila > Matías > Valentina, el mismo que con 130 películas (0,828; 0,639; 0,533). El ρ de los tres bajó con las 60 nuevas (−0,134; −0,119; −0,083), pero no se puede atribuir a las películas ni a la calibración, porque cambiaron las dos cosas a la vez.
     * Camila se predice mejor: su precisión@10 es unas 6 veces la del azar, y su mayor dispersión de notas (desviación 2,32, contra 1,36 de Matías y 1,97 de Valentina) probablemente favorece ρ y R². Matías tiene una precisión@10 también unas 6 veces la del azar; la de Ignacio (0,190) es unas 3 veces la del azar (0,057, sobre sus 247 películas con reseñas).
     * Con Valentina, la precisión@10 (0,060) es igual a la del azar (0,068), pero su NDCG@10 (0,912) sí supera al azar (0,792): el modelo pone arriba películas con notas altas, aunque no exactamente las 10 mejores. Sus notas altas están apiñadas (13 películas empatan o superan la décima nota y 102 de 190 tienen 8,5 o más), lo que hace muy difícil acertar el top 10.
@@ -242,15 +246,32 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
     * Etapa 2 con los puntajes reales de Gemini (MAE de la regla contra regresión lineal sobre los puntajes, promedio de las 5 particiones): Matías 0,34 contra 0,33, Camila 0,46 contra 0,47, Ignacio 0,40 contra 0,42 (la regla gana en 3 de las 5 particiones) y Valentina 0,56 contra 0,55 (la regla gana en 2 de las 5), un empate técnico en los cuatro. El error del modelo completo es mucho mayor (0,79, 1,17, 1,05 y 1,34), así que la limitación sigue en la etapa 1 (predecir los puntajes desde las reseñas).
     * Hecho el 12-11-2026: tabla comparable de Camila, Matías y Valentina con las mismas 60 películas nuevas. Ignacio queda aparte con 248, porque además tiene las 58 candidatas del paso 3.
 
+    **Actualización (17-11-2026): Ignacio con las mismas 190 películas.** Para que Ignacio sea comparable con los otros tres, se le quitaron las 58 candidatas del paso 3 y se lo volvió a entrenar con las 190 películas que comparten los cuatro perfiles (130 + las 60 nuevas; 189 con reseñas, falta *Nickel Boys*). Mismo método que arriba (e5-base, modelo de reglas, pooling media, 10 repeticiones de validación cruzada):
+
+    | Perfil | Películas en la Verdad Base | ρ | NDCG@10 | Precisión@10 | MAE | R² |
+    |---|---|---|---|---|---|---|
+    | **Ignacio Araya** | 190 (130 + 60) | **0,797** ± 0,004 | 0,960 | 0,280 | 1,080 | 0,650 |
+    | Camila Rojas | 190 (130 + 60) | **0,694** ± 0,010 | 0,953 | 0,420 | 1,170 | 0,543 |
+    | Matías Fuentes | 190 (130 + 60) | **0,520** ± 0,017 | 0,886 | 0,320 | 0,787 | 0,284 |
+    | Valentina Soto | 190 (130 + 60) | **0,450** ± 0,020 | 0,912 | 0,060 | 1,340 | 0,243 |
+    | *Ignacio Araya (antes)* | 248 (190 + 58) | *0,756* ± 0,007 | 0,948 | 0,190 | 1,054 | 0,617 |
+
+    * Cómo se hizo: en `evaluaciones_adicionales.csv` de la carpeta de Ignacio (el que lee la opción 5) se dejaron solo las 60 filas cuyo `film_id` está en la matriz de los otros perfiles, se ejecutó la opción 5 con Ignacio y se comprobó que la matriz tuviera 190 filas y el mismo conjunto de `film_id` que Camila, Matías y Valentina, con valores idénticos a los de la versión de 248 para esas películas. La versión de 248 ya no está en el proyecto (queda en una copia de respaldo aparte).
+    * El ρ de Ignacio subió de 0,756 a 0,797, una diferencia mucho mayor que la variación entre repeticiones (0,004 a 0,007). El MAE casi no cambió (1,054 a 1,080), así que la mejora está en el orden y no en el error de la nota. Es compatible con que las 58 candidatas, evaluadas en otra sesión de Gemini y con otra escala (ver la aclaración de arriba), le restaban orden: al sumarlas a las 130 el ρ había bajado de 0,735 a 0,686. Este experimento no separa si el efecto viene de las películas o de la calibración.
+    * Con la misma cantidad de películas la brecha con los otros perfiles no se cierra (0,797 contra 0,694, 0,520 y 0,450), así que la cantidad de películas no la explicaba. Una pista, no demostrada: los filtros de Ignacio conservan entre 20 y 46 películas con puntaje ≥ 6 (20 / 46 / 41 / 28 / 39), mientras que 12 de los 15 filtros de los otros tres tienen 6 o menos (Matías 4 / 2 / 3 / 4 / 6; Valentina 11 / 15 / 18 / 5 / 3; Camila 0 / 0 / 1 / 6 / 6).
+    * Etapa 2 con los puntajes reales de Gemini (promedio de las 5 particiones): MAE 0,40 de la regla contra 0,44 de la regresión lineal sobre los puntajes (la regla gana en 3 de las 5). El modelo completo tiene 1,08, así que la limitación sigue en la etapa 1.
+    * Reglas aprendidas (etapa 2): nota base = 3,08 + 0,08·*Resistencia Femenina* + 0,10·*Contemplación Inmersiva* + 0,18·*Ternura y Empatía Radical* + 0,17·*Humanismo Social* + 0,23·*Vanguardia y Simbolismo*. Los cinco filtros están activos y descuentan hasta 1,15 (*Camaradería Masculina Rancia*, sobre 3,8), 1,43 (*Insoportabilidad Prolongada*, sobre 5,1), 0,65 (*Control Emocional Artificial*, sobre 7,1), 1,17 (*Personajes Diorama*, sobre 8,8) y 1,20 (*Caos Asfixiante*, sobre 8,5).
+    * Sigue pendiente que los cuatro perfiles se evalúen con las mismas instrucciones y en una misma sesión de Gemini (ver "Qué rehacer"): cada perfil tiene sus propias instrucciones y sesiones, así que la comparación entre perfiles no es del todo pareja.
+
 3. **Evaluar las 58 candidatas y completar reseñas** — *parcialmente hecho: evaluadas solo para Ignacio (24-10-2026); el resto, pendiente.*
 
     Evaluar con Gemini las candidatas que aún no tienen nota (opción 6) y descargar las reseñas de las películas evaluadas que no las tenían. Las candidatas son 58: las películas con reseñas procesadas que no están en la Verdad Base (todas con entre 69 y 100 reseñas). En la 1.4.3 se incorporaron las reseñas de 28 de las 29 películas evaluadas que no las tenían (falta *Nickel Boys*). Estado de cada parte:
 
-    * **Evaluar las 58 con Gemini, perfil Ignacio Araya** — *hecho (24-10-2026).* Se evaluaron con las instrucciones que genera la opción 6 y se importaron con la opción 5: su Verdad Base pasó de 130 a 188 películas (187 con reseñas, contra 129 antes) y el ρ bajó de 0,735 a 0,686 ± 0,010. Las 58 se evaluaron en otra sesión de Gemini y con otra escala en los filtros, así que ese ρ no es comparable con la línea base (ver la aclaración en el paso 2); la línea base de 130 películas sigue en `src/loss/ignacio/`.
+    * **Evaluar las 58 con Gemini, perfil Ignacio Araya** — *hecho (24-10-2026).* Se evaluaron con las instrucciones que genera la opción 6 y se importaron con la opción 5: su Verdad Base pasó de 130 a 188 películas (187 con reseñas, contra 129 antes) y el ρ bajó de 0,735 a 0,686 ± 0,010. Las 58 se evaluaron en otra sesión de Gemini y con otra escala en los filtros, así que ese ρ no es comparable con la línea base (ver la aclaración en el paso 2); la línea base de 130 películas es el `dataset_maestro.csv` de su carpeta. El 17-11-2026 se las quitó del entrenamiento de Ignacio para compararlo con los otros tres (ver la actualización del paso 2): con las mismas 190 películas su ρ es 0,797 ± 0,004. Las evaluaciones de las 58 ya no están en el proyecto, solo en una copia de respaldo aparte: el `evaluaciones_adicionales.csv` de Ignacio tiene ahora las 60 de la 1.4.4.
 
     * **Evaluar las 58 con Gemini, perfiles Matías Fuentes, Valentina Soto y Camila Rojas** — *pendiente (en espera).* Esos tres perfiles se hicieron con 130 películas y no con 188. Sin embargo, no se deben evaluar otra vez hasta recibir las instrucciones del profesor a cargo, para saber si vale la pena. Las 60 películas nuevas de la 1.4.4 son otras y no son estas 58: Matías, Valentina y Camila ya las tienen evaluadas (190 películas cada uno).
 
-    * **Descargar las reseñas de *Nickel Boys*** — *pendiente.* Es la única película de la Verdad Base sin reseñas procesadas, así que solo entrena la etapa 2. Su slug (`nickel-boys`) es el correcto en Letterboxd y está en `src/loss/pendientes_resenias.csv`. Hay que bajarlas con el scraper a `reviews.db`, correr las opciones 2 y 4 y reemplazar `reviews.zip` en el release en borrador. Conviene hacerlo cuando el contenido de `reviews.db` esté acordado con el compañero que agrega películas, porque las nuevas aparecerían como candidatas.
+    * **Descargar las reseñas de *Nickel Boys*** — *pendiente.* Es la única película de la Verdad Base sin reseñas procesadas, así que solo entrena la etapa 2. Su slug (`nickel-boys`) es el correcto en Letterboxd y está en el `pendientes_resenias.csv` de cada carpeta de perfil. Hay que bajarlas con el scraper a `reviews.db`, correr las opciones 2 y 4 y reemplazar `reviews.zip` en el release en borrador. Conviene hacerlo cuando el contenido de `reviews.db` esté acordado con el compañero que agrega películas, porque las nuevas aparecerían como candidatas.
 
     * **Rehacer la Verdad Base con instrucciones centradas en el perfil** — *pendiente.* Ver "Qué rehacer" en el paso 2. También corregiría la diferencia de escala entre las 130 y las 58, al evaluar las 188 en una misma sesión.
 
@@ -260,17 +281,18 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
     * Modelos de embeddings más grandes, como `multilingual-e5-large` o `bge-m3` (unas 5 h en Actions).
     * Entrenar la etapa 2 optimizando el orden en vez del error.
 
-5. **Una Verdad Base por perfil en el código** — *pendiente.*
+5. **Una Verdad Base por perfil en el código** — *hecho (17-11-2026, versión 1.4.6).*
 
-    Hoy las rutas de `dataset_maestro.csv`, `matriz_perdida.csv`, `evaluaciones_adicionales.csv`, `pendientes_evaluar.csv` y del modelo están fijas en `src/config.py`: el programa trabaja con una sola Verdad Base a la vez y, para cambiar de perfil, hay que mover los archivos a mano a `src/loss/<perfil>/`. Que las rutas dependan del perfil elegido evitaría mezclar datos de perfiles sin darse cuenta. Hay que revisar que el workflow `analisis.yml`, que se dispara al cambiar `src/loss/dataset_maestro.csv`, siga funcionando para Ignacio.
+    Las rutas ya no están fijas en `src/config.py`: `rutas_perfil(nombre)` entrega los archivos de la carpeta `src/loss/perfil_<nombre>/` y las opciones 5, 6, 7 y 8 (la 9 las encadena) piden el perfil y trabajan solo con esa carpeta. Cambiar de perfil no requiere mover archivos, y la opción 8 rechaza un modelo entrenado con otro perfil. `pendientes_resenias.csv` es uno por perfil, porque las películas evaluadas sin reseñas pueden ser distintas en cada uno.
 
-    Mientras tanto, el procedimiento manual para entrenar otro perfil es:
+    Para trabajar con un perfil:
 
-    * Copiar `src/loss/<perfil>/matriz_perdida.csv` a `src/loss/matriz_perdida.csv` (la opción 7 solo necesita ese archivo). Antes, comprobar que la matriz de Ignacio esté guardada en `src/loss/ignacio/`.
-    * Ejecutar la opción 3 con el nombre exacto del perfil (con tilde, ej. `Matías Fuentes`): la opción 7 usa los embeddings del perfil para los rasgos de similitud y, si no existen, entrena sin ellos y avisa. Los embeddings de reseñas (opción 4) no dependen del perfil y no hay que rehacerlos.
-    * Ejecutar la opción 7 y copiar el `modelo_reglas_<modelo>.joblib` generado a `src/loss/<perfil>/`.
-    * **No ejecutar la opción 5** con los archivos de otro perfil en la raíz: arma la matriz con el `dataset_maestro.csv` de la raíz (el de Ignacio) más las `evaluaciones_adicionales.csv`, y mezclaría perfiles. La matriz de cada perfil se mantiene en su carpeta.
-    * Para sumar películas nuevas a un perfil: opción 2 (si hay datos crudos) u 4 para vectorizar el csv filtrado; opción 6 con ese perfil, que genera `pendientes_evaluar.csv` y las instrucciones para Gemini; pegar la respuesta de Gemini (conviene en tandas de 20) en la plantilla; opción 5 para importarla; y guardar los archivos resultantes en `src/loss/<perfil>/`.
+    * Ejecutar la opción 3 con el nombre exacto del perfil (con tilde, ej. `Matías Fuentes`): la opción 7 usa los embeddings del perfil para los rasgos de similitud y, si no existen, entrena sin ellos y avisa. Los embeddings de reseñas (opción 4) no dependen del perfil y no hay que rehacerlos. La opción 9 ejecuta las opciones 2 a 7 (incluidas la 3 y la 5), así que para analizar un perfil basta con elegirlo al inicio; por separado, la 3 solo hace falta antes de la 7.
+    * Opción 5 para armar `matriz_perdida.csv` desde los archivos de la carpeta (si no cambiaron, ya está generada), opción 7 para entrenar y opción 8 para recomendar.
+    * Perfil nuevo: crearlo con la opción 1 y ejecutar la 3; la opción 6 crea su carpeta con todas las películas con reseña como pendientes y sus instrucciones para Gemini. Pegar la respuesta (conviene en tandas de 20) en su `pendientes_evaluar.csv` y ejecutar la opción 5, que la importa a `evaluaciones_adicionales.csv`; no necesita `dataset_maestro.csv`.
+    * Para sumar películas a un perfil existente: opción 2 (si hay datos crudos) u 4 para vectorizar el csv filtrado, opción 6, pegar la respuesta de Gemini y opción 5.
+    * Si se renombra un perfil, hay que renombrar a mano su carpeta, porque el nombre sale del nombre del perfil.
+    * El workflow `analisis.yml` se dispara al cambiar `src/loss/perfil_ignacio_araya/dataset_maestro.csv`, el perfil de ejemplo.
 
 ### Problemas que motivan estos cambios
 
@@ -298,6 +320,42 @@ La arquitectura es genérica: el modelo no está rígidamente programado para un
 
 ## **Changelog (historial de cambios)**
 <small>*Nota: Este changelog está en orden cronológico inverso.*</small>
+
+### [1.4.6] - 17-11-2026
+> Una carpeta de Verdad Base por perfil: ya no hay que mover archivos para cambiar de perfil.
+
+* Cambios
+
+    * `src/config.py`: se quitaron las rutas fijas (`RUTA_DATASET_MAESTRO`, `RUTA_GT`, `RUTA_PENDIENTES`, `RUTA_SIN_RESENIAS`, `RUTA_ADICIONALES`, `RUTA_INSTRUCCIONES` y `RUTA_MODELO`) y se agregaron `slug_perfil()` y `rutas_perfil()`, que entregan los archivos de un perfil en `src/loss/perfil_<nombre>/` (nombre sin tildes, en minúsculas y con `_`).
+
+    * Opciones 5 y 6 (`ingest_maestro.py`, `gt_matrix_pipeline.py`): piden el perfil y leen y escriben solo en su carpeta. `dataset_maestro.csv` pasa a ser opcional: sin él, la matriz se arma solo con `evaluaciones_adicionales.csv`. `pendientes_resenias.csv` pasa de uno solo en la raíz de `src/loss/` a uno por perfil.
+
+    * Opción 7 (`scoring.py`) guarda el modelo en la carpeta del perfil. Opción 8 (`recommend.py`) pide el perfil, carga su modelo y rechaza uno entrenado con otro perfil. `analisis.py`, `sondas_filtros.py` y los scripts de `docs/informe/` (que usan los datos de Ignacio) leen las rutas del perfil.
+
+    * Datos: cada perfil tiene su carpeta `src/loss/perfil_<nombre>/` con su `matriz_perdida.csv`, su `evaluaciones_adicionales.csv`, su `pendientes_evaluar.csv`, sus instrucciones, su `pendientes_resenias.csv` y su modelo. Los archivos se copiaron sin cambios, así que no se reentrenó ni cambiaron los resultados de la 1.4.5. Las carpetas `ignacio/`, `matias/`, `valentina/` y `camila/` y los archivos sueltos de la raíz de `src/loss/` (`pendientes_evaluar.csv`, `pendientes_resenias.csv` e `instrucciones_evaluacion*.md`) quedaron sin uso: el código ya no los lee.
+
+    * Pruebas: `tests/test_rutas_perfil.py` (nuevo, 11 pruebas) y ajuste de `tests/test_ingesta.py`; 53 pruebas en total (antes 42).
+
+    * Workflow `analisis.yml`: se dispara al cambiar `src/loss/perfil_ignacio_araya/dataset_maestro.csv` (antes `src/loss/dataset_maestro.csv`).
+
+### [1.4.5] - 17-11-2026
+> Ignacio Araya normalizado a las mismas 190 películas que los otros tres perfiles.
+
+* Cambios
+
+    * `src/loss/evaluaciones_adicionales.csv` (el que lee la opción 5): de 118 a 60 filas. Se quitaron las 58 candidatas del paso 3 (las películas que no están en las matrices de Camila, Matías y Valentina) y quedan las 60 películas nuevas de la 1.4.4. Tras la opción 5, `src/loss/matriz_perdida.csv` quedó con 190 filas (130 de `dataset_maestro.csv` + 60), el mismo conjunto de `film_id` que los otros tres perfiles y valores idénticos a los de la versión de 248 para esas películas. Nota global: 7,42 ± 2,44 (7,54 ± 2,25 con 248).
+
+    * La versión de 248 películas se guardó primero en `src/loss/ignacio/`, pero esa carpeta se reemplazó después por la de 190 (ver 1.4.6): la de 248 queda solo en una copia de respaldo aparte.
+
+* Resultados (e5, modelo de reglas, validación cruzada de 10 repeticiones)
+
+    * Ignacio (190 películas, 189 con reseñas): ρ de Spearman 0,797 ± 0,004, NDCG@10 0,960, precisión@10 0,280, MAE 1,080 y R² 0,650. Con 248 películas era ρ 0,756 ± 0,007, NDCG@10 0,948, precisión@10 0,190, MAE 1,054 y R² 0,617.
+
+    * Etapa 2 con los puntajes reales de Gemini: MAE 0,40 de la regla contra 0,44 de la regresión lineal (promedio de 5 particiones). Los cinco filtros de Ignacio quedan activos en la regla, y las afinidades pesan entre 0,08 y 0,23 (*Vanguardia y Simbolismo*, la mayor).
+
+    * Películas con puntaje ≥ 6 en cada filtro de Ignacio: 20 / 46 / 41 / 28 / 39 (con 248: 24 / 56 / 41 / 29 / 46).
+
+    * La comparación con los otros tres perfiles, las reglas aprendidas y su lectura están en el punto 2 de "Cambios pendientes".
 
 ### [1.4.4] - 11-11-2026
 > Verdad Base ampliada con 60 películas nuevas.

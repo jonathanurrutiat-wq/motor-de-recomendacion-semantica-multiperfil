@@ -1,6 +1,6 @@
 import pandas as pd
 
-from src.config import RUTA_ADICIONALES, RUTA_DATASET_MAESTRO, RUTA_GT, RUTA_PENDIENTES
+from src.config import RutasPerfil, rutas_perfil
 from src.normalizacion import (
     canonicalizar_film_id,
     columnas_evaluacion,
@@ -59,15 +59,15 @@ def filas_evaluadas(df: pd.DataFrame) -> pd.Series:
     return a_numerico(df["gt_nota_global"]).notna()
 
 
-def importar_pendientes_evaluadas():
+def importar_pendientes_evaluadas(rutas: RutasPerfil):
     # Mueve las filas ya evaluadas de pendientes_evaluar.csv a
     # evaluaciones_adicionales.csv, que persiste entre ejecuciones.
-    if not RUTA_PENDIENTES.exists():
+    if not rutas.pendientes.exists():
         return
 
-    df = leer_csv_editado(RUTA_PENDIENTES)
+    df = leer_csv_editado(rutas.pendientes)
     if "film_id" not in df.columns:
-        print(f"[!] Aviso: {RUTA_PENDIENTES.name} no tiene la columna 'film_id', se omite.")
+        print(f"[!] Aviso: {rutas.pendientes.name} no tiene la columna 'film_id', se omite.")
         return
 
     evaluadas = filas_evaluadas(df)
@@ -79,26 +79,23 @@ def importar_pendientes_evaluadas():
         if columna.startswith("gt_"):
             nuevas[columna] = a_numerico(nuevas[columna])
 
-    if RUTA_ADICIONALES.exists():
-        nuevas = pd.concat([pd.read_csv(RUTA_ADICIONALES), nuevas], ignore_index=True)
+    if rutas.adicionales.exists():
+        nuevas = pd.concat([pd.read_csv(rutas.adicionales), nuevas], ignore_index=True)
     nuevas = nuevas.drop_duplicates(subset="film_id", keep="last")
 
     # Primero se guardan las evaluaciones y recién después se quitan de la plantilla.
-    nuevas.to_csv(RUTA_ADICIONALES, index=False, encoding="utf-8")
-    df[~evaluadas].to_csv(RUTA_PENDIENTES, index=False, encoding="utf-8")
+    nuevas.to_csv(rutas.adicionales, index=False, encoding="utf-8")
+    df[~evaluadas].to_csv(rutas.pendientes, index=False, encoding="utf-8")
 
-    print(f"Importadas {int(evaluadas.sum())} evaluaciones desde {RUTA_PENDIENTES.name} "
-          f"a {RUTA_ADICIONALES.name}.")
+    print(f"Importadas {int(evaluadas.sum())} evaluaciones desde {rutas.pendientes.name} "
+          f"a {rutas.adicionales.name}.")
 
 
-def main(perfil_elegido=None):
-    if not RUTA_DATASET_MAESTRO.exists():
-        print(f"[!] Error: No se encontró el dataset en {RUTA_DATASET_MAESTRO}")
-        print("Por favor, renombra el CSV de ground-truth a 'dataset_maestro.csv' y colócalo en src/loss/")
-        return
-
+def cargar_dataset_maestro(ruta, perfil: dict) -> pd.DataFrame | None:
+    # Lee la planilla de Gemini del perfil y la deja con film_id, film_title y las
+    # columnas gt_* de sus filtros y afinidades. Devuelve None (tras avisar) si no sirve.
     print("Leyendo el dataset maestro...")
-    df = pd.read_csv(RUTA_DATASET_MAESTRO)
+    df = pd.read_csv(ruta)
 
     # Quitar tilde en la palabra Pelicula para hacer más cómodo de trabajar en el futuro
     if "Película" in df.columns:
@@ -106,18 +103,11 @@ def main(perfil_elegido=None):
 
     if "Pelicula" not in df.columns:
         print("[!] Error: El dataset maestro no tiene la columna 'Película'.")
-        return
+        return None
 
     if ENCABEZADO_NOTA_GLOBAL not in df.columns:
         print(f"[!] Error: El dataset maestro no tiene la columna '{ENCABEZADO_NOTA_GLOBAL}' (nota global), necesaria para entrenar.")
-        return
-
-    try:
-        nombre_perfil, perfil = seleccionar_perfil(perfil_elegido)
-    except (FileNotFoundError, ValueError) as error:
-        print(f"[!] Error: {error}")
-        return
-    print(f"Mapeando columnas según el perfil: {nombre_perfil}")
+        return None
 
     mapeo, excepciones, faltantes = mapear_encabezados(perfil, df.columns)
     if faltantes:
@@ -147,12 +137,40 @@ def main(perfil_elegido=None):
     if no_mapeadas:
         print(f"[!] Aviso: columnas que no corresponden a ningún filtro del perfil, se ignoran: {', '.join(sorted(no_mapeadas))}")
 
-    df_final = df[['film_id', 'film_title'] + columnas_gt]
+    return df[['film_id', 'film_title'] + columnas_gt]
 
-    importar_pendientes_evaluadas()
 
-    if RUTA_ADICIONALES.exists():
-        adicionales = pd.read_csv(RUTA_ADICIONALES)
+def main(perfil_elegido=None):
+    try:
+        nombre_perfil, perfil = seleccionar_perfil(perfil_elegido)
+    except (FileNotFoundError, ValueError) as error:
+        print(f"[!] Error: {error}")
+        return
+
+    rutas = rutas_perfil(nombre_perfil)
+    print(f"Perfil: {nombre_perfil} (archivos en {rutas.carpeta})")
+
+    # Primero se importan las evaluaciones nuevas de la plantilla, para que las
+    # adicionales estén al día.
+    importar_pendientes_evaluadas(rutas)
+
+    if rutas.dataset_maestro.exists():
+        print(f"Mapeando columnas según el perfil: {nombre_perfil}")
+        df_final = cargar_dataset_maestro(rutas.dataset_maestro, perfil)
+        if df_final is None:
+            return
+    elif rutas.adicionales.exists():
+        # Un perfil puede tener toda su Verdad Base en evaluaciones_adicionales.csv.
+        print(f"No hay {rutas.dataset_maestro.name}: la Verdad Base sale solo de {rutas.adicionales.name}.")
+        df_final = pd.DataFrame(columns=['film_id', 'film_title'])
+    else:
+        print(f"[!] Error: no se encontró {rutas.dataset_maestro} ni {rutas.adicionales}.")
+        print(f"Guarda en {rutas.carpeta} el 'dataset_maestro.csv' del perfil (la planilla con las notas de Gemini) "
+              "o su 'evaluaciones_adicionales.csv'.")
+        return
+
+    if rutas.adicionales.exists():
+        adicionales = pd.read_csv(rutas.adicionales)
         adicionales['film_title'] = adicionales['film_id']
 
         en_maestro = set(df_final['film_id'].apply(canonicalizar_film_id))
@@ -161,13 +179,25 @@ def main(perfil_elegido=None):
             print(f"[!] Aviso: se ignoran evaluaciones adicionales ya presentes en el dataset maestro: "
                   f"{', '.join(adicionales.loc[repetidas, 'film_id'])}")
 
-        df_final = pd.concat([df_final, adicionales[~repetidas]], ignore_index=True)
-        print(f"Sumadas {int((~repetidas).sum())} evaluaciones adicionales desde {RUTA_ADICIONALES.name}.")
+        nuevas = adicionales[~repetidas]
+        if df_final.empty:
+            columnas = ['film_id', 'film_title'] + [c for c in adicionales.columns if c not in ('film_id', 'film_title')]
+            df_final = nuevas[columnas].reset_index(drop=True)
+        else:
+            df_final = pd.concat([df_final, nuevas], ignore_index=True)
+        print(f"Sumadas {int((~repetidas).sum())} evaluaciones adicionales desde {rutas.adicionales.name}.")
 
-    print(f"Guardando Verdad Base en formato ligero: {RUTA_GT.name}...")
+    if df_final.empty:
+        print("[!] Error: no hay ninguna película evaluada para este perfil.")
+        return
+
+    columnas_gt = [columna for columna in columnas_evaluacion(perfil) if columna in df_final.columns]
+
+    print(f"Guardando Verdad Base en formato ligero: {rutas.gt}...")
 
     # guardar el DataFrame sobrescribiendo cualquier versión anterior
-    df_final.to_csv(RUTA_GT, index=False, encoding='utf-8')
+    rutas.carpeta.mkdir(parents=True, exist_ok=True)
+    df_final.to_csv(rutas.gt, index=False, encoding='utf-8')
 
     print(f"Éxito. {len(df_final)} películas ingestadas y normalizadas.")
 

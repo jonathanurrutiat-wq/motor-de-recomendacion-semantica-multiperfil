@@ -21,7 +21,7 @@ from sklearn.model_selection import KFold
 
 import src.procesing_profiles as procesamiento_perfiles
 import src.procesing_reviews as procesamiento_resenias
-from src.config import DIR_ANALISIS, DIR_CHROMA, EMBEDDING_MODEL_NAME, POOLING_RESENIAS, RUTA_GT, SLUG_MODELO
+from src.config import DIR_ANALISIS, DIR_CHROMA, EMBEDDING_MODEL_NAME, POOLING_RESENIAS, SLUG_MODELO, rutas_perfil
 from src.db.filtered import filter as filtro
 from src.loss.gt_matrix_pipeline import main as revisar_pendientes
 from src.loss.ingest_maestro import main as cargar_verdad_base
@@ -232,7 +232,7 @@ def guardar_analisis(nombre_perfil, resultado, pred_cv, pred_ridge, pred_base, n
         "metricas": reglas["metricas"],
     }, indent=2, ensure_ascii=False), encoding="utf-8")
 
-    df_gt = pd.read_csv(RUTA_GT)
+    df_gt = pd.read_csv(rutas_perfil(nombre_perfil).gt)
     sin_resenias = sorted(set(df_gt["film_id"].apply(canonicalizar_film_id)) - set(resultado["film_ids"]))
     resumen = {
         "fecha": datetime.now().isoformat(timespec="seconds"),
@@ -463,7 +463,7 @@ def main():
 
     encabezado(total - 2, total, "Comparación de pooling y número de reseñas")
     inicio = time.time()
-    df_gt = pd.read_csv(RUTA_GT)
+    df_gt = pd.read_csv(rutas_perfil(nombre_perfil).gt)
     df_gt["canon_id"] = df_gt["film_id"].apply(canonicalizar_film_id)
     chunks = resultado_reglas["entradas"]["chunks"]
     representaciones = {
@@ -484,7 +484,7 @@ def main():
     encabezado(total, total, "Ranking (opción 8) y datos de análisis")
     inicio = time.time()
     try:
-        ranking = calcular_ranking()
+        ranking = calcular_ranking(nombre_perfil)
     except ValueError as error:
         print(f"[!] Error: {error}")
         return

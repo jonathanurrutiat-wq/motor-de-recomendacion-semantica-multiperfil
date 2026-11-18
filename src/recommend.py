@@ -11,20 +11,24 @@ import chromadb
 import joblib
 import pandas as pd
 
-from src.config import DIR_CHROMA, RUTA_GT, RUTA_MODELO
-from src.normalizacion import canonicalizar_film_id
+from src.config import DIR_CHROMA, rutas_perfil
+from src.normalizacion import canonicalizar_film_id, seleccionar_perfil
 from src.scoring import entradas_peliculas
 
 
-def calcular_ranking() -> pd.DataFrame:
-    # Aplica el modelo guardado a todas las películas con reseñas vectorizadas.
+def calcular_ranking(nombre_perfil: str) -> pd.DataFrame:
+    # Aplica el modelo guardado del perfil a todas las películas con reseñas vectorizadas.
     # Lanza ValueError si falta algún paso previo.
-    if not RUTA_MODELO.exists():
-        raise ValueError("No hay un modelo entrenado. Ejecuta el módulo 7 primero.")
+    rutas = rutas_perfil(nombre_perfil)
+    if not rutas.modelo.exists():
+        raise ValueError(f"No hay un modelo entrenado para {nombre_perfil} ({rutas.modelo}). Ejecuta el módulo 7 primero.")
 
-    guardado = joblib.load(RUTA_MODELO)
+    guardado = joblib.load(rutas.modelo)
     if guardado.get("tipo") != "reglas":
         raise ValueError("El modelo guardado es de una versión anterior (regresión lineal). Ejecuta el módulo 7 de nuevo.")
+    if guardado.get("perfil") != nombre_perfil:
+        raise ValueError(f"El modelo guardado en {rutas.modelo} es del perfil '{guardado.get('perfil')}', no de "
+                         f"'{nombre_perfil}'. Ejecuta el módulo 7 con este perfil.")
 
     modelo = guardado["modelo"]
     print(f"Usando el modelo de reglas entrenado para el perfil: {guardado['perfil']}")
@@ -35,8 +39,8 @@ def calcular_ranking() -> pd.DataFrame:
     entradas = entradas_peliculas(cliente, guardado["textos"], guardado["pooling"], guardado["umbrales"])
 
     notas_gemini = {}
-    if RUTA_GT.exists():
-        df_gt = pd.read_csv(RUTA_GT)
+    if rutas.gt.exists():
+        df_gt = pd.read_csv(rutas.gt)
         notas_gemini = dict(zip(df_gt['film_id'].apply(canonicalizar_film_id), df_gt['gt_nota_global']))
 
     ranking = pd.DataFrame({
@@ -49,10 +53,11 @@ def calcular_ranking() -> pd.DataFrame:
     return ranking.sort_values("nota_modelo", ascending=False, ignore_index=True)
 
 
-def main():
+def main(perfil_elegido: str | None = None):
     try:
-        ranking = calcular_ranking()
-    except ValueError as error:
+        nombre_perfil, _ = seleccionar_perfil(perfil_elegido)
+        ranking = calcular_ranking(nombre_perfil)
+    except (FileNotFoundError, ValueError) as error:
         print(f"[!] Error: {error}")
         return None
 

@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from src.config import DIR_FILTRADOS, RUTA_GT, RUTA_INSTRUCCIONES, RUTA_PENDIENTES, RUTA_SIN_RESENIAS
+from src.config import DIR_FILTRADOS, rutas_perfil
 from src.loss.ingest_maestro import filas_evaluadas, leer_csv_editado
 from src.loss.instrucciones import generar_instrucciones
 from src.loss.matrix import generar_matriz_vacia
@@ -39,7 +39,7 @@ def obtener_peliculas_evaluadas(gt_path: Path) -> set:
     return {canonicalizar_film_id(fid) for fid in df_gt["film_id"].dropna()}
 
 
-def guardar_evaluadas_sin_resenias(gt_path: Path, peliculas_con_resenias: set) -> int:
+def guardar_evaluadas_sin_resenias(gt_path: Path, peliculas_con_resenias: set, ruta_salida: Path) -> int:
     # Lo inverso de las pendientes de evaluar: películas con nota de Gemini que
     # no tienen reseñas procesadas (o tienen menos del mínimo por película).
     # Solo entrenan la regla global; para la etapa 1 hay que descargar sus reseñas.
@@ -48,14 +48,22 @@ def guardar_evaluadas_sin_resenias(gt_path: Path, peliculas_con_resenias: set) -
     df_gt = pd.read_csv(gt_path)
     faltan = df_gt[~df_gt["film_id"].apply(canonicalizar_film_id).isin(peliculas_con_resenias)]
     pd.DataFrame({"film_slug": faltan["film_id"], "titulo": faltan.get("film_title", faltan["film_id"])}).to_csv(
-        RUTA_SIN_RESENIAS, index=False, encoding="utf-8")
+        ruta_salida, index=False, encoding="utf-8")
     return len(faltan)
 
 
 def main(perfil_elegido=None):
-    dir_filtrados = DIR_FILTRADOS
-    gt_path = RUTA_GT
+    try:
+        nombre_perfil, perfil = seleccionar_perfil(perfil_elegido)
+    except (FileNotFoundError, ValueError) as error:
+        print(f"[!] Error: {error}")
+        return
 
+    rutas = rutas_perfil(nombre_perfil)
+    dir_filtrados = DIR_FILTRADOS
+    gt_path = rutas.gt
+
+    print(f"Perfil: {nombre_perfil} (archivos en {rutas.carpeta})")
     print("Recolectando películas con reseñas procesadas...")
     peliculas_con_resenias = obtener_peliculas_con_resenias(dir_filtrados)
 
@@ -76,10 +84,10 @@ def main(perfil_elegido=None):
     print(f"Películas con reseñas procesadas: {len(peliculas_con_resenias)}")
     print(f"Películas ya evaluadas (Verdad Base): {len(peliculas_evaluadas)}")
     print(f"Películas pendientes de evaluar: {len(peliculas_pendientes)}")
-    sin_resenias = guardar_evaluadas_sin_resenias(gt_path, peliculas_con_resenias)
+    sin_resenias = guardar_evaluadas_sin_resenias(gt_path, peliculas_con_resenias, rutas.sin_resenias)
     if sin_resenias:
         print(f"Películas evaluadas sin reseñas suficientes: {sin_resenias} "
-              f"(lista para el scraper en {RUTA_SIN_RESENIAS.name})")
+              f"(lista para el scraper en {rutas.sin_resenias.name})")
 
     if not peliculas_pendientes:
         print("\nNo hay películas pendientes. La Verdad Base está al día.")
@@ -89,18 +97,12 @@ def main(perfil_elegido=None):
     for film_id in sorted(peliculas_pendientes):
         print(f"  - {film_id}")
 
-    if RUTA_PENDIENTES.exists():
-        sin_importar = int(filas_evaluadas(leer_csv_editado(RUTA_PENDIENTES)).sum())
+    if rutas.pendientes.exists():
+        sin_importar = int(filas_evaluadas(leer_csv_editado(rutas.pendientes)).sum())
         if sin_importar:
-            print(f"\n[!] {RUTA_PENDIENTES.name} tiene {sin_importar} película(s) ya evaluadas que aún no se "
+            print(f"\n[!] {rutas.pendientes.name} tiene {sin_importar} película(s) ya evaluadas que aún no se "
                   "importan. No se sobrescribe: ejecuta primero el módulo 5 para importarlas.")
             return
-
-    try:
-        nombre_perfil, perfil = seleccionar_perfil(perfil_elegido)
-    except (FileNotFoundError, ValueError) as error:
-        print(f"[!] Error: {error}")
-        return
 
     # Plantilla con las columnas correctas (según los filtros/afinidades
     # del perfil elegido) para facilitar la evaluación de lo pendiente.
@@ -110,12 +112,13 @@ def main(perfil_elegido=None):
         if columna != "film_id":
             plantilla_pendientes[columna] = pd.NA
 
-    plantilla_pendientes.to_csv(RUTA_PENDIENTES, index=False, encoding="utf-8")
-    RUTA_INSTRUCCIONES.write_text(
+    rutas.carpeta.mkdir(parents=True, exist_ok=True)
+    plantilla_pendientes.to_csv(rutas.pendientes, index=False, encoding="utf-8")
+    rutas.instrucciones.write_text(
         generar_instrucciones(nombre_perfil, perfil, sorted(peliculas_pendientes)), encoding="utf-8"
     )
-    print(f"\nPlantilla para evaluación guardada en: {RUTA_PENDIENTES}")
-    print(f"Instrucciones para evaluar con Gemini guardadas en: {RUTA_INSTRUCCIONES}")
+    print(f"\nPlantilla para evaluación guardada en: {rutas.pendientes}")
+    print(f"Instrucciones para evaluar con Gemini guardadas en: {rutas.instrucciones}")
     print("Pega su respuesta en la plantilla (al menos gt_nota_global) y ejecuta el módulo 5 "
           "para sumarla a la Verdad Base.")
 
