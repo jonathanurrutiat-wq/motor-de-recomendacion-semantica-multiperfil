@@ -6,7 +6,7 @@ from typing import NamedTuple
 
 # e5-base predice y ordena mejor que MiniLM (ver el changelog 1.2.0 del README),
 # a cambio de embeddings unas 3 veces más lentos de generar.
-MODELO_POR_DEFECTO = "BAAI/bge-m3"
+MODELO_POR_DEFECTO = "intfloat/multilingual-e5-base"
 # Modelo usado hasta la versión 1.2.0; su base de embeddings está en chroma/.
 MODELO_ANTERIOR = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 # Se puede cambiar con la variable de entorno MODELO_EMBEDDINGS para comparar modelos.
