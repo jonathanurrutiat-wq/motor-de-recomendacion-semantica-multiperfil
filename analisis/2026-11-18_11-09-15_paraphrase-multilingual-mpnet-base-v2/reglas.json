@@ -1,0 +1,224 @@
+{
+  "reglas": [
+    "Nota base = 3.08 + 0.08·Resistencia Femenina + 0.10·Contemplación Inmersiva + 0.19·Ternura y Empatía Radical + 0.17·Humanismo Social + 0.23·Vanguardia y Simbolismo",
+    "Si Camaradería Masculina Rancia supera 3.8 y su excepción no aplica: resta hasta 1.15 puntos.",
+    "Si Insoportabilidad Prolongada supera 5.1 y su excepción no aplica: resta hasta 1.43 puntos.",
+    "Si Control Emocional Artificial supera 7.1 y su excepción no aplica: resta hasta 0.65 puntos.",
+    "Si Personajes Diorama supera 8.8 y su excepción no aplica: resta hasta 1.18 puntos.",
+    "Si Caos Asfixiante supera 8.5 y su excepción no aplica: resta hasta 1.20 puntos."
+  ],
+  "parametros": {
+    "sesgo": 3.0824233148622104,
+    "afinidades": {
+      "Resistencia Femenina": {
+        "peso": 0.07760272222920922,
+        "umbral_piso": 8.0,
+        "piso": 0.0
+      },
+      "Contemplación Inmersiva": {
+        "peso": 0.097751426031819,
+        "umbral_piso": 8.0,
+        "piso": 0.0
+      },
+      "Ternura y Empatía Radical": {
+        "peso": 0.1850559039720845,
+        "umbral_piso": 8.0,
+        "piso": 0.0
+      },
+      "Humanismo Social": {
+        "peso": 0.17078605826305324,
+        "umbral_piso": 8.0,
+        "piso": 0.0
+      },
+      "Vanguardia y Simbolismo": {
+        "peso": 0.23075808931647637,
+        "umbral_piso": 8.0,
+        "piso": 0.0
+      }
+    },
+    "filtros": {
+      "Camaradería Masculina Rancia": {
+        "umbral": 3.835973367540742,
+        "desplome": 1.1458558856877867,
+        "corrupcion": 0.0
+      },
+      "Insoportabilidad Prolongada": {
+        "umbral": 5.103775771757022,
+        "desplome": 1.427863014180647,
+        "corrupcion": 0.0
+      },
+      "Control Emocional Artificial": {
+        "umbral": 7.081947669774118,
+        "desplome": 0.650298422692778,
+        "corrupcion": 0.0
+      },
+      "Personajes Diorama": {
+        "umbral": 8.778782649716584,
+        "desplome": 1.1776609402044544,
+        "corrupcion": 0.0
+      },
+      "Caos Asfixiante": {
+        "umbral": 8.487549435581442,
+        "desplome": 1.2044377543859486,
+        "corrupcion": 0.0
+      }
+    }
+  },
+  "metricas": {
+    "completo": {
+      "mse": 2.1716349202320693,
+      "mae": 1.0106831287972982,
+      "r2": 0.47332419001536286,
+      "spearman": 0.7182707618428162,
+      "ndcg@10": 0.9528087668951575,
+      "precision@10": 0.35
+    },
+    "completo_desviacion": {
+      "mse": 0.0712597984388974,
+      "mae": 0.025794579544845382,
+      "r2": 0.017282284288437217,
+      "spearman": 0.014257046626289403,
+      "ndcg@10": 0.005487359471939751,
+      "precision@10": 0.05000000000000002
+    },
+    "repeticiones": 10,
+    "etapa_2_regla": {
+      "mse": 0.31980027134645655,
+      "mae": 0.40498498711425707,
+      "r2": 0.9460290404316601,
+      "spearman": 0.9573324089852188,
+      "ndcg@10": 0.977286272158521,
+      "precision@10": 0.5
+    },
+    "etapa_2_lineal": {
+      "mse": 0.3283160704656699,
+      "mae": 0.44346645306390436,
+      "r2": 0.9445918751408988,
+      "spearman": 0.9537402380006201,
+      "ndcg@10": 0.982369895342191,
+      "precision@10": 0.7
+    },
+    "etapa_2_linea_base": {
+      "mse": 5.9896376385041545,
+      "mae": 1.9682409972299169,
+      "r2": -0.010838700841822035,
+      "spearman": 0.0,
+      "ndcg@10": 0.7194136902779898,
+      "precision@10": 0.07894736842105263
+    },
+    "etapa_1_por_criterio": {
+      "gt_afinidad_resistencia_femenina": {
+        "mse": 3.805844880788237,
+        "mae": 1.4616378383852655,
+        "r2": 0.518431006119523,
+        "spearman": 0.7323495125639086,
+        "ndcg@10": 0.9357450027449297,
+        "precision@10": 0.5
+      },
+      "gt_afinidad_contemplación_inmersiva": {
+        "mse": 3.491727260486639,
+        "mae": 1.4281129288638752,
+        "r2": 0.5583454946508304,
+        "spearman": 0.7918724920017033,
+        "ndcg@10": 0.9872758423602096,
+        "precision@10": 0.9
+      },
+      "gt_afinidad_ternura_y_empatía_radical": {
+        "mse": 3.9059640271781406,
+        "mae": 1.5267521862099338,
+        "r2": 0.357360324129247,
+        "spearman": 0.6164801681317157,
+        "ndcg@10": 0.9189388401567503,
+        "precision@10": 0.4
+      },
+      "gt_afinidad_humanismo_social": {
+        "mse": 3.454532636279676,
+        "mae": 1.3914968535458712,
+        "r2": 0.3678870777585097,
+        "spearman": 0.6711833771736285,
+        "ndcg@10": 0.9298529954326363,
+        "precision@10": 0.4
+      },
+      "gt_afinidad_vanguardia_y_simbolismo": {
+        "mse": 2.0763733814970746,
+        "mae": 1.151633994892967,
+        "r2": 0.62444917242905,
+        "spearman": 0.7629885748476927,
+        "ndcg@10": 0.9612229229103849,
+        "precision@10": 0.8
+      },
+      "gt_cols_camaradería_masculina_rancia": {
+        "mse": 1.9796123604595215,
+        "mae": 0.8230377494858571,
+        "r2": 0.19687139084287641,
+        "spearman": 0.45741366566750274,
+        "ndcg@10": 0.48604481644360875,
+        "precision@10": 0.4
+      },
+      "gt_cols_insoportabilidad_prolongada": {
+        "mse": 5.2639815599757815,
+        "mae": 1.7912298383748906,
+        "r2": 0.3160473692217357,
+        "spearman": 0.523499577414741,
+        "ndcg@10": 0.8026035861185977,
+        "precision@10": 0.5
+      },
+      "gt_cols_control_emocional_artificial": {
+        "mse": 4.215757098918046,
+        "mae": 1.6764920812283395,
+        "r2": 0.5250080307991061,
+        "spearman": 0.7158658279692915,
+        "ndcg@10": 0.9082936830637833,
+        "precision@10": 0.7
+      },
+      "gt_cols_personajes_diorama": {
+        "mse": 6.135835227402865,
+        "mae": 1.9253694286039502,
+        "r2": 0.3270251639871671,
+        "spearman": 0.5798887220260937,
+        "ndcg@10": 0.5624884051387193,
+        "precision@10": 0.2
+      },
+      "gt_cols_caos_asfixiante": {
+        "mse": 4.183756333634492,
+        "mae": 1.4643281296330033,
+        "r2": 0.4598767327539831,
+        "spearman": 0.6301351390835302,
+        "ndcg@10": 0.8132603506309367,
+        "precision@10": 0.6
+      },
+      "gt_excepcion_camaradería_masculina_rancia": {
+        "mse": 0.09369212235115809,
+        "mae": 0.18753430526270423,
+        "r2": 0.03159589562383747,
+        "spearman": 0.21148915726511164,
+        "ndcg@10": 0.07336392209936005,
+        "precision@10": 0.1
+      },
+      "gt_excepcion_insoportabilidad_prolongada": {
+        "mse": 0.17899017869284065,
+        "mae": 0.3531642024022664,
+        "r2": 0.019560380636089336,
+        "spearman": 0.19098802789444014,
+        "ndcg@10": 0.22009176629808017,
+        "precision@10": 0.1
+      },
+      "gt_excepcion_personajes_diorama": {
+        "mse": 0.007870370469534082,
+        "mae": 0.01563471953326822,
+        "r2": -0.02320964830872363,
+        "spearman": -0.13307388993333488,
+        "ndcg@10": 0.0,
+        "precision@10": 1.0
+      },
+      "gt_excepcion_caos_asfixiante": {
+        "mse": 0.04411606345719115,
+        "mae": 0.09016758071605202,
+        "r2": 0.005236569117726408,
+        "spearman": 0.15124367166144845,
+        "ndcg@10": 0.0,
+        "precision@10": 1.0
+      }
+    }
+  }
+}
