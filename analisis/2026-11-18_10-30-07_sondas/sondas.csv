@@ -1,0 +1,143 @@
+filtro,chunks,texto,métrica,rho,p
+Camaradería Masculina Rancia,todos,descripción del perfil,promedio,-0.212,0.0161
+Camaradería Masculina Rancia,todos,descripción del perfil,percentil 90,-0.186,0.0346
+Camaradería Masculina Rancia,todos,descripción del perfil,fracción sobre p95,-0.203,0.0214
+Camaradería Masculina Rancia,solo inglés,descripción del perfil,promedio,-0.191,0.0302
+Camaradería Masculina Rancia,solo inglés,descripción del perfil,percentil 90,-0.168,0.0566
+Camaradería Masculina Rancia,solo inglés,descripción del perfil,fracción sobre p95,-0.181,0.0403
+Camaradería Masculina Rancia,todos,sonda 1: sexist humor where women are only objects or jokes,promedio,-0.164,0.0639
+Camaradería Masculina Rancia,todos,sonda 1: sexist humor where women are only objects or jokes,percentil 90,-0.163,0.0646
+Camaradería Masculina Rancia,todos,sonda 1: sexist humor where women are only objects or jokes,fracción sobre p95,-0.144,0.1045
+Camaradería Masculina Rancia,solo inglés,sonda 1: sexist humor where women are only objects or jokes,promedio,-0.124,0.1602
+Camaradería Masculina Rancia,solo inglés,sonda 1: sexist humor where women are only objects or jokes,percentil 90,-0.133,0.133
+Camaradería Masculina Rancia,solo inglés,sonda 1: sexist humor where women are only objects or jokes,fracción sobre p95,-0.115,0.1955
+Camaradería Masculina Rancia,todos,sonda 2: the women are just props for the men and their friendship,promedio,-0.184,0.0364
+Camaradería Masculina Rancia,todos,sonda 2: the women are just props for the men and their friendship,percentil 90,-0.229,0.0089
+Camaradería Masculina Rancia,todos,sonda 2: the women are just props for the men and their friendship,fracción sobre p95,-0.298,0.0006
+Camaradería Masculina Rancia,solo inglés,sonda 2: the women are just props for the men and their friendship,promedio,-0.17,0.0535
+Camaradería Masculina Rancia,solo inglés,sonda 2: the women are just props for the men and their friendship,percentil 90,-0.221,0.012
+Camaradería Masculina Rancia,solo inglés,sonda 2: the women are just props for the men and their friendship,fracción sobre p95,-0.296,0.0007
+Camaradería Masculina Rancia,todos,"sonda 3: humor machista y sexista, las mujeres son un chiste",promedio,-0.106,0.2329
+Camaradería Masculina Rancia,todos,"sonda 3: humor machista y sexista, las mujeres son un chiste",percentil 90,-0.121,0.1736
+Camaradería Masculina Rancia,todos,"sonda 3: humor machista y sexista, las mujeres son un chiste",fracción sobre p95,-0.113,0.2018
+Camaradería Masculina Rancia,solo inglés,"sonda 3: humor machista y sexista, las mujeres son un chiste",promedio,-0.071,0.4242
+Camaradería Masculina Rancia,solo inglés,"sonda 3: humor machista y sexista, las mujeres son un chiste",percentil 90,-0.072,0.416
+Camaradería Masculina Rancia,solo inglés,"sonda 3: humor machista y sexista, las mujeres son un chiste",fracción sobre p95,-0.084,0.346
+Camaradería Masculina Rancia,todos,sondas combinadas,fracción sobre p95,-0.188,0.0326
+Camaradería Masculina Rancia,solo inglés,sondas combinadas,fracción sobre p95,-0.163,0.065
+Insoportabilidad Prolongada,todos,descripción del perfil,promedio,0.312,0.0003
+Insoportabilidad Prolongada,todos,descripción del perfil,percentil 90,0.346,0.0001
+Insoportabilidad Prolongada,todos,descripción del perfil,fracción sobre p95,0.333,0.0001
+Insoportabilidad Prolongada,solo inglés,descripción del perfil,promedio,0.334,0.0001
+Insoportabilidad Prolongada,solo inglés,descripción del perfil,percentil 90,0.372,0.0
+Insoportabilidad Prolongada,solo inglés,descripción del perfil,fracción sobre p95,0.39,0.0
+Insoportabilidad Prolongada,todos,"sonda 1: the main character is insufferable, arrogant and smug",promedio,0.377,0.0
+Insoportabilidad Prolongada,todos,"sonda 1: the main character is insufferable, arrogant and smug",percentil 90,0.409,0.0
+Insoportabilidad Prolongada,todos,"sonda 1: the main character is insufferable, arrogant and smug",fracción sobre p95,0.416,0.0
+Insoportabilidad Prolongada,solo inglés,"sonda 1: the main character is insufferable, arrogant and smug",promedio,0.388,0.0
+Insoportabilidad Prolongada,solo inglés,"sonda 1: the main character is insufferable, arrogant and smug",percentil 90,0.409,0.0
+Insoportabilidad Prolongada,solo inglés,"sonda 1: the main character is insufferable, arrogant and smug",fracción sobre p95,0.405,0.0
+Insoportabilidad Prolongada,todos,"sonda 2: I couldn't stand the protagonist, he is a pretentious narcissist and a creep",promedio,0.487,0.0
+Insoportabilidad Prolongada,todos,"sonda 2: I couldn't stand the protagonist, he is a pretentious narcissist and a creep",percentil 90,0.529,0.0
+Insoportabilidad Prolongada,todos,"sonda 2: I couldn't stand the protagonist, he is a pretentious narcissist and a creep",fracción sobre p95,0.534,0.0
+Insoportabilidad Prolongada,solo inglés,"sonda 2: I couldn't stand the protagonist, he is a pretentious narcissist and a creep",promedio,0.475,0.0
+Insoportabilidad Prolongada,solo inglés,"sonda 2: I couldn't stand the protagonist, he is a pretentious narcissist and a creep",percentil 90,0.516,0.0
+Insoportabilidad Prolongada,solo inglés,"sonda 2: I couldn't stand the protagonist, he is a pretentious narcissist and a creep",fracción sobre p95,0.496,0.0
+Insoportabilidad Prolongada,todos,"sonda 3: an unlikable, annoying character you have to spend the whole movie with",promedio,0.404,0.0
+Insoportabilidad Prolongada,todos,"sonda 3: an unlikable, annoying character you have to spend the whole movie with",percentil 90,0.499,0.0
+Insoportabilidad Prolongada,todos,"sonda 3: an unlikable, annoying character you have to spend the whole movie with",fracción sobre p95,0.506,0.0
+Insoportabilidad Prolongada,solo inglés,"sonda 3: an unlikable, annoying character you have to spend the whole movie with",promedio,0.414,0.0
+Insoportabilidad Prolongada,solo inglés,"sonda 3: an unlikable, annoying character you have to spend the whole movie with",percentil 90,0.506,0.0
+Insoportabilidad Prolongada,solo inglés,"sonda 3: an unlikable, annoying character you have to spend the whole movie with",fracción sobre p95,0.498,0.0
+Insoportabilidad Prolongada,todos,"sonda 4: un protagonista insoportable, arrogante y pedante",promedio,0.312,0.0003
+Insoportabilidad Prolongada,todos,"sonda 4: un protagonista insoportable, arrogante y pedante",percentil 90,0.374,0.0
+Insoportabilidad Prolongada,todos,"sonda 4: un protagonista insoportable, arrogante y pedante",fracción sobre p95,0.379,0.0
+Insoportabilidad Prolongada,solo inglés,"sonda 4: un protagonista insoportable, arrogante y pedante",promedio,0.342,0.0001
+Insoportabilidad Prolongada,solo inglés,"sonda 4: un protagonista insoportable, arrogante y pedante",percentil 90,0.393,0.0
+Insoportabilidad Prolongada,solo inglés,"sonda 4: un protagonista insoportable, arrogante y pedante",fracción sobre p95,0.406,0.0
+Insoportabilidad Prolongada,todos,sondas combinadas,fracción sobre p95,0.52,0.0
+Insoportabilidad Prolongada,solo inglés,sondas combinadas,fracción sobre p95,0.501,0.0
+Control Emocional Artificial,todos,descripción del perfil,promedio,-0.292,0.0008
+Control Emocional Artificial,todos,descripción del perfil,percentil 90,-0.255,0.0036
+Control Emocional Artificial,todos,descripción del perfil,fracción sobre p95,-0.227,0.0096
+Control Emocional Artificial,solo inglés,descripción del perfil,promedio,-0.211,0.0162
+Control Emocional Artificial,solo inglés,descripción del perfil,percentil 90,-0.195,0.0266
+Control Emocional Artificial,solo inglés,descripción del perfil,fracción sobre p95,-0.173,0.0494
+Control Emocional Artificial,todos,"sonda 1: emotionally manipulative, the music tells you exactly what to feel",promedio,-0.25,0.0043
+Control Emocional Artificial,todos,"sonda 1: emotionally manipulative, the music tells you exactly what to feel",percentil 90,-0.216,0.0141
+Control Emocional Artificial,todos,"sonda 1: emotionally manipulative, the music tells you exactly what to feel",fracción sobre p95,-0.181,0.04
+Control Emocional Artificial,solo inglés,"sonda 1: emotionally manipulative, the music tells you exactly what to feel",promedio,-0.203,0.021
+Control Emocional Artificial,solo inglés,"sonda 1: emotionally manipulative, the music tells you exactly what to feel",percentil 90,-0.164,0.0633
+Control Emocional Artificial,solo inglés,"sonda 1: emotionally manipulative, the music tells you exactly what to feel",fracción sobre p95,-0.145,0.1009
+Control Emocional Artificial,todos,"sonda 2: so sweet, whimsical and quirky that it becomes saccharine and twee",promedio,-0.225,0.0102
+Control Emocional Artificial,todos,"sonda 2: so sweet, whimsical and quirky that it becomes saccharine and twee",percentil 90,-0.215,0.0145
+Control Emocional Artificial,todos,"sonda 2: so sweet, whimsical and quirky that it becomes saccharine and twee",fracción sobre p95,-0.157,0.0752
+Control Emocional Artificial,solo inglés,"sonda 2: so sweet, whimsical and quirky that it becomes saccharine and twee",promedio,-0.153,0.0838
+Control Emocional Artificial,solo inglés,"sonda 2: so sweet, whimsical and quirky that it becomes saccharine and twee",percentil 90,-0.126,0.1561
+Control Emocional Artificial,solo inglés,"sonda 2: so sweet, whimsical and quirky that it becomes saccharine and twee",fracción sobre p95,-0.089,0.3181
+Control Emocional Artificial,todos,"sonda 3: technically perfect but cold, calculated and polished",promedio,0.214,0.0148
+Control Emocional Artificial,todos,"sonda 3: technically perfect but cold, calculated and polished",percentil 90,0.247,0.0047
+Control Emocional Artificial,todos,"sonda 3: technically perfect but cold, calculated and polished",fracción sobre p95,0.254,0.0037
+Control Emocional Artificial,solo inglés,"sonda 3: technically perfect but cold, calculated and polished",promedio,0.242,0.0058
+Control Emocional Artificial,solo inglés,"sonda 3: technically perfect but cold, calculated and polished",percentil 90,0.239,0.0064
+Control Emocional Artificial,solo inglés,"sonda 3: technically perfect but cold, calculated and polished",fracción sobre p95,0.252,0.004
+Control Emocional Artificial,todos,sonda 4: Oscar bait designed to make you cry,promedio,0.454,0.0
+Control Emocional Artificial,todos,sonda 4: Oscar bait designed to make you cry,percentil 90,0.466,0.0
+Control Emocional Artificial,todos,sonda 4: Oscar bait designed to make you cry,fracción sobre p95,0.515,0.0
+Control Emocional Artificial,solo inglés,sonda 4: Oscar bait designed to make you cry,promedio,0.492,0.0
+Control Emocional Artificial,solo inglés,sonda 4: Oscar bait designed to make you cry,percentil 90,0.522,0.0
+Control Emocional Artificial,solo inglés,sonda 4: Oscar bait designed to make you cry,fracción sobre p95,0.537,0.0
+Control Emocional Artificial,todos,sondas combinadas,fracción sobre p95,0.209,0.0173
+Control Emocional Artificial,solo inglés,sondas combinadas,fracción sobre p95,0.292,0.0008
+Personajes Diorama,todos,descripción del perfil,promedio,-0.373,0.0
+Personajes Diorama,todos,descripción del perfil,percentil 90,-0.341,0.0001
+Personajes Diorama,todos,descripción del perfil,fracción sobre p95,-0.287,0.001
+Personajes Diorama,solo inglés,descripción del perfil,promedio,-0.35,0.0
+Personajes Diorama,solo inglés,descripción del perfil,percentil 90,-0.325,0.0002
+Personajes Diorama,solo inglés,descripción del perfil,fracción sobre p95,-0.234,0.0076
+Personajes Diorama,todos,sonda 1: beautiful and symmetrical but emotionally hollow,promedio,-0.289,0.0009
+Personajes Diorama,todos,sonda 1: beautiful and symmetrical but emotionally hollow,percentil 90,-0.277,0.0015
+Personajes Diorama,todos,sonda 1: beautiful and symmetrical but emotionally hollow,fracción sobre p95,-0.257,0.0033
+Personajes Diorama,solo inglés,sonda 1: beautiful and symmetrical but emotionally hollow,promedio,-0.267,0.0022
+Personajes Diorama,solo inglés,sonda 1: beautiful and symmetrical but emotionally hollow,percentil 90,-0.273,0.0018
+Personajes Diorama,solo inglés,sonda 1: beautiful and symmetrical but emotionally hollow,fracción sobre p95,-0.194,0.0275
+Personajes Diorama,todos,"sonda 2: style over substance, the characters feel like dolls in a dollhouse",promedio,0.021,0.8137
+Personajes Diorama,todos,"sonda 2: style over substance, the characters feel like dolls in a dollhouse",percentil 90,0.009,0.9235
+Personajes Diorama,todos,"sonda 2: style over substance, the characters feel like dolls in a dollhouse",fracción sobre p95,0.035,0.6956
+Personajes Diorama,solo inglés,"sonda 2: style over substance, the characters feel like dolls in a dollhouse",promedio,0.039,0.6587
+Personajes Diorama,solo inglés,"sonda 2: style over substance, the characters feel like dolls in a dollhouse",percentil 90,0.056,0.5296
+Personajes Diorama,solo inglés,"sonda 2: style over substance, the characters feel like dolls in a dollhouse",fracción sobre p95,0.074,0.4029
+Personajes Diorama,todos,sonda 3: the characters have no personality beyond their job or quirk,promedio,0.113,0.2026
+Personajes Diorama,todos,sonda 3: the characters have no personality beyond their job or quirk,percentil 90,0.114,0.1982
+Personajes Diorama,todos,sonda 3: the characters have no personality beyond their job or quirk,fracción sobre p95,0.101,0.2567
+Personajes Diorama,solo inglés,sonda 3: the characters have no personality beyond their job or quirk,promedio,0.122,0.1695
+Personajes Diorama,solo inglés,sonda 3: the characters have no personality beyond their job or quirk,percentil 90,0.144,0.1033
+Personajes Diorama,solo inglés,sonda 3: the characters have no personality beyond their job or quirk,fracción sobre p95,0.14,0.1146
+Personajes Diorama,todos,sondas combinadas,fracción sobre p95,-0.057,0.5225
+Personajes Diorama,solo inglés,sondas combinadas,fracción sobre p95,0.005,0.9552
+Caos Asfixiante,todos,descripción del perfil,promedio,0.185,0.0357
+Caos Asfixiante,todos,descripción del perfil,percentil 90,0.141,0.1113
+Caos Asfixiante,todos,descripción del perfil,fracción sobre p95,0.144,0.1035
+Caos Asfixiante,solo inglés,descripción del perfil,promedio,0.233,0.0079
+Caos Asfixiante,solo inglés,descripción del perfil,percentil 90,0.212,0.0161
+Caos Asfixiante,solo inglés,descripción del perfil,fracción sobre p95,0.187,0.0337
+Caos Asfixiante,todos,"sonda 1: chaotic, frantic and exhausting, it never lets you breathe",promedio,0.032,0.7164
+Caos Asfixiante,todos,"sonda 1: chaotic, frantic and exhausting, it never lets you breathe",percentil 90,0.038,0.6675
+Caos Asfixiante,todos,"sonda 1: chaotic, frantic and exhausting, it never lets you breathe",fracción sobre p95,0.019,0.8321
+Caos Asfixiante,solo inglés,"sonda 1: chaotic, frantic and exhausting, it never lets you breathe",promedio,0.078,0.3784
+Caos Asfixiante,solo inglés,"sonda 1: chaotic, frantic and exhausting, it never lets you breathe",percentil 90,0.079,0.3711
+Caos Asfixiante,solo inglés,"sonda 1: chaotic, frantic and exhausting, it never lets you breathe",fracción sobre p95,0.062,0.4828
+Caos Asfixiante,todos,"sonda 2: overstimulating, loud and relentless, too much happening at once",promedio,0.088,0.3239
+Caos Asfixiante,todos,"sonda 2: overstimulating, loud and relentless, too much happening at once",percentil 90,0.109,0.2172
+Caos Asfixiante,todos,"sonda 2: overstimulating, loud and relentless, too much happening at once",fracción sobre p95,0.118,0.1812
+Caos Asfixiante,solo inglés,"sonda 2: overstimulating, loud and relentless, too much happening at once",promedio,0.154,0.0812
+Caos Asfixiante,solo inglés,"sonda 2: overstimulating, loud and relentless, too much happening at once",percentil 90,0.158,0.0731
+Caos Asfixiante,solo inglés,"sonda 2: overstimulating, loud and relentless, too much happening at once",fracción sobre p95,0.152,0.0857
+Caos Asfixiante,todos,"sonda 3: caótica y agotadora, no da respiro",promedio,0.014,0.8728
+Caos Asfixiante,todos,"sonda 3: caótica y agotadora, no da respiro",percentil 90,0.013,0.888
+Caos Asfixiante,todos,"sonda 3: caótica y agotadora, no da respiro",fracción sobre p95,0.02,0.8258
+Caos Asfixiante,solo inglés,"sonda 3: caótica y agotadora, no da respiro",promedio,0.057,0.5181
+Caos Asfixiante,solo inglés,"sonda 3: caótica y agotadora, no da respiro",percentil 90,0.029,0.7445
+Caos Asfixiante,solo inglés,"sonda 3: caótica y agotadora, no da respiro",fracción sobre p95,0.072,0.4186
+Caos Asfixiante,todos,sondas combinadas,fracción sobre p95,0.063,0.4748
+Caos Asfixiante,solo inglés,sondas combinadas,fracción sobre p95,0.109,0.2187
